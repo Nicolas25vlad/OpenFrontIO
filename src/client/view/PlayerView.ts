@@ -4,6 +4,7 @@ import { ColorPalette } from "../../core/CosmeticSchemas";
 import { PatternDecoder } from "../../core/PatternDecoder";
 import { ClientID, PlayerCosmetics } from "../../core/Schemas";
 import { createRandomName } from "../../core/Util";
+import { emptyResourceRates, FULL_SUPPLY } from "../../core/game/Economy";
 import {
   BuildableUnit,
   Cell,
@@ -27,6 +28,12 @@ import {
   AttackUpdate,
   PlayerUpdate,
 } from "../../core/game/GameUpdates";
+import {
+  cloneResourceStock,
+  emptyResourceStock,
+  ResourceStock,
+  ResourceType,
+} from "../../core/game/Resources";
 import { UserSettings } from "../../core/game/UserSettings";
 import { PlayerState, PlayerStatic, PlayerTypeEnum } from "../render/types";
 import { themeProvider } from "../theme/ThemeProvider";
@@ -85,7 +92,15 @@ function stateFromUpdate(pu: PlayerUpdate): PlayerState {
     trainGold: Number(pu.trainGold ?? 0n),
     piracyGold: Number(pu.piracyGold ?? 0n),
     goldEarned: Number(pu.goldEarned ?? 0n),
+    resources: cloneResourceStock(pu.resources ?? emptyResourceStock()),
+    resourceRates: pu.resourceRates
+      ? {
+          production: cloneResourceStock(pu.resourceRates.production),
+          consumption: cloneResourceStock(pu.resourceRates.consumption),
+        }
+      : emptyResourceRates(),
     troops: pu.troops!,
+    supply: pu.supply ? { ...pu.supply } : undefined,
     isTraitor: pu.isTraitor!,
     traitorRemainingTicks: Math.max(0, pu.traitorRemainingTicks ?? 0),
     inDoomsdayClock: pu.inDoomsdayClock ?? false,
@@ -511,6 +526,22 @@ export class PlayerView {
     // Engine Gold is bigint; renderer state stores number. Convert back at the
     // accessor for game-code that still expects bigint semantics.
     return BigInt(this.state.gold);
+  }
+
+  resourceStock(): Readonly<ResourceStock> {
+    return this.state.resources;
+  }
+
+  resourceAmount(resource: ResourceType): number {
+    return this.state.resources[resource];
+  }
+
+  resourceRates() {
+    return this.state.resourceRates;
+  }
+
+  supplyStatus() {
+    return this.state.supply ?? FULL_SUPPLY;
   }
 
   /** Cumulative ship-trade revenue (for gold-rate columns). */

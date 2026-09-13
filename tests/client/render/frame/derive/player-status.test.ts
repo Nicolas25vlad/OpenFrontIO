@@ -21,6 +21,7 @@ import {
   UT_ATOM_BOMB,
   UT_WARSHIP,
 } from "../../../../../src/client/render/types";
+import { emptyResourceStock } from "../../../../../src/core/game/Resources";
 
 function ps(overrides: Partial<PlayerState> = {}): PlayerState {
   return {
@@ -35,6 +36,7 @@ function ps(overrides: Partial<PlayerState> = {}): PlayerState {
     trainGold: 0,
     piracyGold: 0,
     goldEarned: 0,
+    resources: emptyResourceStock(),
     troops: 0,
     isTraitor: false,
     traitorRemainingTicks: 0,

@@ -1,4 +1,5 @@
 import type { PlayerState } from "../../client/render/types";
+import { resourceRatesEqual, supplyEqual } from "./Economy";
 import type { EmojiMessage } from "./Game";
 import {
   AllianceView,
@@ -6,6 +7,7 @@ import {
   GameUpdateType,
   PlayerUpdate,
 } from "./GameUpdates";
+import { cloneResourceStock, resourceStockEqual } from "./Resources";
 
 /**
  * Build a partial PlayerUpdate containing only fields whose value differs
@@ -51,6 +53,9 @@ export function diffPlayerUpdate(
     prev.tradeGold === next.tradeGold &&
     prev.trainGold === next.trainGold &&
     prev.piracyGold === next.piracyGold &&
+    resourceStockEqual(prev.resources, next.resources) &&
+    resourceRatesEqual(prev.resourceRates, next.resourceRates) &&
+    supplyEqual(prev.supply, next.supply) &&
     prev.isTraitor === next.isTraitor &&
     prev.traitorRemainingTicks === next.traitorRemainingTicks &&
     prev.inDoomsdayClock === next.inDoomsdayClock &&
@@ -90,6 +95,7 @@ export function diffPlayerUpdate(
   };
 
   setIfDifferent("clientID", prev.clientID === next.clientID);
+  setIfDifferent("supply", supplyEqual(prev.supply, next.supply));
   setIfDifferent("name", prev.name === next.name);
   setIfDifferent("displayName", prev.displayName === next.displayName);
   setIfDifferent("clanTag", prev.clanTag === next.clanTag);
@@ -104,6 +110,14 @@ export function diffPlayerUpdate(
   setIfDifferent("tradeGold", prev.tradeGold === next.tradeGold);
   setIfDifferent("trainGold", prev.trainGold === next.trainGold);
   setIfDifferent("piracyGold", prev.piracyGold === next.piracyGold);
+  setIfDifferent(
+    "resources",
+    resourceStockEqual(prev.resources, next.resources),
+  );
+  setIfDifferent(
+    "resourceRates",
+    resourceRatesEqual(prev.resourceRates, next.resourceRates),
+  );
   // tilesOwned / gold / troops / goldEarned intentionally absent — see
   // EXCEPTION above (goldEarned churns every tick via worker income).
   setIfDifferent("isTraitor", prev.isTraitor === next.isTraitor);
@@ -182,7 +196,16 @@ export function applyStateUpdate(target: PlayerState, pu: PlayerUpdate): void {
   if (pu.trainGold !== undefined) target.trainGold = Number(pu.trainGold);
   if (pu.piracyGold !== undefined) target.piracyGold = Number(pu.piracyGold);
   if (pu.goldEarned !== undefined) target.goldEarned = Number(pu.goldEarned);
+  if (pu.resources !== undefined) {
+    target.resources = cloneResourceStock(pu.resources);
+  }
+  if (pu.resourceRates !== undefined)
+    target.resourceRates = {
+      production: cloneResourceStock(pu.resourceRates.production),
+      consumption: cloneResourceStock(pu.resourceRates.consumption),
+    };
   if (pu.troops !== undefined) target.troops = pu.troops;
+  if (pu.supply !== undefined) target.supply = { ...pu.supply };
   if (pu.isTraitor !== undefined) target.isTraitor = pu.isTraitor;
   if (pu.traitorRemainingTicks !== undefined) {
     target.traitorRemainingTicks = Math.max(0, pu.traitorRemainingTicks);

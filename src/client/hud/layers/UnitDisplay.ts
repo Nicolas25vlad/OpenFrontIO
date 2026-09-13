@@ -1,5 +1,5 @@
 import { html, LitElement } from "lit";
-import { customElement } from "lit/decorators.js";
+import { customElement, state } from "lit/decorators.js";
 import { EventBus } from "../../../core/EventBus";
 import {
   BuildableUnit,
@@ -10,24 +10,18 @@ import {
 } from "../../../core/game/Game";
 import { UserSettings } from "../../../core/game/UserSettings";
 import { Controller } from "../../Controller";
-import { ToggleStructureEvent } from "../../InputHandler";
+import {
+  SelectBuildCategoryEvent,
+  ToggleStructureEvent,
+} from "../../InputHandler";
+import { Platform } from "../../Platform";
 import { UIState } from "../../UIState";
 import { renderNumber, translateText } from "../../Utils";
 import { GameView } from "../../view";
-import {
-  atomBombIcon,
-  cityIcon,
-  defensePostIcon,
-  factoryIcon,
-  goldCoinIcon,
-  hydrogenBombIcon,
-  mirvIcon,
-  missileSiloIcon,
-  portIcon,
-  samLauncherIcon,
-  warshipIcon,
-} from "../HotbarIcons";
+import { BUILD_CATEGORIES, BuildCategoryId } from "../BuildCategories";
+import { goldCoinIcon } from "../HotbarIcons";
 import { TutorialHighlight, TutorialHighlightEvent } from "../Tutorial";
+import { flattenedBuildTable } from "./BuildMenu";
 
 @customElement("unit-display")
 export class UnitDisplay extends LitElement implements Controller {
@@ -35,17 +29,13 @@ export class UnitDisplay extends LitElement implements Controller {
   public eventBus: EventBus;
   public uiState: UIState;
   private playerBuildables: BuildableUnit[] | null = null;
-  private keybinds: Record<string, { value: string; key: string }> = {};
-  private _cities = 0;
-  private _warships = 0;
-  private _factories = 0;
-  private _missileSilo = 0;
-  private _port = 0;
-  private _defensePost = 0;
-  private _samLauncher = 0;
+  private keybinds: Record<string, string> = {};
   private allDisabled = false;
   private _hoveredUnit: PlayerBuildableUnitType | null = null;
   private tutorialHighlight: PlayerBuildableUnitType | null = null;
+
+  @state()
+  private selectedCategory: BuildCategoryId = "civil";
 
   createRenderRoot() {
     return this;
@@ -55,8 +45,15 @@ export class UnitDisplay extends LitElement implements Controller {
     const config = this.game.config();
     const userSettings = new UserSettings();
 
-    this.keybinds = userSettings.parsedUserKeybinds();
+    this.keybinds = userSettings.keybinds(Platform.isMac);
+    if (config.strategicEconomy())
+      this.uiState.buildCategory = this.selectedCategory;
 
+    this.eventBus.on(SelectBuildCategoryEvent, (event) => {
+      this.selectedCategory = event.category;
+      this.uiState.buildCategory = event.category;
+      this.requestUpdate();
+    });
     this.allDisabled = BuildMenus.types.every((u) => config.isUnitDisabled(u));
 
     const highlightUnits: Partial<
@@ -75,6 +72,12 @@ export class UnitDisplay extends LitElement implements Controller {
     };
     this.eventBus.on(TutorialHighlightEvent, (e) => {
       this.tutorialHighlight = (e.target && highlightUnits[e.target]) ?? null;
+      if (this.tutorialHighlight) {
+        const category = BUILD_CATEGORIES.find((c) =>
+          c.unitTypes.includes(this.tutorialHighlight!),
+        );
+        if (category) this.selectedCategory = category.id;
+      }
       this.requestUpdate();
     });
     this.requestUpdate();
@@ -91,6 +94,10 @@ export class UnitDisplay extends LitElement implements Controller {
 
   private canBuild(item: UnitType): boolean {
     if (this.game?.config().isUnitDisabled(item)) return false;
+    if (
+      this.playerBuildables?.find((bu) => bu.type === item)?.resourceLimit === 0
+    )
+      return false;
     const player = this.game?.myPlayer();
     switch (item) {
       case UnitType.AtomBomb:
@@ -115,15 +122,8 @@ export class UnitDisplay extends LitElement implements Controller {
     if (!player) return;
     player.buildables(undefined, BuildMenus.types).then((buildables) => {
       this.playerBuildables = buildables;
+      this.requestUpdate();
     });
-    this._cities = player.totalUnitLevels(UnitType.City);
-    this._missileSilo = player.totalUnitLevels(UnitType.MissileSilo);
-    this._port = player.totalUnitLevels(UnitType.Port);
-    this._defensePost = player.totalUnitLevels(UnitType.DefensePost);
-    this._samLauncher = player.totalUnitLevels(UnitType.SAMLauncher);
-    this._factories = player.totalUnitLevels(UnitType.Factory);
-    this._warships = player.totalUnitLevels(UnitType.Warship);
-    this.requestUpdate();
   }
 
   render() {
@@ -140,79 +140,72 @@ export class UnitDisplay extends LitElement implements Controller {
       return null;
     }
 
+    const category = BUILD_CATEGORIES.find(
+      (entry) => entry.id === this.selectedCategory,
+    )!;
+    const legacyKeys: Partial<Record<UnitType, string>> = {
+      [UnitType.City]: "buildCity",
+      [UnitType.Factory]: "buildFactory",
+      [UnitType.Port]: "buildPort",
+      [UnitType.DefensePost]: "buildDefensePost",
+      [UnitType.MissileSilo]: "buildMissileSilo",
+      [UnitType.SAMLauncher]: "buildSamLauncher",
+      [UnitType.Warship]: "buildWarship",
+      [UnitType.AtomBomb]: "buildAtomBomb",
+      [UnitType.HydrogenBomb]: "buildHydrogenBomb",
+      [UnitType.MIRV]: "buildMIRV",
+    };
+
     return html`
       <div class="border-t border-white/10 p-0.5 w-full">
-        <div class="grid grid-rows-1 grid-flow-col gap-0.5 w-fit mx-auto">
-          ${this.renderUnitItem(
-            cityIcon,
-            this._cities,
-            UnitType.City,
-            "city",
-            this.keybinds["buildCity"]?.key ?? "1",
-          )}
-          ${this.renderUnitItem(
-            factoryIcon,
-            this._factories,
-            UnitType.Factory,
-            "factory",
-            this.keybinds["buildFactory"]?.key ?? "2",
-          )}
-          ${this.renderUnitItem(
-            portIcon,
-            this._port,
-            UnitType.Port,
-            "port",
-            this.keybinds["buildPort"]?.key ?? "3",
-          )}
-          ${this.renderUnitItem(
-            defensePostIcon,
-            this._defensePost,
-            UnitType.DefensePost,
-            "defense_post",
-            this.keybinds["buildDefensePost"]?.key ?? "4",
-          )}
-          ${this.renderUnitItem(
-            missileSiloIcon,
-            this._missileSilo,
-            UnitType.MissileSilo,
-            "missile_silo",
-            this.keybinds["buildMissileSilo"]?.key ?? "5",
-          )}
-          ${this.renderUnitItem(
-            samLauncherIcon,
-            this._samLauncher,
-            UnitType.SAMLauncher,
-            "sam_launcher",
-            this.keybinds["buildSamLauncher"]?.key ?? "6",
-          )}
-          ${this.renderUnitItem(
-            warshipIcon,
-            this._warships,
-            UnitType.Warship,
-            "warship",
-            this.keybinds["buildWarship"]?.key ?? "7",
-          )}
-          ${this.renderUnitItem(
-            atomBombIcon,
-            null,
-            UnitType.AtomBomb,
-            "atom_bomb",
-            this.keybinds["buildAtomBomb"]?.key ?? "8",
-          )}
-          ${this.renderUnitItem(
-            hydrogenBombIcon,
-            null,
-            UnitType.HydrogenBomb,
-            "hydrogen_bomb",
-            this.keybinds["buildHydrogenBomb"]?.key ?? "9",
-          )}
-          ${this.renderUnitItem(
-            mirvIcon,
-            null,
-            UnitType.MIRV,
-            "mirv",
-            this.keybinds["buildMIRV"]?.key ?? "0",
-          )}
+        <div class="flex justify-center gap-0.5 mb-0.5">
+          ${category.unitTypes
+            .filter((type) => !this.game.config().isUnitDisabled(type))
+            .map((unitType, index) => {
+              const item = flattenedBuildTable.find(
+                (entry) => entry.unitType === unitType,
+              )!;
+              return this.renderUnitItem(
+                item.icon,
+                item.countable ? myPlayer.totalUnitLevels(unitType) : null,
+                unitType,
+                item.key!.replace("unit_type.", ""),
+                this.uiState.buildCategory
+                  ? `Digit${index + 1}`
+                  : (this.keybinds[legacyKeys[unitType] ?? ""] ?? ""),
+              );
+            })}
+        </div>
+        <div class="flex justify-center gap-0.5">
+          ${BUILD_CATEGORIES.map((entry) => {
+            const enabled = entry.unitTypes.some(
+              (unitType) => !this.game.config().isUnitDisabled(unitType),
+            );
+            return html`
+              <button
+                class="border rounded-sm px-1.5 py-0.5 text-white text-[10px] flex items-center gap-1 ${this
+                  .selectedCategory === entry.id
+                  ? "bg-slate-400/20 border-slate-300"
+                  : "border-slate-500 hover:bg-gray-800"} ${enabled
+                  ? ""
+                  : "opacity-40"}"
+                ?disabled=${!enabled}
+                title=${translateText(entry.translationKey)}
+                @click=${() => {
+                  if (enabled)
+                    this.eventBus.emit(new SelectBuildCategoryEvent(entry.id));
+                }}
+              >
+                <span
+                  >${this.displayHotkey(
+                    this.keybinds[entry.keybind] ?? "",
+                  )}</span
+                >
+                <img src=${entry.icon} alt="" class="size-4" />
+                <span>${translateText(entry.translationKey)}</span>
+              </button>
+            `;
+          })}
         </div>
       </div>
     `;
@@ -230,10 +223,7 @@ export class UnitDisplay extends LitElement implements Controller {
     }
     const selected = this.uiState.ghostStructure === unitType;
     const hovered = this._hoveredUnit === unitType;
-    const displayHotkey = hotkey
-      .replace("Digit", "")
-      .replace("Key", "")
-      .toUpperCase();
+    const displayHotkey = this.displayHotkey(hotkey);
 
     return html`
       <div
@@ -273,10 +263,29 @@ export class UnitDisplay extends LitElement implements Controller {
                     >${renderNumber(this.cost(unitType))}</span
                   >
                 </div>
+                ${Object.entries(this.game.config().resourceCost(unitType)).map(
+                  ([resource, amount]) => html`
+                    <div class="text-xs text-amber-200">
+                      ${translateText(`resource.${resource}`)}: ${amount}
+                    </div>
+                  `,
+                )}
               </div>
             `
           : null}
-        <div
+        <button
+          type="button"
+          aria-label=${translateText("unit_type." + structureKey)}
+          aria-pressed=${selected}
+          aria-disabled=${!this.canBuild(unitType)}
+          @focus=${() => {
+            this._hoveredUnit = unitType;
+            this.requestUpdate();
+          }}
+          @blur=${() => {
+            this._hoveredUnit = null;
+            this.requestUpdate();
+          }}
           class="${this.canBuild(unitType)
             ? ""
             : "opacity-40"} border border-slate-500 rounded-sm px-0.5 pb-0.5 flex items-center gap-0.5 cursor-pointer
@@ -321,8 +330,16 @@ export class UnitDisplay extends LitElement implements Controller {
               ? html`<span class="text-xs">${renderNumber(number)}</span>`
               : null}
           </div>
-        </div>
+        </button>
       </div>
     `;
+  }
+
+  private displayHotkey(hotkey: string): string {
+    return hotkey
+      .replace("Shift+", "⇧ ")
+      .replace("Digit", "")
+      .replace("Key", "")
+      .toUpperCase();
   }
 }

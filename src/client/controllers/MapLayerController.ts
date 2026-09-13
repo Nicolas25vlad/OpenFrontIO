@@ -14,6 +14,7 @@ import {
 } from "../../core/game/TerrainMapLoader";
 import { UserSettings } from "../../core/game/UserSettings";
 import { Controller } from "../Controller";
+import { createResourceMapImage, RESOURCE_MAP_LAYER_ID } from "../ResourceMap";
 import { MapRenderer } from "../render/gl";
 
 export class MapLayerController implements Controller {
@@ -24,32 +25,29 @@ export class MapLayerController implements Controller {
     private readonly gameMapType: GameMapType,
     private readonly gameMapSize: GameMapSize,
     private readonly mapLoader: GameMapLoader,
+    private readonly matchSeed: string,
     private readonly abortSignal: AbortSignal,
   ) {}
 
   init() {
-    if (!this.gameMap.layers?.length) return;
-
     if (this.gameMap.layerImages) {
-      // Images already loaded (e.g. from cache) — set up immediately.
-      this.view.setMapLayers(this.gameMap.layers, this.gameMap.layerImages);
-      this.applyVisibility();
-      this.applyAlpha();
+      void this.installLayers(
+        this.gameMap.layers ?? [],
+        this.gameMap.layerImages,
+      );
     } else {
-      // Layer images loaded off the critical path. Start fetching now;
-      // the renderer tolerates missing layers (warn + skip) until they
-      // arrive.
-      loadLayerImages(
-        this.gameMapType,
-        this.gameMapSize,
-        this.mapLoader,
-        this.gameMap.layers,
-      )
+      const baseImages = this.gameMap.layers?.length
+        ? loadLayerImages(
+            this.gameMapType,
+            this.gameMapSize,
+            this.mapLoader,
+            this.gameMap.layers,
+          )
+        : Promise.resolve(new Map<string, ImageBitmap>());
+      baseImages
         .then((images) => {
           if (!this.abortSignal.aborted) {
-            this.view.setMapLayers(this.gameMap.layers!, images);
-            this.applyVisibility();
-            this.applyAlpha();
+            void this.installLayers(this.gameMap.layers ?? [], images);
           }
         })
         .catch((e) =>
@@ -58,10 +56,36 @@ export class MapLayerController implements Controller {
     }
   }
 
-  private applyVisibility() {
+  private async installLayers(
+    baseLayers: NonNullable<TerrainMapData["layers"]>,
+    baseImages: Map<string, ImageBitmap>,
+  ) {
+    const layers = [...baseLayers];
+    const images = new Map(baseImages);
+    try {
+      images.set(
+        RESOURCE_MAP_LAYER_ID,
+        await createResourceMapImage(this.gameMap.gameMap, this.matchSeed),
+      );
+      layers.push({
+        id: RESOURCE_MAP_LAYER_ID,
+        placement: "land",
+        alpha: 0.95,
+      });
+    } catch (e) {
+      console.warn("[MapLayerController] Failed to create resource map:", e);
+    }
+    if (this.abortSignal.aborted) return;
+    this.view.setMapLayers(layers, images);
+    this.applyVisibility(layers);
+    this.applyAlpha(layers);
+    this.view.setLayerVisible(RESOURCE_MAP_LAYER_ID, false);
+  }
+
+  private applyVisibility(layers: NonNullable<TerrainMapData["layers"]>) {
     const overrides = this.userSettings.graphicsOverrides();
-    if (!overrides.mapLayerVisibility || !this.gameMap.layers) return;
-    for (const layer of this.gameMap.layers) {
+    if (!overrides.mapLayerVisibility) return;
+    for (const layer of layers) {
       const vis = overrides.mapLayerVisibility[layer.id];
       if (vis !== undefined) {
         this.view.setLayerVisible(layer.id, vis);
@@ -69,10 +93,9 @@ export class MapLayerController implements Controller {
     }
   }
 
-  private applyAlpha() {
+  private applyAlpha(layers: NonNullable<TerrainMapData["layers"]>) {
     const overrides = this.userSettings.graphicsOverrides();
-    if (!this.gameMap.layers) return;
-    for (const layer of this.gameMap.layers) {
+    for (const layer of layers) {
       const alpha = overrides.mapLayerAlpha?.[layer.id];
       if (alpha !== undefined) {
         this.view.setLayerAlpha(layer.id, alpha);

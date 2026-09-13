@@ -6,6 +6,7 @@ import { BuildPreviewController } from "../controllers/BuildPreviewController";
 import { HoverHighlightController } from "../controllers/HoverHighlightController";
 import { LiveStatsController } from "../controllers/LiveStatsController";
 import { MapLayerController } from "../controllers/MapLayerController";
+import { ResourceMapController } from "../controllers/ResourceMapController";
 import { SoundEffectController } from "../controllers/SoundEffectController";
 import { StructureHighlightController } from "../controllers/StructureHighlightController";
 import { ViewModeController } from "../controllers/ViewModeController";
@@ -39,6 +40,7 @@ import { PerformanceOverlay } from "./layers/PerformanceOverlay";
 import { PlayerInfoOverlay } from "./layers/PlayerInfoOverlay";
 import { PlayerPanel } from "./layers/PlayerPanel";
 import { ReplayPanel } from "./layers/ReplayPanel";
+import { ResourcePanel } from "./layers/ResourcePanel";
 import { SettingsModal } from "./layers/SettingsModal";
 import { SpawnTimer } from "./layers/SpawnTimer";
 import { TutorialPanel } from "./layers/TutorialPanel";
@@ -183,6 +185,16 @@ export function createRenderer(
   }
   gameRightSidebar.game = game;
   gameRightSidebar.eventBus = eventBus;
+
+  const resourcePanel = document.querySelector(
+    "resource-panel",
+  ) as ResourcePanel | null;
+  if (!(resourcePanel instanceof ResourcePanel)) {
+    console.error("resource panel not found");
+  } else {
+    resourcePanel.game = game;
+    resourcePanel.eventBus = eventBus;
+  }
 
   const settingsModal = document.querySelector(
     "settings-modal",
@@ -330,6 +342,7 @@ export function createRenderer(
     new AttackingTroopsController(game, eventBus, userSettings, view),
     new SoundEffectController(game, eventBus),
     ...(mapLayerController ? [mapLayerController] : []),
+    new ResourceMapController(eventBus, view),
     eventsDisplay,
     actionableEvents,
     attacksDisplay,
@@ -349,6 +362,7 @@ export function createRenderer(
     gameLeftSidebar,
     unitDisplay,
     gameRightSidebar,
+    ...(resourcePanel instanceof ResourcePanel ? [resourcePanel] : []),
     controlPanel,
     playerInfo,
     winModal,

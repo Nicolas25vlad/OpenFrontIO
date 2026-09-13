@@ -118,6 +118,14 @@ const unitOptions: { type: UnitType; translationKey: string }[] = [
   { type: UnitType.HydrogenBomb, translationKey: "unit_type.hydrogen_bomb" },
   { type: UnitType.MIRV, translationKey: "unit_type.mirv" },
   { type: UnitType.Factory, translationKey: "unit_type.factory" },
+  { type: UnitType.Mine, translationKey: "unit_type.mine" },
+  { type: UnitType.Farm, translationKey: "unit_type.farm" },
+  { type: UnitType.Infrastructure, translationKey: "unit_type.infrastructure" },
+  {
+    type: UnitType.VehicleFactory,
+    translationKey: "unit_type.vehicle_factory",
+  },
+  { type: UnitType.NuclearPlant, translationKey: "unit_type.nuclear_plant" },
 ];
 
 const MAP_ICON = svg`<path

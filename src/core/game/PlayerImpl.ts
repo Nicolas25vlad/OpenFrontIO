@@ -8,7 +8,17 @@ import {
   toInt,
   within,
 } from "../Util";
+import { ECONOMY } from "../configuration/StrategyConfig";
 import { AttackImpl } from "./AttackImpl";
+import {
+  consumeResources,
+  emptyResourceRates,
+  FULL_SUPPLY,
+  hasResources,
+  ResourceRates,
+  resourceRatesEqual,
+  SupplyStatus,
+} from "./Economy";
 import {
   Alliance,
   AllianceInfo,
@@ -56,6 +66,13 @@ import {
   GameUpdateType,
   PlayerUpdate,
 } from "./GameUpdates";
+import {
+  emptyResourceStock,
+  ProcessedResource,
+  ResourceStock,
+  ResourceType,
+  STOCK_RESOURCES,
+} from "./Resources";
 import { ReadonlyTileSet, TileSet } from "./TileSet";
 import {
   bumpTraversalGeneration,
@@ -118,6 +135,12 @@ export class PlayerImpl implements Player {
 
   private _gold: bigint;
   private _troops: bigint;
+  /** Replaced on mutation so the previous PlayerUpdate remains an immutable snapshot. */
+  private _resources: ResourceStock = emptyResourceStock();
+  private _supply: Readonly<SupplyStatus> = FULL_SUPPLY;
+  private lastEconomyTick = -1;
+  private _resourceRates = emptyResourceRates();
+  private _periodRates = emptyResourceRates();
 
   /** Cumulative ship-trade revenue (arrival credit for src + dst port owners). */
   private _tradeGold: bigint = 0n;
@@ -197,6 +220,8 @@ export class PlayerImpl implements Player {
   ) {
     this._troops = toInt(startTroops);
     this._gold = mg.config().startingGold(playerInfo);
+    if (mg.config().strategicEconomy())
+      this._resources = { ...this._resources, ...ECONOMY.initialStock };
     this._pseudo_random = new PseudoRandom(simpleHash(this.playerInfo.id));
   }
 
@@ -378,6 +403,9 @@ export class PlayerImpl implements Player {
       trainGold: this._trainGold,
       piracyGold: this._piracyGold,
       goldEarned: this._goldEarned,
+      resources: this._resources,
+      resourceRates: this._resourceRates,
+      supply: this.mg.config().strategicEconomy() ? this._supply : undefined,
       troops: this.troops(),
       allies: allies,
       embargoes: embargoes,
@@ -1338,6 +1366,136 @@ export class PlayerImpl implements Player {
     return actualRemoved;
   }
 
+  resourceStock(): Readonly<ResourceStock> {
+    return this._resources;
+  }
+
+  resourceAmount(resource: ResourceType): number {
+    return this._resources[resource];
+  }
+
+  addResource(resource: ResourceType, amount: number): void {
+    if (
+      !Number.isFinite(amount) ||
+      Math.abs(amount) > Number.MAX_SAFE_INTEGER ||
+      !(resource in this._resources)
+    ) {
+      throw new RangeError("resource amount must be finite");
+    }
+    if (amount < 0) {
+      this.removeResource(resource, -amount);
+      return;
+    }
+    const units = Math.floor(amount);
+    if (units === 0) return;
+    if (!Number.isSafeInteger(this._resources[resource] + units))
+      throw new RangeError("resource stock overflow");
+    this._resources = {
+      ...this._resources,
+      [resource]: this._resources[resource] + units,
+    };
+    this._periodRates.production[resource] += units;
+  }
+
+  removeResource(resource: ResourceType, amount: number): number {
+    if (
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      !(resource in this._resources)
+    )
+      return 0;
+    const units = Math.floor(amount);
+    const removed = Math.min(this._resources[resource], units);
+    if (removed === 0) return 0;
+    this._resources = {
+      ...this._resources,
+      [resource]: this._resources[resource] - removed,
+    };
+    this._periodRates.consumption[resource] += removed;
+    return removed;
+  }
+
+  resourceRates(): Readonly<ResourceRates> {
+    return this._resourceRates;
+  }
+
+  supplyStatus(): Readonly<SupplyStatus> {
+    return this._supply;
+  }
+
+  updateEconomy(ticks: Tick): void {
+    if (
+      !this.mg.config().strategicEconomy() ||
+      !this.isAlive() ||
+      ticks === this.lastEconomyTick ||
+      ticks % ECONOMY.periodTicks !== 0
+    )
+      return;
+    this.lastEconomyTick = ticks;
+    const infantry =
+      this.troops() +
+      this._outgoingAttacks.reduce((sum, attack) => sum + attack.troops(), 0) +
+      this.units(UnitType.TransportShip).reduce(
+        (sum, ship) => sum + ship.troops(),
+        0,
+      );
+    const ships = this.unitCount(UnitType.Warship);
+    const infrastructure = this.units(UnitType.Infrastructure).reduce(
+      (levels, unit) =>
+        levels +
+        (!unit.isUnderConstruction() &&
+        (this.mg
+          .railNetwork()
+          .stationManager()
+          .findStation(unit)
+          ?.getCluster()
+          ?.size() ?? 0) > 1
+          ? unit.level()
+          : 0),
+      0,
+    );
+    const logistics = Math.min(
+      ECONOMY.maxLogisticsBonus,
+      infrastructure * ECONOMY.logisticsPerLevel,
+    );
+    const maintenance = 1 - logistics / 100;
+    const foodDemand = Math.ceil(
+      (infantry / ECONOMY.infantryPerFood) * maintenance,
+    );
+    const fuelDemand = Math.ceil(
+      ships * ECONOMY.navalFuelPerLevel * maintenance,
+    );
+    const steelDemand = Math.ceil(
+      (ships / ECONOMY.shipsPerSteel) * maintenance,
+    );
+    const food = this.removeResource(ProcessedResource.Food, foodDemand);
+    const fuel = this.removeResource(ProcessedResource.Fuel, fuelDemand);
+    const steel = this.removeResource(ProcessedResource.Steel, steelDemand);
+    const ratio = (used: number, required: number) =>
+      required === 0 ? 100 : Math.floor((100 * used) / required);
+    this._supply = {
+      infantry: ratio(food, foodDemand),
+      navy: Math.min(ratio(fuel, fuelDemand), ratio(steel, steelDemand)),
+      foodDemand,
+      fuelDemand,
+      steelDemand,
+      logistics,
+    };
+    if (
+      this.gold() < ECONOMY.reserveCashThreshold &&
+      this.resourceAmount(ProcessedResource.GoldBars) > 0
+    ) {
+      this.removeResource(ProcessedResource.GoldBars, 1);
+      this.addGold(ECONOMY.goldBarValue);
+    }
+  }
+
+  finishResourcePeriod(): void {
+    if (!resourceRatesEqual(this._resourceRates, this._periodRates))
+      this._resourceRates = this._periodRates;
+    this._periodRates = emptyResourceRates();
+  }
+
   troops(): number {
     return Number(this._troops);
   }
@@ -1377,6 +1535,14 @@ export class PlayerImpl implements Player {
     }
 
     const cost = this.mg.unitInfo(type).cost(this.mg, this);
+    if (this.mg.config().strategicEconomy()) {
+      if (
+        this._gold < cost ||
+        !consumeResources(this, this.mg.config().resourceCost(type))
+      ) {
+        throw new Error(`Insufficient resources to build ${type}`);
+      }
+    }
     const b = new UnitImpl(
       type,
       this.mg,
@@ -1433,6 +1599,8 @@ export class PlayerImpl implements Player {
     if (this._gold < cost) {
       return false;
     }
+    if (!hasResources(this, this.mg.config().resourceCost(unitType)))
+      return false;
     if (unitType !== UnitType.MIRVWarhead && !this.isAlive()) {
       return false;
     }
@@ -1470,7 +1638,10 @@ export class PlayerImpl implements Player {
   }
 
   upgradeUnit(unit: Unit) {
+    if (!this.canUpgradeUnit(unit)) return;
     const cost = this.mg.unitInfo(unit.type()).cost(this.mg, this);
+    if (!consumeResources(this, this.mg.config().resourceCost(unit.type())))
+      return;
     this.removeGold(cost);
     unit.increaseLevel();
     this.recordUnitConstructed(unit.type());
@@ -1533,6 +1704,21 @@ export class PlayerImpl implements Player {
         canBuild,
         canUpgrade,
         cost,
+        resourceCost: config.strategicEconomy()
+          ? config.resourceCost(u)
+          : undefined,
+        resourceLimit: config.strategicEconomy()
+          ? Math.min(
+              MAX_UPGRADE_AMOUNT,
+              ...Object.entries(config.resourceCost(u))
+                .filter(([, amount]) => amount > 0)
+                .map(([resource, amount]) =>
+                  Math.floor(
+                    this.resourceAmount(resource as ResourceType) / amount,
+                  ),
+                ),
+            )
+          : undefined,
         upgradeCosts,
         overlappingRailroads: buildNew
           ? rail.overlappingRailroads(u, canBuild as TileRef)
@@ -1551,7 +1737,7 @@ export class PlayerImpl implements Player {
     targetTile: TileRef,
     validTiles: TileRef[] | null = null,
   ): TileRef | false {
-    if (!this.canBuildUnitType(unitType)) {
+    if (!this.mg.isValidRef(targetTile) || !this.canBuildUnitType(unitType)) {
       return false;
     }
 
@@ -1592,7 +1778,22 @@ export class PlayerImpl implements Player {
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:
+      case UnitType.Farm:
+      case UnitType.Infrastructure:
+      case UnitType.VehicleFactory:
+      case UnitType.NuclearPlant:
         return this.landBasedStructureSpawn(targetTile, validTiles);
+      case UnitType.Mine:
+        return (
+          (validTiles ?? this.validStructureSpawnTiles(targetTile)).find(
+            (tile) =>
+              this.mg
+                .resourceDepositsAt(tile)
+                .some(
+                  (node) => this.mg.resourceRemaining(tile, node.resource) > 0,
+                ),
+          ) ?? false
+        );
       default:
         assertNever(unitType);
     }
@@ -1827,7 +2028,17 @@ export class PlayerImpl implements Player {
 
   hash(): number {
     return (
+      (this.mg.config().strategicEconomy()
+        ? this._supply.infantry * 17 +
+          this._supply.navy * 19 +
+          this._supply.logistics * 23
+        : 0) +
       simpleHash(this.id()) * (this.troops() + this.numTilesOwned()) +
+      STOCK_RESOURCES.reduce(
+        (hash, resource, index) =>
+          hash + (index + 1) * this._resources[resource],
+        0,
+      ) +
       this._units.reduce((acc, unit) => acc + unit.hash(), 0)
     );
   }

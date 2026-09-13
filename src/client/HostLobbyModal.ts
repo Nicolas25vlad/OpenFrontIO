@@ -76,6 +76,7 @@ export class HostLobbyModal extends BaseModal {
   @state() private maxTimerValue: number | undefined = undefined;
   @state() private startDelayValue: number | undefined = 3;
   @state() private instantBuild: boolean = false;
+  @state() private strategicEconomy = true;
   @state() private randomSpawn: boolean = false;
   @state() private compactMap: boolean = false;
   @state() private goldMultiplier: boolean = false;
@@ -531,6 +532,10 @@ export class HostLobbyModal extends BaseModal {
                 },
                 toggles: [
                   {
+                    labelKey: "game_settings.strategic_economy",
+                    checked: this.strategicEconomy,
+                  },
+                  {
                     labelKey: "game_settings.instant_build",
                     checked: this.instantBuild,
                   },
@@ -837,6 +842,7 @@ export class HostLobbyModal extends BaseModal {
     this.maxTimerValue = undefined;
     this.startDelayValue = 3;
     this.instantBuild = false;
+    this.strategicEconomy = true;
     this.randomSpawn = false;
     this.compactMap = false;
     this.useRandomMap = false;
@@ -928,6 +934,10 @@ export class HostLobbyModal extends BaseModal {
     const { labelKey, checked } = customEvent.detail;
 
     switch (labelKey) {
+      case "game_settings.strategic_economy":
+        this.strategicEconomy = checked;
+        this.putGameConfig();
+        break;
       case "game_settings.instant_build":
         this.handleInstantBuildChange(checked);
         break;
@@ -1405,6 +1415,7 @@ export class HostLobbyModal extends BaseModal {
             infiniteTroops: this.infiniteTroops,
             donateTroops: this.donateTroops,
             instantBuild: this.instantBuild,
+            strategicEconomy: this.strategicEconomy,
             randomSpawn: this.randomSpawn,
             gameMode: this.gameMode,
             disabledUnits: this.disabledUnits,

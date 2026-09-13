@@ -1,12 +1,22 @@
-import { Execution, Game, Player, Tick, Unit, UnitType } from "../game/Game";
+import {
+  Execution,
+  Game,
+  Player,
+  Structures,
+  Tick,
+  Unit,
+  UnitType,
+} from "../game/Game";
 import { TileRef } from "../game/GameMap";
 import { CityExecution } from "./CityExecution";
 import { DefensePostExecution } from "./DefensePostExecution";
 import { FactoryExecution } from "./FactoryExecution";
+import { MineExecution } from "./MineExecution";
 import { MirvExecution } from "./MIRVExecution";
 import { MissileSiloExecution } from "./MissileSiloExecution";
 import { NukeExecution } from "./NukeExecution";
 import { PortExecution } from "./PortExecution";
+import { ProductionExecution } from "./ProductionExecution";
 import { SAMLauncherExecution } from "./SAMLauncherExecution";
 import { WarshipExecution } from "./WarshipExecution";
 
@@ -44,6 +54,7 @@ export class ConstructionExecution implements Execution {
   }
 
   tick(ticks: number): void {
+    if (!this.active) return;
     if (this.structure === null) {
       const info = this.mg.unitInfo(this.constructionType);
       // For non-structure units (nukes/warship), charge once and delegate to specialized executions.
@@ -149,6 +160,20 @@ export class ConstructionExecution implements Execution {
         break;
       case UnitType.Factory:
         this.mg.addExecution(new FactoryExecution(this.structure!));
+        if (this.mg.config().strategicEconomy())
+          this.mg.addExecution(new ProductionExecution(this.structure!));
+        break;
+      case UnitType.Mine:
+        this.mg.addExecution(new MineExecution(this.structure!));
+        break;
+      case UnitType.Farm:
+      case UnitType.NuclearPlant:
+        this.mg.addExecution(new ProductionExecution(this.structure!));
+        break;
+      case UnitType.Infrastructure:
+        this.mg.addExecution(new FactoryExecution(this.structure!));
+        break;
+      case UnitType.VehicleFactory:
         break;
       default:
         console.warn(
@@ -159,17 +184,7 @@ export class ConstructionExecution implements Execution {
   }
 
   private isStructure(type: UnitType): boolean {
-    switch (type) {
-      case UnitType.Port:
-      case UnitType.MissileSilo:
-      case UnitType.DefensePost:
-      case UnitType.SAMLauncher:
-      case UnitType.City:
-      case UnitType.Factory:
-        return true;
-      default:
-        return false;
-    }
+    return Structures.has(type);
   }
 
   isActive(): boolean {

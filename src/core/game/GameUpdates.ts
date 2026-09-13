@@ -1,4 +1,5 @@
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
+import type { ProductionStatus, ResourceRates, SupplyStatus } from "./Economy";
 import {
   EmojiMessage,
   GameUpdates,
@@ -17,6 +18,7 @@ import {
   WarshipState,
 } from "./Game";
 import { TileRef } from "./GameMap";
+import type { ResourceStock } from "./Resources";
 
 export interface GameUpdateViewData {
   tick: number;
@@ -203,6 +205,7 @@ export interface UnitUpdate {
   trainType?: TrainType; // Only for trains
   loaded?: boolean; // Only for trains
   samUpgrade?: SamLauncherState;
+  production?: ProductionStatus;
 }
 
 export interface AttackUpdate {
@@ -251,6 +254,10 @@ export interface PlayerUpdate {
   piracyGold?: Gold;
   /** Cumulative gold received from all sources (workers, trade, ...). */
   goldEarned?: Gold;
+  /** Authoritative integer stock; omitted from diffs when unchanged. */
+  resources?: ResourceStock;
+  resourceRates?: ResourceRates;
+  supply?: SupplyStatus;
   troops?: number;
   allies?: number[];
   embargoes?: Set<PlayerID>;

@@ -18,6 +18,7 @@ const COPIED_KEYS = [
   "infiniteTroops",
   "donateTroops",
   "instantBuild",
+  "strategicEconomy",
   "randomSpawn",
   "gameMode",
   "disabledUnits",

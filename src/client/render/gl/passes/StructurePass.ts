@@ -15,14 +15,7 @@
  */
 
 import type { GhostPreviewData, RendererConfig, UnitState } from "../../types";
-import {
-  UT_CITY,
-  UT_DEFENSE_POST,
-  UT_FACTORY,
-  UT_MISSILE_SILO,
-  UT_PORT,
-  UT_SAM_LAUNCHER,
-} from "../../types";
+import { STRUCTURE_ORDER } from "../../types";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
 import type { RenderSettings } from "../RenderSettings";
 import {
@@ -46,14 +39,6 @@ const iconAtlasUrl = assetUrl("atlases/icon-atlas.png");
  * Structure types in atlas column order.
  * Index = atlas column index.
  */
-const STRUCTURE_ORDER = [
-  UT_CITY,
-  UT_PORT,
-  UT_FACTORY,
-  UT_DEFENSE_POST,
-  UT_SAM_LAUNCHER,
-  UT_MISSILE_SILO,
-] as const;
 
 const ATLAS_COLS = STRUCTURE_ORDER.length;
 
@@ -145,9 +130,7 @@ export class StructurePass {
       const col = STRUCTURE_ORDER.indexOf(
         header.unitTypes[i] as (typeof STRUCTURE_ORDER)[number],
       );
-      if (col >= 0) {
-        this.typeToAtlasCol.set(header.unitTypes[i], col);
-      }
+      if (col >= 0) this.typeToAtlasCol.set(header.unitTypes[i], col);
     }
 
     // Compile shaders
@@ -232,7 +215,9 @@ export class StructurePass {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
     // Start async atlas build
-    this.loadAtlas();
+    void this.loadAtlas().catch((error) =>
+      console.error("Structure atlas failed", error),
+    );
 
     // --- Instance buffers ---
     const instanceGlBuf = gl.createBuffer()!;
@@ -282,10 +267,33 @@ export class StructurePass {
     img.crossOrigin = "anonymous";
     img.src = iconAtlasUrl;
     await img.decode();
+    const canvas = document.createElement("canvas");
+    const cell = img.width / 6;
+    canvas.width = cell * ATLAS_COLS;
+    canvas.height = img.height;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Structure atlas needs a canvas context");
+    context.drawImage(img, 0, 0);
+    const files = [
+      "MineIcon.svg",
+      "FarmIcon.svg",
+      "InfrastructureIcon.svg",
+      "VehicleFactoryIcon.svg",
+      "NuclearPlantIcon.svg",
+    ];
+    await Promise.all(
+      files.map(async (file, index) => {
+        const icon = new Image();
+        icon.crossOrigin = "anonymous";
+        icon.src = assetUrl(`images/${file}`);
+        await icon.decode();
+        context.drawImage(icon, (6 + index) * cell, 0, cell, img.height);
+      }),
+    );
     const gl = this.gl;
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, this.atlasTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
     gl.generateMipmap(gl.TEXTURE_2D);
     gl.texParameteri(
       gl.TEXTURE_2D,

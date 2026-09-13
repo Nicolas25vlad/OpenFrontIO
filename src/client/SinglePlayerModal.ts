@@ -102,6 +102,7 @@ const DEFAULT_OPTIONS = {
   maxTimer: false,
   maxTimerValue: undefined as number | undefined,
   instantBuild: false,
+  strategicEconomy: true,
   randomSpawn: false,
   useRandomMap: false,
   gameMode: GameMode.FFA,
@@ -179,6 +180,7 @@ export class SinglePlayerModal extends BaseModal {
   @state() private maxTimerValue: number | undefined =
     DEFAULT_OPTIONS.maxTimerValue;
   @state() private instantBuild: boolean = DEFAULT_OPTIONS.instantBuild;
+  @state() private strategicEconomy: boolean = DEFAULT_OPTIONS.strategicEconomy;
   @state() private randomSpawn: boolean = DEFAULT_OPTIONS.randomSpawn;
   @state() private useRandomMap: boolean = DEFAULT_OPTIONS.useRandomMap;
   @state() private gameMode: GameMode = DEFAULT_OPTIONS.gameMode;
@@ -514,6 +516,10 @@ export class SinglePlayerModal extends BaseModal {
                 },
                 toggles: [
                   {
+                    labelKey: "game_settings.strategic_economy",
+                    checked: this.strategicEconomy,
+                  },
+                  {
                     labelKey: "game_settings.instant_build",
                     checked: this.instantBuild,
                   },
@@ -599,6 +605,7 @@ export class SinglePlayerModal extends BaseModal {
       this.compactMap !== DEFAULT_OPTIONS.compactMap ||
       this.maxTimer !== DEFAULT_OPTIONS.maxTimer ||
       this.instantBuild !== DEFAULT_OPTIONS.instantBuild ||
+      this.strategicEconomy !== DEFAULT_OPTIONS.strategicEconomy ||
       this.randomSpawn !== DEFAULT_OPTIONS.randomSpawn ||
       this.gameMode !== DEFAULT_OPTIONS.gameMode ||
       this.goldMultiplier !== DEFAULT_OPTIONS.goldMultiplier ||
@@ -661,6 +668,7 @@ export class SinglePlayerModal extends BaseModal {
     this.maxTimer = DEFAULT_OPTIONS.maxTimer;
     this.maxTimerValue = DEFAULT_OPTIONS.maxTimerValue;
     this.instantBuild = DEFAULT_OPTIONS.instantBuild;
+    this.strategicEconomy = DEFAULT_OPTIONS.strategicEconomy;
     this.randomSpawn = DEFAULT_OPTIONS.randomSpawn;
     this.teamCount = DEFAULT_OPTIONS.teamCount;
     this.disabledUnits = [...DEFAULT_OPTIONS.disabledUnits];
@@ -751,6 +759,9 @@ export class SinglePlayerModal extends BaseModal {
     const { labelKey, checked } = customEvent.detail;
 
     switch (labelKey) {
+      case "game_settings.strategic_economy":
+        this.strategicEconomy = checked;
+        break;
       case "game_settings.instant_build":
         this.instantBuild = checked;
         break;
@@ -1121,6 +1132,7 @@ export class SinglePlayerModal extends BaseModal {
                 donateTroops: this.gameMode === GameMode.Team,
                 infiniteTroops: this.infiniteTroops,
                 instantBuild: this.instantBuild,
+                strategicEconomy: this.strategicEconomy,
                 randomSpawn: this.randomSpawn,
                 disabledUnits: this.disabledUnits
                   .map((u) => Object.values(UnitType).find((ut) => ut === u))

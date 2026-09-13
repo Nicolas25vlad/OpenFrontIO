@@ -1,6 +1,7 @@
 import { renderNumber } from "../../client/Utils";
 import { UnitView } from "../../client/view";
 import { Config } from "../configuration/Config";
+import { ECONOMY } from "../configuration/StrategyConfig";
 import { SharedWaterCache } from "../execution/nation/SharedWaterCache";
 import { AbstractGraph } from "../pathfinding/algorithms/AbstractGraph";
 import { PathFinder } from "../pathfinding/types";
@@ -45,6 +46,7 @@ import { MotionPlanRecord, packMotionPlans } from "./MotionPlans";
 import { PlayerImpl } from "./PlayerImpl";
 import { RailNetwork } from "./RailNetwork";
 import { createRailNetwork } from "./RailNetworkImpl";
+import { NaturalResource, ResourceCatalog, ResourceNode } from "./Resources";
 import { Stats } from "./Stats";
 import { StatsImpl } from "./StatsImpl";
 import { assignTeams, resolveTeamsList } from "./TeamAssignment";
@@ -59,6 +61,7 @@ export function createGame(
   miniGameMap: GameMap,
   config: Config,
   teamGameSpawnAreas?: TeamGameSpawnAreas,
+  resourceSeed = "openfront",
 ): Game {
   const stats = new StatsImpl();
   return new GameImpl(
@@ -69,6 +72,7 @@ export function createGame(
     config,
     stats,
     teamGameSpawnAreas,
+    resourceSeed,
   );
 }
 
@@ -115,6 +119,7 @@ export class GameImpl implements Game {
   private _winner: Player | Team | null = null;
   private _waterManager: WaterManager;
   private _sharedWaterCache: SharedWaterCache;
+  private readonly resourceCatalog: ResourceCatalog;
   private _teamGameSpawnAreas: TeamGameSpawnAreas | undefined;
   /** Tiles from nuke blast radii this tick, drained by the renderer. */
   private _nukeImpactQueue: TileRef[] = [];
@@ -127,6 +132,7 @@ export class GameImpl implements Game {
     private _config: Config,
     private _stats: Stats,
     teamGameSpawnAreas?: TeamGameSpawnAreas,
+    resourceSeed = "openfront",
   ) {
     const constructorStart = performance.now();
 
@@ -141,6 +147,7 @@ export class GameImpl implements Game {
       _config.disableNavMesh(),
     );
     this._sharedWaterCache = new SharedWaterCache(this);
+    this.resourceCatalog = new ResourceCatalog(this._map, resourceSeed);
 
     if (_config.gameConfig().gameMode === GameMode.Team) {
       this.populateTeams();
@@ -277,6 +284,32 @@ export class GameImpl implements Game {
 
   unit(id: number): Unit | undefined {
     return this._unitMap.get(id);
+  }
+
+  resourceNodes(): readonly ResourceNode[] {
+    return this.resourceCatalog.nodes;
+  }
+
+  resourceNodeAt(tile: TileRef): ResourceNode | undefined {
+    return this.resourceCatalog.nodeAt(tile);
+  }
+
+  resourceDepositsAt(tile: TileRef): readonly ResourceNode[] {
+    return this.isValidRef(tile) ? this.resourceCatalog.depositsAt(tile) : [];
+  }
+
+  resourceRemaining(tile: TileRef, resource?: NaturalResource): number {
+    return this.resourceCatalog.remaining(tile, resource);
+  }
+
+  extractResource(
+    tile: TileRef,
+    amount: number,
+    resource?: NaturalResource,
+  ): number {
+    return this.isValidRef(tile)
+      ? this.resourceCatalog.extract(tile, amount, resource)
+      : 0;
   }
 
   units(): Unit[];
@@ -510,6 +543,8 @@ export class GameImpl implements Game {
     this.execs.push(...inited);
     this.unInitExecs = unInited;
     for (const player of this._players.values()) {
+      if (!this.inSpawnPhase() && (this._ticks + 1) % ECONOMY.periodTicks === 0)
+        player.finishResourcePeriod();
       const update = player.toUpdate(
         this.playerStatsQuads,
         this.attackTroopsQuads,
@@ -608,7 +643,7 @@ export class GameImpl implements Game {
   }
 
   private hash(): number {
-    let hash = 1;
+    let hash = 1 + this.resourceCatalog.hash();
     this._players.forEach((p) => {
       hash += p.hash();
     });

@@ -24,6 +24,7 @@ import {
   PlayerUpdate,
   UnitUpdate,
 } from "../../src/core/game/GameUpdates";
+import { emptyResourceStock } from "../../src/core/game/Resources";
 import { TerrainMapData } from "../../src/core/game/TerrainMapLoader";
 import { Player, PlayerCosmetics } from "../../src/core/Schemas";
 import { WorkerClient } from "../../src/core/worker/WorkerClient";
@@ -131,6 +132,7 @@ export function makePlayerUpdate(
     trainGold: 0n,
     piracyGold: 0n,
     goldEarned: 0n,
+    resources: emptyResourceStock(),
     troops: 100,
     allies: [],
     embargoes: new Set(),

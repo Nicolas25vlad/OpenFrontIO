@@ -83,6 +83,7 @@ export class PlayerExecution implements Execution {
       return;
     }
 
+    this.player.updateEconomy(ticks);
     const troopInc = this.config.troopIncreaseRate(this.player);
     this.player.addTroops(troopInc);
     const goldFromWorkers = this.config.goldAdditionRate(this.player);

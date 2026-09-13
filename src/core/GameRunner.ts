@@ -75,6 +75,7 @@ export async function createGameRunner(
     gameMap.miniGameMap,
     config,
     gameMap.teamGameSpawnAreas,
+    gameStart.gameID,
   );
 
   const gr = new GameRunner(

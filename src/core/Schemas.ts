@@ -553,6 +553,8 @@ export const GameConfigSchema = z.object({
       startingGold: zb.uint({ max: 1000000000 }).nullable().optional(),
     })
     .optional(),
+  // Absent in archived games: keep the legacy economy during replay.
+  strategicEconomy: z.boolean().optional(),
 });
 
 export const TeamSchema = z.string();

@@ -25,6 +25,7 @@ export class NukeExecution implements Execution {
   private active = true;
   private mg: Game;
   private nuke: Unit | null = null;
+  private productionSilo: Unit | null = null;
   private tilesToDestroyCache: Set<TileRef> | undefined;
   private pathFinder: ParabolaUniversalPathFinder;
 
@@ -196,6 +197,11 @@ export class NukeExecution implements Execution {
       const silo = this.player
         .units(UnitType.MissileSilo)
         .find((silo) => silo.tile() === spawn);
+      const productionTicks = this.mg
+        .config()
+        .nuclearProductionTicks(this.nukeType);
+      this.waitTicks += productionTicks;
+      if (productionTicks > 0) this.productionSilo = silo ?? null;
       // Stacked purchases launch several nukes across ticks; delay each missile
       // so launches from the same silo trail each other instead of overlapping,
       // need to check the entire queue because even if nukes have waitticks,
@@ -246,7 +252,7 @@ export class NukeExecution implements Execution {
 
       // after sending a nuke set the missilesilo on cooldown
       if (silo) {
-        silo.launch();
+        silo.launch(productionTicks > 0 ? this.waitTicks : 0);
       }
       return;
     }
@@ -258,6 +264,15 @@ export class NukeExecution implements Execution {
     }
 
     if (this.waitTicks > 0) {
+      if (
+        this.productionSilo &&
+        (!this.productionSilo.isActive() ||
+          this.productionSilo.owner() !== this.player)
+      ) {
+        this.nuke.delete(false);
+        this.active = false;
+        return;
+      }
       this.nuke.updateNukeState({ waitTicks: --this.waitTicks });
       return;
     }

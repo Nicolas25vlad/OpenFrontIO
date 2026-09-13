@@ -29,6 +29,7 @@ import { GameView } from "../../view";
 const warshipIcon = assetUrl("images/BattleshipIconWhite.svg");
 const cityIcon = assetUrl("images/CityIconWhite.svg");
 const factoryIcon = assetUrl("images/FactoryIconWhite.svg");
+const mineIcon = assetUrl("images/MineIcon.svg");
 const goldCoinIcon = assetUrl("images/GoldCoinIcon.svg");
 const mirvIcon = assetUrl("images/MIRVIcon.svg");
 const missileSiloIcon = assetUrl("images/MissileSiloIconWhite.svg");
@@ -118,6 +119,25 @@ export const buildTable: BuildItemDisplay[][] = [
       key: "unit_type.factory",
       countable: true,
     },
+    {
+      unitType: UnitType.Mine,
+      icon: mineIcon,
+      description: "build_menu.desc.mine",
+      key: "unit_type.mine",
+      countable: true,
+    },
+    ...[
+      [UnitType.Farm, "farm", "FarmIcon.svg"],
+      [UnitType.Infrastructure, "infrastructure", "InfrastructureIcon.svg"],
+      [UnitType.VehicleFactory, "vehicle_factory", "VehicleFactoryIcon.svg"],
+      [UnitType.NuclearPlant, "nuclear_plant", "NuclearPlantIcon.svg"],
+    ].map(([unitType, key, icon]) => ({
+      unitType: unitType as PlayerBuildableUnitType,
+      icon: assetUrl(`images/${icon}`),
+      description: `build_menu.desc.${key}`,
+      key: `unit_type.${key}`,
+      countable: true,
+    })),
   ],
 ];
 
@@ -429,7 +449,11 @@ export class BuildMenu extends LitElement implements Controller {
                       this.sendBuildOrUpgrade(buildableUnit, this.clickedTile)}
                     ?disabled=${!enabled}
                     title=${!enabled
-                      ? translateText("build_menu.not_enough_money")
+                      ? translateText(
+                          buildableUnit.resourceLimit === 0
+                            ? "economy.missing"
+                            : "build_menu.not_enough_money",
+                        )
                       : ""}
                   >
                     <img
@@ -457,6 +481,14 @@ export class BuildMenu extends LitElement implements Controller {
                         class="align-middle"
                       />
                     </span>
+                    ${Object.entries(buildableUnit.resourceCost ?? {}).map(
+                      ([resource, amount]) => html`
+                        <span class="text-xs text-amber-200"
+                          >${translateText(`resource.${resource}`)}:
+                          ${amount}</span
+                        >
+                      `,
+                    )}
                     ${item.countable
                       ? html`<div class="build-count-chip">
                           <span class="build-count">${this.count(item)}</span>

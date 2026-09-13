@@ -1,4 +1,5 @@
 import { simpleHash, toInt, withinInt } from "../Util";
+import { ProductionStatus } from "./Economy";
 import {
   AllUnitParams,
   MessageType,
@@ -23,6 +24,7 @@ import { maxHealthWithVeterancy } from "./Veterancy";
 
 export class UnitImpl implements Unit {
   private _active = true;
+  private _production: ProductionStatus | undefined;
   private _targetTile: TileRef | undefined;
   private _targetPlayer: Player | TerraNullius | undefined;
   private _targetUnit: Unit | undefined;
@@ -109,6 +111,11 @@ export class UnitImpl implements Unit {
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:
+      case UnitType.Mine:
+      case UnitType.Farm:
+      case UnitType.Infrastructure:
+      case UnitType.VehicleFactory:
+      case UnitType.NuclearPlant:
         this.mg.stats().unitBuild(_owner, this._type);
     }
   }
@@ -131,6 +138,21 @@ export class UnitImpl implements Unit {
   touch(): void {
     this.mg.addUpdate(this.toUpdate());
   }
+
+  setProductionStatus(status: ProductionStatus): void {
+    const previous = this._production;
+    if (
+      previous &&
+      Object.keys(status).every(
+        (key) =>
+          previous[key as keyof ProductionStatus] ===
+          status[key as keyof ProductionStatus],
+      )
+    )
+      return;
+    this._production = { ...status };
+    this.touch();
+  }
   setTileTarget(tile: TileRef | undefined): void {
     this._targetTile = tile;
   }
@@ -146,6 +168,7 @@ export class UnitImpl implements Unit {
     const update: UnitUpdate = {
       type: GameUpdateType.Unit,
       unitType: this._type,
+      production: this._production,
       id: this._id,
       troops: this._troops,
       ownerID: this._owner.smallID(),
@@ -238,6 +261,11 @@ export class UnitImpl implements Unit {
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:
+      case UnitType.Mine:
+      case UnitType.Farm:
+      case UnitType.Infrastructure:
+      case UnitType.VehicleFactory:
+      case UnitType.NuclearPlant:
         this.mg.stats().unitCapture(newOwner, this._type);
         this.mg.stats().unitLose(this._owner, this._type);
         break;
@@ -358,6 +386,11 @@ export class UnitImpl implements Unit {
         case UnitType.SAMLauncher:
         case UnitType.Warship:
         case UnitType.Factory:
+        case UnitType.Mine:
+        case UnitType.Farm:
+        case UnitType.Infrastructure:
+        case UnitType.VehicleFactory:
+        case UnitType.NuclearPlant:
           this.mg.stats().unitDestroy(destroyer, this._type);
           this.mg.stats().unitLose(this.owner(), this._type);
           break;
@@ -521,8 +554,8 @@ export class UnitImpl implements Unit {
     return `Unit:${this._type},owner:${this.owner().name()}`;
   }
 
-  launch(): void {
-    this._missileTimerQueue.push(this.mg.ticks());
+  launch(productionTicks = 0): void {
+    this._missileTimerQueue.push(this.mg.ticks() + productionTicks);
     this.mg.addUpdate(this.toUpdate());
   }
 

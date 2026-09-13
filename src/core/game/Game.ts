@@ -3,6 +3,7 @@ import { AbstractGraph } from "../pathfinding/algorithms/AbstractGraph";
 import { PathFinder } from "../pathfinding/types";
 import { AllPlayersStats, ClientID } from "../Schemas";
 import { formatPlayerDisplayName } from "../Util";
+import type { ProductionStatus, ResourceRates } from "./Economy";
 import { GameMap, TileRef } from "./GameMap";
 import {
   GameUpdate,
@@ -12,6 +13,12 @@ import {
 } from "./GameUpdates";
 import { MotionPlanRecord } from "./MotionPlans";
 import { RailNetwork } from "./RailNetwork";
+import type {
+  NaturalResource,
+  ResourceNode,
+  ResourceStock,
+  ResourceType,
+} from "./Resources";
 import { Stats } from "./Stats";
 import { ReadonlyTileSet } from "./TileSet";
 import { UnitPredicate } from "./UnitGrid";
@@ -208,6 +215,11 @@ export enum UnitType {
   MIRVWarhead = "MIRV Warhead",
   Train = "Train",
   Factory = "Factory",
+  Mine = "Mine",
+  Farm = "Farm",
+  Infrastructure = "Infrastructure",
+  VehicleFactory = "Vehicle Factory",
+  NuclearPlant = "Nuclear Plant",
 }
 
 export enum TrainType {
@@ -237,6 +249,11 @@ export const Structures = unitTypeGroup([
   UnitType.MissileSilo,
   UnitType.Port,
   UnitType.Factory,
+  UnitType.Mine,
+  UnitType.Farm,
+  UnitType.Infrastructure,
+  UnitType.VehicleFactory,
+  UnitType.NuclearPlant,
 ] as const);
 
 export const BuildMenus = unitTypeGroup([
@@ -309,6 +326,12 @@ export interface UnitParamsMap {
   };
 
   [UnitType.Factory]: Record<string, never>;
+
+  [UnitType.Mine]: Record<string, never>;
+  [UnitType.Farm]: Record<string, never>;
+  [UnitType.Infrastructure]: Record<string, never>;
+  [UnitType.VehicleFactory]: Record<string, never>;
+  [UnitType.NuclearPlant]: Record<string, never>;
 
   [UnitType.MissileSilo]: Record<string, never>;
 
@@ -489,6 +512,7 @@ export interface Unit {
   touch(): void;
   hash(): number;
   toUpdate(): UnitUpdate;
+  setProductionStatus(status: ProductionStatus): void;
   hasTrainStation(): boolean;
   setTrainStation(trainStation: boolean): void;
   wasDestroyedByEnemy(): boolean;
@@ -544,7 +568,7 @@ export interface Unit {
   // --- UNIT SPECIFIC ---
 
   // SAMs & Missile Silos
-  launch(): void;
+  launch(productionTicks?: number): void;
   reloadMissile(): void;
   isInCooldown(): boolean;
   missileTimerQueue(): number[];
@@ -638,6 +662,16 @@ export interface Player {
   gold(): Gold;
   addGold(toAdd: Gold, tile?: TileRef): void;
   removeGold(toRemove: Gold): Gold;
+
+  /** Authoritative strategic-resource stock owned by this player. */
+  resourceStock(): Readonly<ResourceStock>;
+  resourceAmount(resource: ResourceType): number;
+  addResource(resource: ResourceType, amount: number): void;
+  removeResource(resource: ResourceType, amount: number): number;
+  resourceRates(): Readonly<ResourceRates>;
+  finishResourcePeriod(): void;
+  supplyStatus(): Readonly<import("./Economy").SupplyStatus>;
+  updateEconomy(ticks: Tick): void;
 
   // Cumulative trade revenue, surfaced on the live PlayerUpdate so clients can
   // compute per-source gold rates (leaderboard "Ship/Train Trade Gold/min").
@@ -854,6 +888,15 @@ export interface Game extends GameMap {
   units(type: UnitType, type2?: UnitType, type3?: UnitType): Unit[];
   unitCount(type: UnitType): number;
   unitInfo(type: UnitType): UnitInfo;
+  resourceNodes(): readonly ResourceNode[];
+  resourceNodeAt(tile: TileRef): ResourceNode | undefined;
+  resourceDepositsAt(tile: TileRef): readonly ResourceNode[];
+  resourceRemaining(tile: TileRef, resource?: NaturalResource): number;
+  extractResource(
+    tile: TileRef,
+    amount: number,
+    resource?: NaturalResource,
+  ): number;
   hasUnitNearby(
     tile: TileRef,
     searchRange: number,
@@ -950,6 +993,8 @@ export interface PlayerActions {
 }
 
 export interface BuildableUnit {
+  resourceCost?: Partial<Record<ResourceType, number>>;
+  resourceLimit?: number;
   canBuild: TileRef | false;
   // unit id of the existing unit that can be upgraded, or false if it cannot be upgraded.
   canUpgrade: number | false;
@@ -974,6 +1019,7 @@ export function bulkCost(bu: BuildableUnit, amount: number): Gold {
 export function maxBulkAmount(bu: BuildableUnit, gold: Gold): number {
   let max = 0;
   for (let n = 1; n <= MAX_UPGRADE_AMOUNT; n++) {
+    if (bu.resourceLimit !== undefined && n > bu.resourceLimit) break;
     // Never price upgrades past the shipped totals — beyond the array,
     // bulkCost would silently fall back to linear pricing.
     if (bu.upgradeCosts !== undefined && n > bu.upgradeCosts.length) {

@@ -25,6 +25,8 @@ export class MirvExecution implements Execution {
   private mg: Game;
 
   private nuke: Unit | null = null;
+  private productionReadyAt = 0;
+  private productionSilo: Unit | null = null;
 
   private range = 1500;
   private rangeSquared = this.range * this.range;
@@ -83,6 +85,11 @@ export class MirvExecution implements Execution {
         targetTile: this.dst,
         targetPlayer: this.targetPlayer,
       });
+      const productionTicks = this.mg
+        .config()
+        .nuclearProductionTicks(UnitType.MIRV);
+      this.productionReadyAt = ticks + productionTicks;
+      if (productionTicks > 0) this.nuke.setUnderConstruction(true);
       this.mg.stats().bombLaunch(this.player, this.targetPlayer, UnitType.MIRV);
 
       // Betrayal on launch — only once the missile has actually spawned, so
@@ -136,7 +143,8 @@ export class MirvExecution implements Execution {
         .units(UnitType.MissileSilo)
         .find((silo) => silo.tile() === spawn);
       if (silo) {
-        silo.launch();
+        silo.launch(productionTicks);
+        this.productionSilo = silo;
       }
     }
 
@@ -151,6 +159,18 @@ export class MirvExecution implements Execution {
     }
 
     const remainingTicks = this.fullPath.length - this.pathIndex;
+    if (ticks < this.productionReadyAt) {
+      if (
+        this.productionSilo &&
+        (!this.productionSilo.isActive() ||
+          this.productionSilo.owner() !== this.player)
+      ) {
+        this.nuke!.delete(false);
+        this.active = false;
+      }
+      return;
+    }
+    if (this.nuke?.isUnderConstruction()) this.nuke.setUnderConstruction(false);
 
     // Stagger destination finding across ticks 20 down to 11 before separation
     if (remainingTicks <= 20 && remainingTicks > 10) {

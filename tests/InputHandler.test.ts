@@ -3,6 +3,7 @@ import {
   ConfirmGhostStructureEvent,
   ContextMenuEvent,
   InputHandler,
+  SelectBuildCategoryEvent,
   UnitSelectionEvent,
   WarshipSelectionBoxCancelEvent,
   WarshipSelectionBoxCompleteEvent,
@@ -707,6 +708,41 @@ describe("InputHandler AutoUpgrade", () => {
       );
 
       expect(inputHandler["uiState"].ghostStructure).toBeNull();
+    });
+  });
+
+  describe("build category shortcuts", () => {
+    beforeEach(() => {
+      inputHandler.destroy();
+      inputHandler = new InputHandler(
+        mockGameView,
+        {
+          attackRatio: 20,
+          ghostStructure: null,
+          rocketDirectionUp: true,
+          upgradeMultiplier: 1,
+        },
+        mockCanvas,
+        eventBus,
+      );
+      inputHandler.initialize();
+    });
+
+    test("Shift+Digit1 selects the civil category", () => {
+      const emit = vi.spyOn(eventBus, "emit");
+
+      window.dispatchEvent(
+        new KeyboardEvent("keyup", { code: "Digit1", shiftKey: true }),
+      );
+
+      expect(emit).toHaveBeenCalledWith(
+        expect.objectContaining({ category: "civil" }),
+      );
+      expect(
+        emit.mock.calls.some(
+          ([event]) => event instanceof SelectBuildCategoryEvent,
+        ),
+      ).toBe(true);
     });
   });
 

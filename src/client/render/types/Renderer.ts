@@ -1,4 +1,9 @@
+import type {
+  ProductionStatus,
+  ResourceRates,
+} from "../../../core/game/Economy";
 import type { TileRef } from "../../../core/game/GameMap";
+import type { ResourceStock } from "../../../core/game/Resources";
 
 /** TrainType enum — numeric values matching UnitState.trainType. */
 export enum TrainType {
@@ -74,6 +79,9 @@ export interface PlayerState {
   piracyGold: number;
   /** Cumulative gold received from all sources (live). */
   goldEarned: number;
+  resources: ResourceStock;
+  resourceRates?: ResourceRates;
+  supply?: import("../../../core/game/Economy").SupplyStatus;
   troops: number;
   isTraitor: boolean;
   traitorRemainingTicks: number;
@@ -96,6 +104,7 @@ export interface PlayerState {
 }
 
 export interface UnitState {
+  production?: ProductionStatus;
   id: number;
   unitType: string;
   ownerID: number;

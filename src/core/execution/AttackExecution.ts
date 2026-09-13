@@ -343,6 +343,8 @@ export class AttackExecution implements Execution {
       attacker: {
         type: this._owner.type(),
         numTiles: this._owner.numTilesOwned(),
+        supply: this._owner.supplyStatus().infantry,
+        logistics: this._owner.supplyStatus().logistics,
       },
       defender:
         defender === null
@@ -351,6 +353,7 @@ export class AttackExecution implements Execution {
               type: defender.type(),
               numTiles: defender.numTilesOwned(),
               troops: defender.troops(),
+              supply: defender.supplyStatus().infantry,
               isTraitor: defender.isTraitor(),
               isDisconnectedTeammate:
                 defender.isDisconnected() && this._owner.isOnSameTeam(defender),

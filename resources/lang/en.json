@@ -154,17 +154,28 @@
     "title": "Your account is banned",
     "until": "Banned until {date}."
   },
+  "build_category": {
+    "civil": "Civil",
+    "industry": "Industry & Trade",
+    "military": "Military",
+    "nuclear": "Nuclear"
+  },
   "build_menu": {
     "desc": {
       "atom_bomb": "Small explosion",
       "city": "Increases max population",
       "defense_post": "Increases defenses of nearby borders",
       "factory": "Creates railroads and spawns trains",
+      "farm": "Produces food; fertilizer doubles the base yield.",
       "hydrogen_bomb": "Large explosion",
+      "infrastructure": "Improves nearby industrial production and logistics.",
+      "mine": "Extracts resources from deposits",
       "mirv": "Huge explosion, only targets selected player",
       "missile_silo": "Used to launch nukes",
+      "nuclear_plant": "Enriches uranium using fuel. Required for nuclear weapons.",
       "port": "Sends trade ships to generate gold",
       "sam_launcher": "Defends against incoming nukes",
+      "vehicle_factory": "Manufactures tanks using steel and fuel.",
       "warship": "Captures trade ships, destroys ships and boats"
     },
     "not_enough_money": "Not enough money",
@@ -657,6 +668,22 @@
     "slow": "Slow",
     "veryfast": "Very Fast"
   },
+  "economy": {
+    "balance": "Net",
+    "bonuses": "Cities: +{urban}%; infrastructure: +{infrastructure}%",
+    "consumed": "Used",
+    "details": "Production and consumption",
+    "exhausted": "Deposit exhausted",
+    "missing": "Missing resources",
+    "naval_supply": "Naval supply",
+    "period": "Last completed production period (1 second)",
+    "produced": "Produced",
+    "resource": "Resource",
+    "shortage": "Missing input",
+    "stock": "Stock",
+    "supply": "Army supply",
+    "supply_hint": "Supply consumes food, fuel and steel. Shortages reduce growth, combat and speed; connected infrastructure lowers maintenance."
+  },
   "effects": {
     "nukeType": {
       "atom": "Atom",
@@ -822,6 +849,7 @@
     "start": "Start Game",
     "starting": "Starting…",
     "starting_gold": "Starting Gold (Millions)",
+    "strategic_economy": "Strategic economy",
     "water_nukes": "Water nukes"
   },
   "game_starting_modal": {
@@ -1702,6 +1730,27 @@
     "game_speed": "Game speed",
     "replay_speed": "Replay speed"
   },
+  "resource": {
+    "circuits": "Circuits",
+    "coal": "Coal",
+    "copper": "Copper",
+    "enriched_uranium": "Enriched uranium",
+    "fertilizer": "Fertilizer",
+    "food": "Food",
+    "fuel": "Fuel",
+    "gold": "Gold",
+    "gold_bars": "Gold bars",
+    "iron": "Iron",
+    "oil": "Oil",
+    "potash": "Potash",
+    "refined_iron": "Refined iron",
+    "steel": "Steel",
+    "uranium": "Uranium"
+  },
+  "resource_map": {
+    "button": "Resources",
+    "toggle": "Toggle resource map"
+  },
   "rewards_modal": {
     "title": "Rewards"
   },
@@ -1987,11 +2036,16 @@
     "city": "City",
     "defense_post": "Defense Post",
     "factory": "Factory",
+    "farm": "Farm",
     "hydrogen_bomb": "Hydrogen Bomb",
+    "infrastructure": "Infrastructure",
+    "mine": "Mine",
     "mirv": "MIRV",
     "missile_silo": "Missile Silo",
+    "nuclear_plant": "Nuclear plant",
     "port": "Port",
     "sam_launcher": "SAM Launcher",
+    "vehicle_factory": "Vehicle factory",
     "warship": "Warship"
   },
   "update_available": {

@@ -1,10 +1,4 @@
 {
-  "lang": {
-    "en": "Brazilian Portuguese",
-    "lang_code": "pt-BR",
-    "native": "Português brasileiro",
-    "svg": "br"
-  },
   "account_modal": {
     "cancel_subscription": "Cancelar",
     "cancel_subscription_confirm": "Cancelar sua assinatura? Ela permanecerá ativa até o final do período de faturamento atual.",
@@ -127,17 +121,28 @@
     "title": "Sua conta foi banida",
     "until": "Travado até {date}."
   },
+  "build_category": {
+    "civil": "Civil",
+    "industry": "Indústria e Comércio",
+    "military": "Militar",
+    "nuclear": "Nuclear"
+  },
   "build_menu": {
     "desc": {
       "atom_bomb": "Explosão Pequena",
       "city": "Aumenta o máximo de população",
       "defense_post": "Aumenta as defesas das fronteiras próximas",
       "factory": "Cria trilhos e spawna trens",
+      "farm": "Produz comida; fertilizante dobra o rendimento básico.",
       "hydrogen_bomb": "Explosão Grande",
+      "infrastructure": "Melhora a produção industrial e a logística próximas.",
+      "mine": "Extrai recursos dos depósitos",
       "mirv": "Explosão Imensa, apenas mira o jogador escolhido",
       "missile_silo": "Usado para lançar bombas nucleares",
+      "nuclear_plant": "Enriquece urânio consumindo combustível. Necessária para armas nucleares.",
       "port": "Envie navios de troca para gerar ouro",
       "sam_launcher": "Defende Contra Chegada de Bombas Nucleares",
+      "vehicle_factory": "Fabrica tanques usando aço e combustível.",
       "warship": "Capture navios comerciais, destrua navios e barcos"
     },
     "not_enough_money": "Sem Dinheiro Suficiente",
@@ -584,6 +589,22 @@
     "slow": "Devagar",
     "veryfast": "Muito Rápido"
   },
+  "economy": {
+    "balance": "Saldo",
+    "bonuses": "Cidades: +{urban}%; infraestrutura: +{infrastructure}%",
+    "consumed": "Consum.",
+    "details": "Produção e consumo",
+    "exhausted": "Depósito esgotado",
+    "missing": "Faltam recursos",
+    "naval_supply": "Supply naval",
+    "period": "Último período de produção concluído (1 segundo)",
+    "produced": "Produz.",
+    "resource": "Recurso",
+    "shortage": "Falta de insumo",
+    "stock": "Estoque",
+    "supply": "Supply terrestre",
+    "supply_hint": "Supply consome comida, combustível e aço. Escassez reduz crescimento, combate e velocidade; infraestrutura conectada reduz a manutenção."
+  },
   "effects": {
     "nukeType": {
       "atom": "Átomo",
@@ -747,6 +768,7 @@
     "random_spawn": "Spawn Aleatório",
     "start": "Iniciar o Jogo",
     "starting_gold": "Quantia de Ouro no começo (Milhões)",
+    "strategic_economy": "Economia estratégica",
     "water_nukes": "Bombas aquáticas"
   },
   "game_starting_modal": {
@@ -1051,6 +1073,12 @@
     "lobby_creator": "Expulso pelo Criador do lobby",
     "match_cancelled": "Jogo cancelado: um jogador falhou ao se conectar. Você não perdeu nenhum ELO."
   },
+  "lang": {
+    "en": "Brazilian Portuguese",
+    "lang_code": "pt-BR",
+    "native": "Português brasileiro",
+    "svg": "br"
+  },
   "leaderboard": {
     "allies": "Aliados",
     "betrayals": "Traições",
@@ -1117,6 +1145,7 @@
     "clans": "Clãs",
     "copyright": "© OpenFront™ e Contribuidores",
     "create": "Criar Sala",
+    "detailed_view": "Visão detalhada",
     "discord_avatar_alt": "Avatar do perfil do Discord",
     "github": "GitHub",
     "go_to_troubleshooting": "Vá para nossa página de solução de problemas",
@@ -1137,8 +1166,7 @@
     "title": "OpenFront (ALFA)",
     "troubleshooting": "Solução de problemas",
     "user_avatar_alt": "Avatar de {username}",
-    "wiki": "Wiki",
-    "detailed_view": "Visão detalhada"
+    "wiki": "Wiki"
   },
   "map": {
     "achiran": "Achiran",
@@ -1613,6 +1641,27 @@
     "game_speed": "Velocidade do Jogo",
     "replay_speed": "Velocidade do Replay"
   },
+  "resource": {
+    "circuits": "Circuitos",
+    "coal": "Carvão",
+    "copper": "Cobre",
+    "enriched_uranium": "Urânio enriquecido",
+    "fertilizer": "Fertilizante",
+    "food": "Comida",
+    "fuel": "Combustível",
+    "gold": "Ouro",
+    "gold_bars": "Barras de ouro",
+    "iron": "Ferro",
+    "oil": "Petróleo",
+    "potash": "Potássio",
+    "refined_iron": "Ferro refinado",
+    "steel": "Aço",
+    "uranium": "Urânio"
+  },
+  "resource_map": {
+    "button": "Recursos",
+    "toggle": "Alternar mapa de recursos"
+  },
   "rewards_modal": {
     "title": "Recompensas"
   },
@@ -1691,6 +1740,9 @@
     "insufficient_currency_body": "Você precisa {amount, number} mais {currency} para comprar {item}.",
     "insufficient_currency_title": "{currency} Insuficiente",
     "login_required": "Você deve estar logado para comprar com moeda.",
+    "merch": "Produtos",
+    "merch_blurb": "Obtenha os produtos da OpenFront enviado para a sua porta!",
+    "merch_visit_store": "Visitar Loja",
     "no_affiliate_items": "Não há itens de afiliado disponíveis. Volte mais tarde para novos itens.",
     "no_bundles": "Nenhum pacote disponível. Volte mais tarde para novos itens.",
     "no_crowns": "Nenhuma coroa disponível. Volte mais tarde para novos itens.",
@@ -1754,10 +1806,7 @@
     "tribes_login_required": "Faça login para comprar e gerenciar nomes de tribo.",
     "tribes_purchase_description": "Seu nome é atribuído a uma tribo de um bot em jogos reais multijogador. Vai ao vivo imediatamente.",
     "tribes_purchase_heading": "Compre um nome de tribo",
-    "your_tribes_heading": "Seus Nomes de Tribo",
-    "merch": "Produtos",
-    "merch_blurb": "Obtenha os produtos da OpenFront enviado para a sua porta!",
-    "merch_visit_store": "Visitar Loja"
+    "your_tribes_heading": "Seus Nomes de Tribo"
   },
   "streaming_now": {
     "live_count": "{count} estão ao vivo",
@@ -1826,11 +1875,16 @@
     "city": "Cidade",
     "defense_post": "Posto de Defesa",
     "factory": "Industria",
+    "farm": "Fazenda",
     "hydrogen_bomb": "Bomba de Hidrogenio",
+    "infrastructure": "Infraestrutura",
+    "mine": "Mina",
     "mirv": "MIRV",
     "missile_silo": "Silo de Míssil",
+    "nuclear_plant": "Usina nuclear",
     "port": "Porto",
     "sam_launcher": "Lançador de SAMs",
+    "vehicle_factory": "Fábrica de veículos",
     "warship": "Navio de Guerra"
   },
   "user_setting": {

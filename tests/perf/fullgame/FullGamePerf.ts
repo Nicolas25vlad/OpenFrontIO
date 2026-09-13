@@ -271,6 +271,7 @@ async function main(): Promise<void> {
     terrain.miniGameMap,
     config,
     terrain.teamGameSpawnAreas,
+    gameStart.gameID,
   );
 
   const execProfiler = new ExecutionProfiler();

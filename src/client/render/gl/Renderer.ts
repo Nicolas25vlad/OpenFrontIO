@@ -159,6 +159,8 @@ export class GPURenderer {
   private storedLayers: MapLayer[] = [];
   /** Stored layer images for context-restore re-creation. */
   private storedLayerImages: Map<string, ImageBitmap> = new Map();
+  private layerVisibility = new Map<string, boolean>();
+  private layerAlpha = new Map<string, number>();
 
   private paletteTex: WebGLTexture;
   private paletteData: Float32Array;
@@ -1417,17 +1419,23 @@ export class GPURenderer {
         placement,
         layer.nukeable ?? false,
       );
+      const visible = this.layerVisibility.get(layer.id);
+      if (visible !== undefined) pass.setVisible(visible);
+      const alpha = this.layerAlpha.get(layer.id);
+      if (alpha !== undefined) pass.setAlpha(alpha);
       this.mapLayerPasses.set(layer.id, pass);
     }
   }
 
   /** Toggle visibility of a single layer (driven by graphics settings). */
   setLayerVisible(layerId: string, visible: boolean): void {
+    this.layerVisibility.set(layerId, visible);
     this.mapLayerPasses.get(layerId)?.setVisible(visible);
   }
 
   /** Set the alpha multiplier for a single layer (0–1). */
   setLayerAlpha(layerId: string, alpha: number): void {
+    this.layerAlpha.set(layerId, alpha);
     this.mapLayerPasses.get(layerId)?.setAlpha(alpha);
   }
 

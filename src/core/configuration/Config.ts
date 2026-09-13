@@ -4,6 +4,7 @@ import { AssetManifest } from "../AssetUrls";
 import { ClusterConfig } from "../ClusterConfig";
 import { exp, log, pow, pow2 } from "../DetMath";
 import { DoomsdayClockSpeed } from "../game/DoomsdayClock";
+import { supplyMultiplier } from "../game/Economy";
 import {
   Difficulty,
   Game,
@@ -23,6 +24,14 @@ import { UserSettings } from "../game/UserSettings";
 import { GameConfig, TeamCountConfig } from "../Schemas";
 import { NukeType } from "../StatsSchemas";
 import { assertNever, sigmoid, toInt, within } from "../Util";
+import {
+  ECONOMY,
+  NUCLEAR_PRODUCTION_TICKS,
+  RESOURCE_COSTS,
+  ResourceAmounts,
+  STRATEGIC_BUILDINGS,
+  STRATEGIC_COMBAT,
+} from "./StrategyConfig";
 
 declare global {
   interface Window {
@@ -72,7 +81,12 @@ export function parseGameEnv(value: string | undefined): GameEnv {
 export interface AttackLogicInput {
   terrain: TerrainType;
   attackTroops: number;
-  attacker: { type: PlayerType; numTiles: number };
+  attacker: {
+    type: PlayerType;
+    numTiles: number;
+    supply?: number;
+    logistics?: number;
+  };
   /** null when attacking terra nullius. */
   defender: {
     type: PlayerType;
@@ -81,6 +95,7 @@ export interface AttackLogicInput {
     isTraitor: boolean;
     /** Defender is disconnected and on the attacker's team. */
     isDisconnectedTeammate: boolean;
+    supply?: number;
   } | null;
   /** A defense post owned by the defender is in range of the tile. */
   defenderHasDefensePost: boolean;
@@ -347,7 +362,9 @@ export class Config {
     return 100;
   }
   SAMCooldown(): number {
-    return 90;
+    return this.strategicEconomy()
+      ? Math.ceil(90 / STRATEGIC_COMBAT.antiIcbmEfficiencyMultiplier)
+      : 90;
   }
   SiloCooldown(): number {
     return 90;
@@ -358,11 +375,11 @@ export class Config {
   }
 
   defensePostDefenseBonus(): number {
-    return 5;
+    return this.strategicEconomy() ? STRATEGIC_COMBAT.defensePostStrength : 5;
   }
 
   defensePostSpeedBonus(): number {
-    return 3;
+    return this.strategicEconomy() ? STRATEGIC_COMBAT.defensePostSlowdown : 3;
   }
 
   playerTeams(): TeamCountConfig {
@@ -374,7 +391,13 @@ export class Config {
   }
 
   isUnitDisabled(unitType: UnitType): boolean {
+    if (unitType in STRATEGIC_BUILDINGS && !this.strategicEconomy())
+      return true;
     return this._gameConfig.disabledUnits?.includes(unitType) ?? false;
+  }
+
+  strategicEconomy(): boolean {
+    return this._gameConfig.strategicEconomy === true;
   }
 
   bots(): number {
@@ -522,6 +545,14 @@ export class Config {
     );
   }
 
+  resourceCost(type: UnitType): ResourceAmounts {
+    return this.strategicEconomy() ? (RESOURCE_COSTS[type] ?? {}) : {};
+  }
+
+  nuclearProductionTicks(type: UnitType): number {
+    return this.strategicEconomy() ? (NUCLEAR_PRODUCTION_TICKS[type] ?? 0) : 0;
+  }
+
   unitInfo(type: UnitType): UnitInfo {
     const cached = this.unitInfoCache.get(type);
     if (cached !== undefined) {
@@ -646,6 +677,23 @@ export class Config {
             UnitType.Port,
           ),
           constructionDuration: this.instantBuild() ? 0 : 2 * 10,
+          upgradable: true,
+        };
+        break;
+      case UnitType.Mine:
+      case UnitType.Farm:
+      case UnitType.Infrastructure:
+      case UnitType.VehicleFactory:
+      case UnitType.NuclearPlant:
+        info = {
+          cost: this.costWrapper(
+            (numUnits: number) =>
+              STRATEGIC_BUILDINGS[type].gold * Math.min(4, numUnits + 1),
+            type,
+          ),
+          constructionDuration: this.instantBuild()
+            ? 0
+            : STRATEGIC_BUILDINGS[type].ticks,
           upgradable: true,
         };
         break;
@@ -843,6 +891,16 @@ export class Config {
   attackLogic(input: AttackLogicInput): AttackLogicResult {
     const { attackTroops, attacker, defender } = input;
     let { mag, tileCost } = terrainAttackBase(input.terrain);
+    const attackerSupply = this.strategicEconomy()
+      ? supplyMultiplier(attacker.supply)
+      : 1;
+    const defenderSupply = this.strategicEconomy()
+      ? supplyMultiplier(defender?.supply)
+      : 1;
+    mag *= defenderSupply / attackerSupply;
+    tileCost *= defenderSupply / attackerSupply;
+    if (this.strategicEconomy())
+      tileCost /= 1 + (attacker.logistics ?? 0) / 100;
 
     if (defender !== null && input.defenderHasDefensePost) {
       mag *= this.defensePostDefenseBonus();
@@ -895,7 +953,8 @@ export class Config {
     const traitorCostMod = defender.isTraitor ? this.traitorSpeedDebuff() : 1;
 
     // Defender loses its average troops-per-tile.
-    const defenderTroopLoss = defender.troops / defender.numTiles;
+    const defenderTroopLoss =
+      defender.troops / defender.numTiles / defenderSupply;
 
     // Two ratios drive the attacker's loss: how outnumbered the attack is
     // (defender army / attack stack, clamped: bigger pushes pay less per
@@ -1023,6 +1082,11 @@ export class Config {
 
     const ratio = 1 - player.troops() / max;
     toAdd *= ratio;
+    if (this.strategicEconomy() && toAdd > 0) {
+      toAdd *=
+        ECONOMY.growthFloor +
+        ((1 - ECONOMY.growthFloor) * player.supplyStatus().infantry) / 100;
+    }
 
     if (player.type() === PlayerType.Bot) {
       toAdd *= 0.5;
@@ -1099,16 +1163,26 @@ export class Config {
   }
 
   defaultSamRange(): number {
-    return 70;
+    return (
+      70 *
+      (this.strategicEconomy() ? STRATEGIC_COMBAT.antiIcbmRangeMultiplier : 1)
+    );
   }
 
   samRange(level: number): number {
     // rational growth function (level 1 = 70, level 5 just above hydro range, asymptotically approaches 150)
-    return this.maxSamRange() - 480 / (level + 5);
+    return (
+      this.maxSamRange() -
+      (480 / (level + 5)) *
+        (this.strategicEconomy() ? STRATEGIC_COMBAT.antiIcbmRangeMultiplier : 1)
+    );
   }
 
   maxSamRange(): number {
-    return 150;
+    return (
+      150 *
+      (this.strategicEconomy() ? STRATEGIC_COMBAT.antiIcbmRangeMultiplier : 1)
+    );
   }
 
   samUpgradeDuration(): number {

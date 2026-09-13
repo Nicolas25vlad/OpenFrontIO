@@ -17,6 +17,10 @@ export function getDefaultKeybinds(isMac: boolean): Record<string, string> {
   return {
     toggleView: "Space",
     coordinateGrid: "KeyM",
+    buildCategoryCivil: "Shift+Digit1",
+    buildCategoryIndustry: "Shift+Digit2",
+    buildCategoryMilitary: "Shift+Digit3",
+    buildCategoryNuclear: "Shift+Digit4",
     buildCity: "Digit1",
     buildFactory: "Digit2",
     buildPort: "Digit3",

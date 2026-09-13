@@ -23,6 +23,7 @@ export interface StationManager {
 
 export class StationManagerImpl implements StationManager {
   private stations: Set<TrainStation> = new Set();
+  private stationsByUnit = new Map<Unit, TrainStation>();
   private stationsById: (TrainStation | undefined)[] = [];
   private nextId = 1; // Start from 1; 0 is reserved as invalid/sentinel
 
@@ -30,18 +31,17 @@ export class StationManagerImpl implements StationManager {
     station.id = this.nextId++;
     this.stationsById[station.id] = station;
     this.stations.add(station);
+    this.stationsByUnit.set(station.unit, station);
   }
 
   removeStation(station: TrainStation) {
     this.stationsById[station.id] = undefined;
     this.stations.delete(station);
+    this.stationsByUnit.delete(station.unit);
   }
 
   findStation(unit: Unit): TrainStation | null {
-    for (const station of this.stations) {
-      if (station.unit === unit) return station;
-    }
-    return null;
+    return this.stationsByUnit.get(unit) ?? null;
   }
 
   getAll(): Set<TrainStation> {
@@ -224,7 +224,14 @@ export class RailNetworkImpl implements RailNetwork {
   }
 
   overlappingRailroads(unitType: UnitType, tile: TileRef): TileRef[] {
-    if (![UnitType.City, UnitType.Port, UnitType.Factory].includes(unitType)) {
+    if (
+      ![
+        UnitType.City,
+        UnitType.Port,
+        UnitType.Factory,
+        UnitType.Infrastructure,
+      ].includes(unitType)
+    ) {
       return [];
     }
     const tiles = new Set<TileRef>();
@@ -241,7 +248,14 @@ export class RailNetworkImpl implements RailNetwork {
   }
 
   computeGhostRailPaths(unitType: UnitType, tile: TileRef): TileRef[][] {
-    if (![UnitType.City, UnitType.Port, UnitType.Factory].includes(unitType)) {
+    if (
+      ![
+        UnitType.City,
+        UnitType.Port,
+        UnitType.Factory,
+        UnitType.Infrastructure,
+      ].includes(unitType)
+    ) {
       return [];
     }
 
@@ -257,10 +271,12 @@ export class RailNetworkImpl implements RailNetwork {
     // range (see CityExecution/PortExecution). A Factory always becomes a
     // station and pulls nearby City/Port/Factory into the network itself, so
     // it needs no pre-existing factory to connect to.
-    const buildingFactory = unitType === UnitType.Factory;
+    const buildingFactory =
+      unitType === UnitType.Factory || unitType === UnitType.Infrastructure;
     if (
       !buildingFactory &&
-      !this.game.hasUnitNearby(tile, maxRange, UnitType.Factory)
+      !this.game.hasUnitNearby(tile, maxRange, UnitType.Factory) &&
+      !this.game.hasUnitNearby(tile, maxRange, UnitType.Infrastructure)
     ) {
       return [];
     }
@@ -269,6 +285,7 @@ export class RailNetworkImpl implements RailNetwork {
       UnitType.City,
       UnitType.Factory,
       UnitType.Port,
+      UnitType.Infrastructure,
     ]);
     neighbors.sort((a, b) => a.distSquared - b.distSquared);
 
@@ -324,7 +341,7 @@ export class RailNetworkImpl implements RailNetwork {
     const neighbors = this.game.nearbyUnits(
       station.tile(),
       this.game.config().trainStationMaxRange(),
-      [UnitType.City, UnitType.Factory, UnitType.Port],
+      [UnitType.City, UnitType.Factory, UnitType.Port, UnitType.Infrastructure],
     );
 
     const editedClusters = new Set<Cluster>();

@@ -1233,6 +1233,9 @@ export class GameView implements GameMap {
   width(): number {
     return this._map.width();
   }
+  gameMap(): GameMap {
+    return this._map;
+  }
   height(): number {
     return this._map.height();
   }

@@ -11,6 +11,10 @@ import {
   GameUpdateType,
   PlayerUpdate,
 } from "../src/core/game/GameUpdates";
+import {
+  emptyResourceStock,
+  NaturalResource,
+} from "../src/core/game/Resources";
 import { makePlayerUpdate } from "./util/viewStubs";
 
 function makePlayerState(overrides: Partial<PlayerState> = {}): PlayerState {
@@ -26,6 +30,7 @@ function makePlayerState(overrides: Partial<PlayerState> = {}): PlayerState {
     trainGold: 0,
     piracyGold: 0,
     goldEarned: 0,
+    resources: emptyResourceStock(),
     troops: 100,
     isTraitor: false,
     traitorRemainingTicks: 0,
@@ -149,6 +154,35 @@ describe("diffPlayerUpdate", () => {
     const prev = makePlayerUpdate({ gold: 100n, troops: 50, tilesOwned: 5 });
     const next = makePlayerUpdate({ gold: 200n, troops: 75, tilesOwned: 9 });
     expect(diffPlayerUpdate(prev, next)).toBeNull();
+  });
+
+  it("diffs resource stock by value, not object identity", () => {
+    const previous = makePlayerUpdate({ resources: emptyResourceStock() });
+    const nextResources = emptyResourceStock();
+    nextResources[NaturalResource.Gold] = 12;
+    const next = makePlayerUpdate({ resources: nextResources });
+
+    expect(diffPlayerUpdate(previous, next)).toEqual({
+      type: GameUpdateType.Player,
+      id: "player-a",
+      resources: nextResources,
+    });
+    expect(
+      diffPlayerUpdate(
+        previous,
+        makePlayerUpdate({ resources: { ...nextResources } }),
+      ),
+    ).toEqual({
+      type: GameUpdateType.Player,
+      id: "player-a",
+      resources: nextResources,
+    });
+    expect(
+      diffPlayerUpdate(
+        makePlayerUpdate({ resources: { ...nextResources } }),
+        makePlayerUpdate({ resources: { ...nextResources } }),
+      ),
+    ).toBeNull();
   });
 
   it("detects allies array additions", () => {
@@ -356,6 +390,36 @@ describe("applyStateUpdate", () => {
     expect(target.traitorRemainingTicks).toBe(3);
     expect(target.betrayals).toBe(2);
     expect(target.lastDeleteUnitTick).toBe(50);
+  });
+
+  it("merges resource stock and detaches it from the wire payload", () => {
+    const target = makePlayerState();
+    const resources = emptyResourceStock();
+    resources[NaturalResource.Oil] = 7;
+    const update = makePlayerUpdate({ resources });
+
+    applyStateUpdate(target, update);
+    expect(target.resources).toEqual(resources);
+
+    resources[NaturalResource.Oil] = 99;
+    expect(target.resources[NaturalResource.Oil]).toBe(7);
+  });
+
+  it("keeps two client snapshots identical after the same stock diff", () => {
+    const clientA = makePlayerState();
+    const clientB = makePlayerState();
+    const first = makePlayerUpdate();
+    applyStateUpdate(clientA, first);
+    applyStateUpdate(clientB, first);
+
+    const resources = emptyResourceStock();
+    resources[NaturalResource.Uranium] = 4;
+    const diff = makePlayerUpdate({ resources });
+    applyStateUpdate(clientA, diff);
+    applyStateUpdate(clientB, diff);
+
+    expect(clientA.resources).toEqual(clientB.resources);
+    expect(clientA.resources[NaturalResource.Uranium]).toBe(4);
   });
 
   it("converts bigint gold to number", () => {

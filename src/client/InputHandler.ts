@@ -7,6 +7,7 @@ import {
 } from "../core/game/UserSettings";
 import { Platform } from "./Platform";
 import { UIState } from "./UIState";
+import { BUILD_CATEGORIES } from "./hud/BuildCategories";
 import { ReplaySpeedMultiplier } from "./utilities/ReplaySpeedMultiplier";
 import { GameView, UnitView } from "./view";
 
@@ -99,6 +100,16 @@ export class ToggleStructureEvent implements GameEvent {
   constructor(
     public readonly structureTypes: PlayerBuildableUnitType[] | null,
   ) {}
+}
+
+export class SelectBuildCategoryEvent implements GameEvent {
+  constructor(
+    public readonly category: (typeof BUILD_CATEGORIES)[number]["id"],
+  ) {}
+}
+
+export class ToggleResourceMapEvent implements GameEvent {
+  constructor(public readonly visible: boolean) {}
 }
 
 export class ConfirmGhostStructureEvent implements GameEvent {}
@@ -456,6 +467,20 @@ export class InputHandler {
     buildKeybinds = [...new Set(buildKeybinds)].filter((v): v is string =>
       Boolean(v),
     );
+
+    for (const category of BUILD_CATEGORIES) {
+      const keybind = this.keybinds[category.keybind];
+      if (!keybind) continue;
+      this.addKeybindAndEvent(
+        keybind,
+        () => {
+          this.uiState.buildCategory = category.id;
+          this.eventBus.emit(new SelectBuildCategoryEvent(category.id));
+        },
+        () => this.canUseBuildKeybinds(),
+      );
+    }
+
     for (const i of buildKeybinds) {
       this.addKeybindAndEvent(
         i,
@@ -1152,6 +1177,19 @@ export class InputHandler {
     code: string,
     shiftKey: boolean,
   ): PlayerBuildableUnitType | null {
+    if (
+      this.uiState.buildCategory &&
+      !shiftKey &&
+      /^(Digit|Numpad)[1-9]$/.test(code)
+    ) {
+      const category = BUILD_CATEGORIES.find(
+        (c) => c.id === this.uiState.buildCategory,
+      );
+      const types = category?.unitTypes.filter(
+        (type) => !this.gameView.config().isUnitDisabled(type),
+      );
+      return types?.[Number(code.slice(-1)) - 1] ?? null;
+    }
     const buildKeybinds: ReadonlyArray<{
       key: string;
       type: PlayerBuildableUnitType;
