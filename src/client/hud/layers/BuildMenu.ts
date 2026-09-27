@@ -11,6 +11,7 @@ import {
   UnitType,
 } from "../../../core/game/Game";
 import { TileRef } from "../../../core/game/GameMap";
+import { ProcessedResource } from "../../../core/game/Resources";
 import { Controller } from "../../Controller";
 import {
   CloseViewEvent,
@@ -21,6 +22,7 @@ import {
 import { TransformHandler } from "../../TransformHandler";
 import {
   BuildUnitIntentEvent,
+  BuildTrenchIntentEvent,
   SendUpgradeStructureIntentEvent,
 } from "../../Transport";
 import { UIState } from "../../UIState";
@@ -500,6 +502,7 @@ export class BuildMenu extends LitElement implements Controller {
             </div>
           `,
         )}
+        ${this.renderTrenchOption()}
       </div>
     `;
   }
@@ -526,6 +529,43 @@ export class BuildMenu extends LitElement implements Controller {
 
     // remove disabled buildings from the buildtable
     this.filteredBuildTable = this.getBuildableUnits();
+  }
+
+  private renderTrenchOption() {
+    if (
+      this.clickedTile === undefined ||
+      !this.game?.config()?.strategicEconomy()
+    ) {
+      return html``;
+    }
+    const player = this.game.myPlayer();
+    const maxLevel = this.game.config().trenchMaxLevel();
+    const steelCost =
+      this.game.config().trenchCost()[ProcessedResource.Steel] ?? 0;
+    const enabled =
+      !!player &&
+      this.game.ownerID(this.clickedTile) === player.smallID() &&
+      this.game.isBorder(this.clickedTile) &&
+      this.game.trenchLevel(this.clickedTile) < maxLevel &&
+      player.resourceAmount(ProcessedResource.Steel) >= steelCost;
+    return html`
+      <div class="build-row">
+        <button
+          class="build-button"
+          ?disabled=${!enabled}
+          title=${enabled ? "" : translateText("build_menu.trench_requirements")}
+          @click=${() => {
+            this.eventBus.emit(new BuildTrenchIntentEvent(this.clickedTile));
+            this.hideMenu();
+          }}
+        >
+          <img src=${shieldIcon} alt="trincheira" width="40" height="40" />
+          <span class="build-name">${translateText("unit_type.trench")} ${this.game.trenchLevel(this.clickedTile)}/${maxLevel}</span>
+          <span class="build-description">${translateText("build_menu.desc.trench")}</span>
+          <span class="build-cost">${steelCost} ${translateText("resource.steel")}</span>
+        </button>
+      </div>
+    `;
   }
 
   private getBuildableUnits(): BuildItemDisplay[][] {

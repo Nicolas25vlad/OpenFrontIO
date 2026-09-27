@@ -96,6 +96,7 @@ export class GameImpl implements Game {
 
   private nextPlayerID = 1;
   private _nextUnitID = 1;
+  private trenchHash = 0;
 
   private updates: GameUpdates = createGameUpdatesMap();
   private tileUpdatePairs: number[] = [];
@@ -246,6 +247,25 @@ export class GameImpl implements Game {
     this.recordTileUpdate(tile);
   }
 
+  setTrenchLevel(tile: TileRef, level: number): void {
+    if (!this._map.isValidRef(tile)) {
+      throw new Error(`cannot set trench on invalid tile ${tile}`);
+    }
+    if (!this.writeTrenchLevel(tile, level)) return;
+    this.recordTileUpdate(tile);
+  }
+
+  private writeTrenchLevel(tile: TileRef, level: number): boolean {
+    const previous = this._map.trenchLevel(tile);
+    if (previous === level) return false;
+    const contribution = (value: number) =>
+      value === 0 ? 0 : simpleHash(`${tile}:${value}`);
+    this.trenchHash =
+      (this.trenchHash + contribution(level) - contribution(previous)) >>> 0;
+    this._map.setTrenchLevel(tile, level);
+    return true;
+  }
+
   setWater(tile: TileRef): void {
     if (!this.isLand(tile)) return;
     if (this.hasOwner(tile)) {
@@ -256,6 +276,7 @@ export class GameImpl implements Game {
       this._map.setFallout(tile, false);
     }
     this._territoryVersion++;
+    this.writeTrenchLevel(tile, 0);
     this._map.setWater(tile);
     this.recordTileUpdate(tile);
   }
@@ -643,7 +664,7 @@ export class GameImpl implements Game {
   }
 
   private hash(): number {
-    let hash = 1 + this.resourceCatalog.hash();
+    let hash = 1 + this.resourceCatalog.hash() + this.trenchHash;
     this._players.forEach((p) => {
       hash += p.hash();
     });
@@ -796,6 +817,8 @@ export class GameImpl implements Game {
     }
     this._territoryVersion++;
     this._map.setOwnerID(tile, owner.smallID());
+    // Fortifications belong to the territory and are captured as rubble.
+    this.writeTrenchLevel(tile, 0);
     owner._tiles.add(tile);
     owner._lastTileChange = this._ticks;
     owner._tileChangeVersion++;
@@ -820,6 +843,7 @@ export class GameImpl implements Game {
 
     this._territoryVersion++;
     this._map.setOwnerID(tile, 0);
+    this.writeTrenchLevel(tile, 0);
     this.updateBorders(tile);
     this.recordTileUpdate(tile);
   }
@@ -1285,6 +1309,9 @@ export class GameImpl implements Game {
   }
   hasFallout(ref: TileRef): boolean {
     return this._map.hasFallout(ref);
+  }
+  trenchLevel(ref: TileRef): number {
+    return this._map.trenchLevel(ref);
   }
   isBorder(ref: TileRef): boolean {
     return this._map.isBorder(ref);

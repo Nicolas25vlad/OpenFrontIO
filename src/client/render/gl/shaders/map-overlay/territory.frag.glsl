@@ -130,6 +130,14 @@ void main() {
     color.rgb *= uDefenseDarken;
   }
 
+  // Trenches are packed into the two reserved tile-state bits. A restrained
+  // earth tint gives a persistent level readout without adding map entities.
+  uint trenchLevel = (raw >> uint(TRENCH_LEVEL_SHIFT)) & 3u;
+  if (trenchLevel > 0u) {
+    float trenchTint = 0.12 + 0.035 * float(trenchLevel);
+    color.rgb = mix(color.rgb, vec3(0.64, 0.53, 0.34), trenchTint);
+  }
+
   // Adjust how saturated the fill is by blending toward its luminance.
   if (uSaturation != 1.0) {
     float luma = dot(color.rgb, vec3(0.299, 0.587, 0.114));

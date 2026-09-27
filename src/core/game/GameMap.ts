@@ -36,6 +36,8 @@ export interface GameMap {
   setOwnerID(ref: TileRef, playerId: number): void;
   hasFallout(ref: TileRef): boolean;
   setFallout(ref: TileRef, value: boolean): void;
+  trenchLevel(ref: TileRef): number;
+  setTrenchLevel(ref: TileRef, level: number): void;
   isOnEdgeOfMap(ref: TileRef): boolean;
   isBorder(ref: TileRef): boolean;
   neighbors(ref: TileRef): TileRef[];
@@ -98,7 +100,7 @@ export interface GameMap {
    * The bit layout of each `uint16` matches the renderer's tile state:
    *   bits  0-11: ownerID
    *   bit   13:  fallout
-   *   bit   14:  defense bonus
+   *   bits 14-15: trench level (0 = none, 1-3 = fortification)
    */
   tileStateBuffer(): Uint16Array;
 
@@ -134,8 +136,8 @@ export class GameMapImpl implements GameMap {
   // State bits (Uint16Array)
   private static readonly PLAYER_ID_MASK = 0xfff;
   private static readonly FALLOUT_BIT = 13;
-  private static readonly DEFENSE_BONUS_BIT = 14;
-  // Bit 15 still reserved
+  private static readonly TRENCH_LEVEL_SHIFT = 14;
+  private static readonly TRENCH_LEVEL_MASK = 0b11 << GameMapImpl.TRENCH_LEVEL_SHIFT;
 
   constructor(
     width: number,
@@ -348,15 +350,25 @@ export class GameMapImpl implements GameMap {
   }
 
   hasDefenseBonus(ref: TileRef): boolean {
-    return Boolean(this.state[ref] & (1 << GameMapImpl.DEFENSE_BONUS_BIT));
+    return this.trenchLevel(ref) > 0;
   }
 
   setDefenseBonus(ref: TileRef, value: boolean): void {
-    if (value) {
-      this.state[ref] |= 1 << GameMapImpl.DEFENSE_BONUS_BIT;
-    } else {
-      this.state[ref] &= ~(1 << GameMapImpl.DEFENSE_BONUS_BIT);
+    this.setTrenchLevel(ref, value ? 1 : 0);
+  }
+
+  trenchLevel(ref: TileRef): number {
+    return (this.state[ref] & GameMapImpl.TRENCH_LEVEL_MASK) >>
+      GameMapImpl.TRENCH_LEVEL_SHIFT;
+  }
+
+  setTrenchLevel(ref: TileRef, level: number): void {
+    if (!Number.isInteger(level) || level < 0 || level > 3) {
+      throw new RangeError(`Invalid trench level: ${level}`);
     }
+    this.state[ref] =
+      (this.state[ref] & ~GameMapImpl.TRENCH_LEVEL_MASK) |
+      (level << GameMapImpl.TRENCH_LEVEL_SHIFT);
   }
 
   // Helper methods

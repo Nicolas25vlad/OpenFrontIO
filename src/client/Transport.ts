@@ -110,6 +110,10 @@ export class BuildUnitIntentEvent implements GameEvent {
   ) {}
 }
 
+export class BuildTrenchIntentEvent implements GameEvent {
+  constructor(public readonly tile: TileRef) {}
+}
+
 export class SendTargetPlayerIntentEvent implements GameEvent {
   constructor(public readonly targetID: PlayerID) {}
 }
@@ -313,6 +317,9 @@ export class Transport {
       this.onSendEmbargoAllIntent(e),
     );
     this.eventBus.on(BuildUnitIntentEvent, (e) => this.onBuildUnitIntent(e));
+    this.eventBus.on(BuildTrenchIntentEvent, (e) =>
+      this.sendIntent({ type: "build_trench", tile: e.tile }),
+    );
 
     this.eventBus.on(PauseGameIntentEvent, (e) => this.onPauseGameIntent(e));
     this.eventBus.on(SendWinnerEvent, (e) => this.onSendWinnerEvent(e));

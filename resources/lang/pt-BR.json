@@ -142,10 +142,12 @@
       "nuclear_plant": "Enriquece urânio consumindo combustível. Necessária para armas nucleares.",
       "port": "Envie navios de troca para gerar ouro",
       "sam_launcher": "Defende Contra Chegada de Bombas Nucleares",
+      "trench": "Fortalece este tile da fronteira contra ataques terrestres.",
       "vehicle_factory": "Fabrica tanques usando aço e combustível.",
       "warship": "Capture navios comerciais, destrua navios e barcos"
     },
     "not_enough_money": "Sem Dinheiro Suficiente",
+    "trench_requirements": "Trincheiras exigem um tile próprio de fronteira e aço suficiente.",
     "upgrade_amount": "x{amount}",
     "warship_shift_hint": "Mantenha pressionado Shift e arraste para selecionar múltiplos navios de guerra de uma vez"
   },
@@ -1885,6 +1887,7 @@
     "nuclear_plant": "Usina nuclear",
     "port": "Porto",
     "sam_launcher": "Lançador de SAMs",
+    "trench": "Trincheira",
     "vehicle_factory": "Fábrica de veículos",
     "warship": "Navio de Guerra"
   },

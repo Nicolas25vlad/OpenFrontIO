@@ -175,10 +175,12 @@
       "nuclear_plant": "Enriches uranium using fuel. Required for nuclear weapons.",
       "port": "Sends trade ships to generate gold",
       "sam_launcher": "Defends against incoming nukes",
+      "trench": "Fortifies this border tile against land attacks.",
       "vehicle_factory": "Manufactures tanks using steel and fuel.",
       "warship": "Captures trade ships, destroys ships and boats"
     },
     "not_enough_money": "Not enough money",
+    "trench_requirements": "Trenches require an owned border tile and enough steel.",
     "upgrade_amount": "x{amount}",
     "warship_shift_hint": "Hold Shift and drag to select multiple warships at once"
   },
@@ -2046,6 +2048,7 @@
     "nuclear_plant": "Nuclear plant",
     "port": "Port",
     "sam_launcher": "SAM Launcher",
+    "trench": "Trench",
     "vehicle_factory": "Vehicle factory",
     "warship": "Warship"
   },

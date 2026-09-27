@@ -27,4 +27,21 @@ describe("GameMap.tileStateBuffer", () => {
     map.setOwnerID(7, 0x123);
     expect(map.tileStateBuffer()[7] & 0xfff).toBe(0x123);
   });
+
+  it("packs trench levels into the two reserved upper state bits", () => {
+    const map = new GameMapImpl(4, 4, new Uint8Array(16), 0);
+    map.setOwnerID(5, 7);
+    map.setFallout(5, true);
+    map.setTrenchLevel(5, 3);
+
+    expect(map.trenchLevel(5)).toBe(3);
+    expect(map.tileState(5)).toBe(0xe007);
+    map.setTrenchLevel(5, 0);
+    expect(map.tileState(5)).toBe(0x2007);
+  });
+
+  it("rejects trench levels outside the packed range", () => {
+    const map = new GameMapImpl(4, 4, new Uint8Array(16), 0);
+    expect(() => map.setTrenchLevel(0, 4)).toThrow(RangeError);
+  });
 });

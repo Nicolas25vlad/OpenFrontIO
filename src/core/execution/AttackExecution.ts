@@ -370,6 +370,13 @@ export class AttackExecution implements Execution {
           this._owner,
         );
       }
+      const trenchLevel = this.mg.trenchLevel(tileToConquer);
+      if (trenchLevel > 0 && this.mg.config().strategicEconomy()) {
+        this.mg.setTrenchLevel(
+          tileToConquer,
+          Math.max(0, trenchLevel - STRATEGIC_COMBAT.trenchWearPerResolvedTile),
+        );
+      }
       this._owner.conquer(tileToConquer);
       this.handleDeadDefender();
     }
@@ -412,6 +419,7 @@ export class AttackExecution implements Execution {
             },
       defenderHasDefensePost: defenderPost !== undefined,
       defenderDefensePostLevel: defenderPost?.level() ?? 0,
+      defenderTrenchLevel: this.mg.trenchLevel(tile),
       falloutRatio: this.mg.hasFallout(tile)
         ? this.mg.numTilesWithFallout() / this.mg.numLandTiles()
         : null,

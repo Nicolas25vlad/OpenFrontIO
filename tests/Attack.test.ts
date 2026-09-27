@@ -307,11 +307,14 @@ describe("land attack tanks", () => {
     const post = fortDefender.buildUnit(UnitType.DefensePost, combatTile!, {});
     fortDefender.upgradeUnit(post);
     fortDefender.upgradeUnit(post);
+    fortGame.setTrenchLevel(combatTile!, 2);
 
     let observedPostLevel = 0;
+    let observedTrenchLevel = 0;
     const testConfig = fortGame.config() as TestConfig;
     testConfig.attackLogic = (input) => {
       observedPostLevel = input.defenderDefensePostLevel ?? 0;
+      observedTrenchLevel = input.defenderTrenchLevel ?? 0;
       return { attackerTroopLoss: 1, defenderTroopLoss: 0, tickFraction: 1 };
     };
     fortAttacker.addTroops(10_000);
@@ -322,7 +325,9 @@ describe("land attack tanks", () => {
     fortGame.executeNextTick();
 
     expect(observedPostLevel).toBe(3);
+    expect(observedTrenchLevel).toBe(2);
     expect(post.health()).toBe(475);
+    expect(fortGame.trenchLevel(combatTile!)).toBe(0);
   });
 });
 

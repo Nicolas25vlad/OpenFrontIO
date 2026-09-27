@@ -1304,6 +1304,12 @@ export class GameView implements GameMap {
   setFallout(ref: TileRef, value: boolean): void {
     return this._map.setFallout(ref, value);
   }
+  trenchLevel(ref: TileRef): number {
+    return this._map.trenchLevel(ref);
+  }
+  setTrenchLevel(ref: TileRef, level: number): void {
+    return this._map.setTrenchLevel(ref, level);
+  }
   isBorder(ref: TileRef): boolean {
     return this._map.isBorder(ref);
   }

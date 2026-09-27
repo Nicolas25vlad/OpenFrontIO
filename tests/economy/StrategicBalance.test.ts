@@ -60,4 +60,23 @@ test("Anti-ICBM range and throughput bonuses preserve all legacy levels", () => 
     levelOne.attackerTroopLoss,
   );
   expect(levelThree.tickFraction).toBeGreaterThan(levelOne.tickFraction);
+
+  const noTrench = strategic.attackLogic({
+    ...attack,
+    defenderHasDefensePost: false,
+    defenderDefensePostLevel: 0,
+  });
+  const levelThreeTrench = strategic.attackLogic({
+    ...attack,
+    defenderHasDefensePost: false,
+    defenderDefensePostLevel: 0,
+    defenderTrenchLevel: 3,
+  });
+  expect(levelThreeTrench.attackerTroopLoss).toBeGreaterThan(
+    noTrench.attackerTroopLoss,
+  );
+  expect(levelThreeTrench.tickFraction).toBeGreaterThan(noTrench.tickFraction);
+  expect(legacy.attackLogic({ ...attack, defenderTrenchLevel: 3 })).toEqual(
+    legacy.attackLogic(attack),
+  );
 });

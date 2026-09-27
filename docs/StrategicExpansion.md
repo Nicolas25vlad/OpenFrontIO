@@ -119,7 +119,7 @@ Registre navegador,
 mapa e resultado em `StrategicCompatibilityChecklist.md`; a aprovação visual
 continua pendente até essa execução.
 
-## Fortificações niveladas — issue #6 (parcial)
+## Fortificações e trincheiras — issue #6 (parcial)
 
 Na economia estratégica, postos de defesa podem ser melhorados até o nível 3.
 Cada nível amplia a perda de tropas e o custo de avanço dos ataques inimigos,
@@ -152,5 +152,47 @@ nível/saúde mudam o hash. Validação local: 7 arquivos/116 testes focados,
 
 Esperado: níveis e saúde sincronizam sem recriar unidades nem duplicar bônus;
 desgaste é determinístico por tile e o posto deixa de conceder defesa ao ser
-destruído. A pintura de trincheiras na fronteira e sua leitura visual ainda
-estão pendentes nesta issue.
+destruído.
+
+Na mesma opção estratégica, tiles próprios de fronteira podem receber trincheiras
+de nível 1 a 3 pelo menu de construção. Cada nível custa aço conforme
+`STRATEGIC_COMBAT.trenchSteelPerLevel`. Os dois bits reservados do estado
+compacto de tile carregam o nível nos updates existentes; não há uma entidade
+por tile. O combate usa o nível daquele tile, aplica defesa e atraso de avanço,
+e reduz um nível por tile resolvido. Conquista, abandono e conversão para água
+limpam a fortificação. O modo legado ignora o bônus.
+
+Arquivos desta etapa: `src/core/game/GameMap.ts`, `src/core/game/GameImpl.ts`,
+`src/core/Schemas.ts`, `src/core/execution/BuildTrenchExecution.ts`,
+`src/core/execution/ExecutionManager.ts`, `src/core/execution/AttackExecution.ts`,
+`src/core/configuration/Config.ts`, `src/core/configuration/StrategyConfig.ts`,
+`src/client/Transport.ts`, `src/client/hud/layers/BuildMenu.ts`,
+`src/client/view/GameView.ts`, `src/client/render/gl/utils/TileCodec.ts` e
+`src/client/render/gl/shaders/map-overlay/territory.frag.glsl`, além das
+traduções em `resources/lang/en.json` e `resources/lang/pt-BR.json`.
+
+Validação automatizada específica: `tests/core/game/GameMap.tileStateBuffer.test.ts`,
+`tests/core/executions/BuildTrenchExecution.test.ts`,
+`tests/economy/StrategicBalance.test.ts` e `tests/Attack.test.ts` — 4 arquivos,
+38 testes passaram. `tsc --noEmit`, lint e `npm run build-dev` passaram, incluindo
+o shader no bundle. A suite serial completa ainda está em execução.
+
+### Validação manual pendente no PC principal
+
+1. Rode `npm run dev:host`, inicie uma partida com `strategicEconomy` ligado e
+   abra o menu de construção com o botão direito sobre um tile próprio da
+   fronteira.
+2. Selecione “Trincheira” três vezes. Confira o custo de aço por nível, o rótulo
+   `1/3`, `2/3`, `3/3` e o tom terroso crescente no tile. No nível 3, a opção
+   deve ficar desativada.
+3. Deixe um ataque terrestre alcançar o tile. Cada tile resolvido deve reduzir
+   o nível uma vez; a captura pelo atacante deve limpar a trincheira.
+4. Repita em tile interior, território inimigo e com aço insuficiente: a opção
+   deve ficar desativada e nenhum recurso deve ser consumido. Repita com
+   `strategicEconomy` desligado e confirme que o botão não aparece.
+
+Esperado: o servidor/core rejeita qualquer tile inválido mesmo que um cliente
+envie o intent manualmente; clientes e replay recebem o mesmo nível via update
+compacto. Permanecem para esta issue os counters de tanque/supply e a revisão
+visual em replay/multiplayer; não foram alteradas regras de seleção de alvos
+navais ou nucleares. A validação manual acima continua pendente.

@@ -21,6 +21,7 @@ import {
   UnitType,
 } from "../game/Game";
 import { UserSettings } from "../game/UserSettings";
+import { ProcessedResource } from "../game/Resources";
 import { GameConfig, TeamCountConfig } from "../Schemas";
 import { NukeType } from "../StatsSchemas";
 import { assertNever, sigmoid, toInt, within } from "../Util";
@@ -102,6 +103,8 @@ export interface AttackLogicInput {
   defenderHasDefensePost: boolean;
   /** Highest active defense-post level owned by the defender in range. */
   defenderDefensePostLevel?: number;
+  /** Trench level on the tile currently being resolved. */
+  defenderTrenchLevel?: number;
   /** Fraction of land tiles with fallout, or null if the tile has no fallout. */
   falloutRatio: number | null;
   /** Tiles on the attack front this tick (plus jitter); fixed for the tick. */
@@ -558,6 +561,16 @@ export class Config {
     return this.strategicEconomy() ? (RESOURCE_COSTS[type] ?? {}) : {};
   }
 
+  trenchCost(): ResourceAmounts {
+    return {
+      [ProcessedResource.Steel]: STRATEGIC_COMBAT.trenchSteelPerLevel,
+    };
+  }
+
+  trenchMaxLevel(): number {
+    return this.strategicEconomy() ? STRATEGIC_COMBAT.trenchMaxLevel : 0;
+  }
+
   nuclearProductionTicks(type: UnitType): number {
     return this.strategicEconomy() ? (NUCLEAR_PRODUCTION_TICKS[type] ?? 0) : 0;
   }
@@ -923,6 +936,12 @@ export class Config {
     if (defender !== null && defensePostLevel > 0) {
       mag *= this.defensePostDefenseBonus(defensePostLevel);
       tileCost *= this.defensePostSpeedBonus(defensePostLevel);
+    }
+    const trenchLevel = input.defenderTrenchLevel ?? 0;
+    if (this.strategicEconomy() && defender !== null && trenchLevel > 0) {
+      mag *= 1 + trenchLevel * STRATEGIC_COMBAT.trenchDefensePerLevel;
+      tileCost *=
+        1 + trenchLevel * STRATEGIC_COMBAT.trenchAttackSpeedPerLevel;
     }
     if (input.falloutRatio !== null) {
       const fallout = this.falloutDefenseModifier(input.falloutRatio);

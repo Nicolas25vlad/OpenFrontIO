@@ -103,6 +103,11 @@ export const STRATEGIC_COMBAT = {
   defensePostMaxHealth: 300,
   defensePostHealthPerLevel: 100,
   defensePostWearPerTile: 25,
+  trenchMaxLevel: 3,
+  trenchDefensePerLevel: 0.08,
+  trenchAttackSpeedPerLevel: 0.06,
+  trenchWearPerResolvedTile: 1,
+  trenchSteelPerLevel: 3,
   /** One tank joins a land attack for every 10,000 infantry sent. */
   infantryPerTank: 10_000,
   /** Combat strength contributed by one tank, measured in infantry equivalents. */
