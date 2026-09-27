@@ -20,8 +20,8 @@ Antes de ativar ou alterar cada sistema, use o gate em
 Itens só são marcados após implementação e verificação. `src/core` é a simulação determinística executada no worker de cada cliente; o servidor distribui turns. Nenhuma UI decide produção ou resultados de combate.
 
 - [ ] 1. Categorias em dados, barra secundária acima, mouse e teclado; todas as novas construções acessíveis.
-- [ ] 2. Sete recursos, camadas determinísticas por partida, terra válida, riqueza, sobreposição, fallback; todos os tipos por continente.
-- [ ] 3. Heatmap forte, sobreposição, ícones reconhecíveis de minério/gota e botão junto ao estoque; apenas visual.
+- [ ] 2. Sete recursos em camadas determinísticas independentes; zonas geológicas amplas, graduais e irregulares, lacunas sem depósitos, níveis de riqueza e somente terra válida.
+- [ ] 3. Heatmap com cinturões geológicos sobrepostos, ícones reconhecíveis de minério/gota e botão junto ao estoque; apenas visual.
 - [ ] 4. Minas com reserva compartilhada persistente por depósito/recurso, riqueza, nível, infraestrutura/indústria; captura e esgotamento.
 - [ ] 5. Petróleo → combustível; ferro → refinado → aço com carvão; ouro → barras; cobre → circuitos; urânio → enriquecido só em usina; potássio → fertilizante; fazendas → comida. Throughput limitado.
 - [ ] 6. Estoques sincronizados, painel compacto + detalhe de produção, consumo e saldo por período.
@@ -53,6 +53,48 @@ Itens só são marcados após implementação e verificação. `src/core` é a s
 ## Estado inicial verificado em 2026-09-13
 
 Issues #1–#11 abertas. Worktree contém fundação de recursos, heatmap, categorias e implementação parcial de mina. Ainda falta processamento e a integração da mina na barra inferior; testes anteriores não demonstram a expansão completa. Corrigir também reservas sobrepostas, validade de terreno após alterações e semântica de replay (repetir um build não equivale a reproduzir uma partida).
+
+## Distribuição geológica determinística — requisitos 2 e 3 (parcial)
+
+A geração já usa quatro oitavas de value noise determinístico, com seed
+independente por recurso e cache por mapa/partida. A distribuição agora usa
+somente os limiares configurados: removi os depósitos de fallback que preenchiam
+células sem ocorrência e a garantia artificial de um ponto de cada recurso em
+cada continente. Isso mantém vazios geológicos e concentrações contínuas onde o
+noise ultrapassa o limiar. Escala, frequência, limiar e abundância continuam
+configuráveis em `RESOURCE_GENERATION_CONFIG`; a abundância desloca o limiar e a
+riqueza é calculada em faixas sobre o mesmo valor do noise. Cada candidato ainda
+é resolvido para terra passável. A malha de amostragem e a escala do noise se
+adaptam às dimensões do mapa, e o raio do overlay acompanha a malha para que
+mapas menores também formem zonas legíveis. A menor abundância do ouro foi
+ajustada para formar regiões produtoras conectadas sem tornar o recurso
+uniforme. A distribuição é cacheada por mapa e seed; o cálculo não roda durante
+os ticks da partida.
+
+Arquivos: `src/core/game/Resources.ts`, `src/client/ResourceMap.ts` e
+`tests/core/game/Resources.test.ts`. A suíte testa determinismo e cache,
+independência das camadas, riqueza progressiva, regiões conectadas, áreas vazias,
+cobertura em múltiplas zonas de continente e exclusão de água/terreno
+intransitável. Também foram validados os fluxos de mineração, prioridades da IA,
+produção e replay: 30 testes passaram em 6 arquivos. A suíte completa passou
+com 474 arquivos/5.611 testes; a suíte de servidor, com 63 arquivos/656 testes.
+`tsc --noEmit`, lint, `npm run build-dev`, Prettier e `git diff --check` também
+passaram.
+
+### Validação visual pendente no PC principal
+
+1. Rode `npm run dev:host`, inicie uma partida estratégica e ative o mapa de
+   recursos pelo botão junto ao estoque.
+2. Observe cada continente em zoom médio e aproximado. Procure cinturões
+   irregulares com ícones próximos em áreas produtoras, transições de intensidade
+   e regiões sem depósitos; verifique também sobreposições ocasionais.
+3. Reabra a mesma partida e confirme que posições e riqueza são idênticas.
+   Inicie uma partida com outra seed e confirme que as camadas mudam.
+
+Esperado: os depósitos aparecem somente em terra passável, em regiões amplas e
+irregulares compostas por tiles próximos; os níveis de riqueza variam segundo o
+noise, áreas sem ocorrência permanecem visíveis e cada recurso conserva uma
+distribuição independente. A conferência visual continua pendente.
 
 ## Tropas visuais agrupadas — issue #5 (parcial)
 

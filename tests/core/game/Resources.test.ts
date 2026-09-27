@@ -22,6 +22,48 @@ function landMap(width = 1024, height = 1024) {
   };
 }
 
+function resourceCellComponents(
+  nodes: readonly ResourceNode[],
+  resource: NaturalResource,
+): number[][][] {
+  const cells = new Set(
+    nodes
+      .filter((node) => node.resource === resource)
+      .map(
+        (node) =>
+          `${Math.floor(node.x / RESOURCE_NODE_CELL_SIZE)}:${Math.floor(
+            node.y / RESOURCE_NODE_CELL_SIZE,
+          )}`,
+      ),
+  );
+  const components: number[][][] = [];
+
+  while (cells.size > 0) {
+    const first = cells.values().next().value as string;
+    const [firstX, firstY] = first.split(":").map(Number);
+    const component = [[firstX, firstY]];
+    const frontier = [[firstX, firstY]];
+    cells.delete(first);
+
+    while (frontier.length > 0) {
+      const [x, y] = frontier.pop()!;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const key = `${x + dx}:${y + dy}`;
+          if (!cells.delete(key)) continue;
+          const neighbor: number[] = [x + dx, y + dy];
+          component.push(neighbor);
+          frontier.push(neighbor);
+        }
+      }
+    }
+    components.push(component);
+  }
+
+  return components;
+}
+
 describe("deterministic resource deposits", () => {
   test("returns the same nodes for the same match seed", () => {
     const map = landMap();
@@ -51,7 +93,8 @@ describe("deterministic resource deposits", () => {
   });
 
   test("creates broad independent zones with gradual richness", () => {
-    const nodes = resourceNodesForMap(landMap(2048, 1024), "zone-match");
+    const map = landMap(2048, 1024);
+    const nodes = resourceNodesForMap(map, "zone-match");
     const counts = new Map<NaturalResource, number>();
 
     for (const node of nodes) {
@@ -65,8 +108,11 @@ describe("deterministic resource deposits", () => {
       4,
     );
 
+    let totalRegionCount = 0;
     for (const resource of Object.values(NaturalResource)) {
       const resourceNodes = nodes.filter((node) => node.resource === resource);
+      const components = resourceCellComponents(nodes, resource);
+      totalRegionCount += components.length;
       expect(
         resourceNodes.some((node, index) =>
           resourceNodes.some((other, otherIndex) => {
@@ -80,7 +126,28 @@ describe("deterministic resource deposits", () => {
           }),
         ),
       ).toBe(true);
+      expect(
+        components.some((component) => component.length >= 3),
+        resource,
+      ).toBe(true);
+      expect(resourceNodes.length).toBeLessThan(
+        (map.width() / RESOURCE_NODE_CELL_SIZE) *
+          (map.height() / RESOURCE_NODE_CELL_SIZE),
+      );
     }
+    expect(totalRegionCount).toBeGreaterThan(
+      Object.values(NaturalResource).length,
+    );
+    const layerMasks = Object.values(NaturalResource).map((resource) =>
+      resourceCellComponents(nodes, resource)
+        .flat()
+        .map(([x, y]) => `${x}:${y}`)
+        .sort()
+        .join(","),
+    );
+    expect(new Set(layerMasks).size).toBe(
+      Object.values(NaturalResource).length,
+    );
 
     expect(
       nodes.every((node) =>
@@ -89,7 +156,7 @@ describe("deterministic resource deposits", () => {
     ).toBe(true);
   });
 
-  test("covers every valid map cell with at least one resource", () => {
+  test("keeps resource-free cells instead of filling the whole map", () => {
     const cellCount = (1024 / RESOURCE_NODE_CELL_SIZE) ** 2;
     const nodes = resourceNodesForMap(landMap(), "coverage-match");
     const coveredCells = new Set(
@@ -101,10 +168,11 @@ describe("deterministic resource deposits", () => {
       ),
     );
 
-    expect(coveredCells.size).toBe(cellCount);
+    expect(coveredCells.size).toBeGreaterThan(0);
+    expect(coveredCells.size).toBeLessThan(cellCount);
   });
 
-  test("guarantees every resource in every major continent zone", () => {
+  test("creates multiple producing regions without forcing every resource into each continent", () => {
     const map = landMap(2048, 1024);
     const nodes = resourceNodesForMap(map, "continent-coverage-match");
 
@@ -117,9 +185,10 @@ describe("deterministic resource deposits", () => {
           node.y < zone.maxY * map.height(),
       );
 
-      for (const resource of Object.values(NaturalResource)) {
-        expect(zoneNodes.some((node) => node.resource === resource)).toBe(true);
-      }
+      expect(zoneNodes.length).toBeGreaterThan(1);
+      expect(
+        new Set(zoneNodes.map((node) => node.resource)).size,
+      ).toBeGreaterThan(1);
     }
   });
 
@@ -157,6 +226,22 @@ describe("deterministic resource deposits", () => {
     expect(
       resourceNodesForMap({ ...map, isLand: () => false }, "match-a"),
     ).toEqual([]);
+  });
+
+  test("keeps every deposit on passable land in a mixed terrain map", () => {
+    const map = landMap(1024, 1024);
+    const nodes = resourceNodesForMap(
+      {
+        ...map,
+        isLand: (tile: number) => map.x(tile) < 640,
+        isImpassable: (tile: number) =>
+          map.x(tile) < 640 && map.y(tile) % 97 === 0,
+      },
+      "mixed-terrain-match",
+    );
+
+    expect(nodes.length).toBeGreaterThan(0);
+    expect(nodes.every((node) => node.x < 640 && node.y % 97 !== 0)).toBe(true);
   });
 
   test("counts only the richness controlled by a player", () => {

@@ -95,6 +95,8 @@ export interface ResourceContinentZone {
 }
 
 export const RESOURCE_NODE_CELL_SIZE = 128;
+const MIN_RESOURCE_NODE_CELL_SIZE = 48;
+const RESOURCE_NOISE_REFERENCE_SIZE = 1024;
 export const RESOURCE_NODE_MARGIN = 32;
 export const RESOURCE_MIN_NODE_DISTANCE =
   RESOURCE_NODE_CELL_SIZE - RESOURCE_NODE_MARGIN * 2;
@@ -136,8 +138,8 @@ export const RESOURCE_GENERATION_CONFIG: Readonly<
   [NaturalResource.Gold]: {
     scale: 360,
     frequency: 1.1,
-    threshold: 0.68,
-    abundance: 0.42,
+    threshold: 0.61,
+    abundance: 0.55,
   },
   [NaturalResource.Copper]: {
     scale: 430,
@@ -167,6 +169,19 @@ interface ResourceMapLike {
   y(tile: TileRef): number;
   isLand(tile: TileRef): boolean;
   isImpassable?(tile: TileRef): boolean;
+}
+
+/** Keeps deposit density and map overlay scale useful on small maps. */
+export function resourceNodeCellSizeForMap(
+  map: Pick<ResourceMapLike, "width" | "height">,
+): number {
+  return Math.min(
+    RESOURCE_NODE_CELL_SIZE,
+    Math.max(
+      MIN_RESOURCE_NODE_CELL_SIZE,
+      Math.floor(Math.min(map.width(), map.height()) / 4),
+    ),
+  );
 }
 
 type ResourceSeed = string | number;
@@ -302,33 +317,6 @@ function richnessForNoise(noise: number, threshold: number): number {
   return richness;
 }
 
-function zoneBounds(
-  map: ResourceMapLike,
-  zone: ResourceContinentZone,
-): [number, number, number, number] {
-  return [
-    clamp(Math.floor(zone.minX * map.width()), 0, map.width() - 1),
-    clamp(Math.ceil(zone.maxX * map.width()) - 1, 0, map.width() - 1),
-    clamp(Math.floor(zone.minY * map.height()), 0, map.height() - 1),
-    clamp(Math.ceil(zone.maxY * map.height()) - 1, 0, map.height() - 1),
-  ];
-}
-
-function nodeInZone(
-  node: ResourceNode,
-  resource: NaturalResource,
-  map: ResourceMapLike,
-  zone: ResourceContinentZone,
-): boolean {
-  return (
-    node.resource === resource &&
-    node.x >= zone.minX * map.width() &&
-    node.x < zone.maxX * map.width() &&
-    node.y >= zone.minY * map.height() &&
-    node.y < zone.maxY * map.height()
-  );
-}
-
 /**
  * Generates a cached, deterministic resource catalog for a match.
  *
@@ -350,12 +338,23 @@ export function resourceNodesForMap(
 
   const seed = seedNumber(matchSeed);
   const nodes: ResourceNode[] = [];
-  const coveredCells = new Set<string>();
-  const cellsWide = Math.ceil(map.width() / RESOURCE_NODE_CELL_SIZE);
-  const cellsHigh = Math.ceil(map.height() / RESOURCE_NODE_CELL_SIZE);
+  const cellSize = resourceNodeCellSizeForMap(map);
+  const margin = Math.min(RESOURCE_NODE_MARGIN, Math.floor(cellSize / 4));
+  const mapScale = Math.max(
+    0.25,
+    Math.min(
+      1,
+      Math.min(map.width(), map.height()) / RESOURCE_NOISE_REFERENCE_SIZE,
+    ),
+  );
+  const cellsWide = Math.ceil(map.width() / cellSize);
+  const cellsHigh = Math.ceil(map.height() / cellSize);
 
   RESOURCE_VALUES.forEach((resource, resourceIndex) => {
-    const config = RESOURCE_GENERATION_CONFIG[resource];
+    const config = {
+      ...RESOURCE_GENERATION_CONFIG[resource],
+      scale: RESOURCE_GENERATION_CONFIG[resource].scale * mapScale,
+    };
     const resourceSeed = hash(seed, resourceIndex, 0, 0x3c6ef372);
     const threshold = clamp(
       config.threshold - (config.abundance - 0.5) * 0.1,
@@ -365,33 +364,27 @@ export function resourceNodesForMap(
 
     for (let cellY = 0; cellY < cellsHigh; cellY++) {
       for (let cellX = 0; cellX < cellsWide; cellX++) {
-        const originX = cellX * RESOURCE_NODE_CELL_SIZE;
-        const originY = cellY * RESOURCE_NODE_CELL_SIZE;
-        const endX = Math.min(
-          map.width() - 1,
-          originX + RESOURCE_NODE_CELL_SIZE - 1,
-        );
-        const endY = Math.min(
-          map.height() - 1,
-          originY + RESOURCE_NODE_CELL_SIZE - 1,
-        );
+        const originX = cellX * cellSize;
+        const originY = cellY * cellSize;
+        const endX = Math.min(map.width() - 1, originX + cellSize - 1);
+        const endY = Math.min(map.height() - 1, originY + cellSize - 1);
 
         if (
-          endX - originX + 1 <= RESOURCE_NODE_MARGIN * 2 ||
-          endY - originY + 1 <= RESOURCE_NODE_MARGIN * 2
+          endX - originX + 1 <= margin * 2 ||
+          endY - originY + 1 <= margin * 2
         ) {
           continue;
         }
 
-        const sampleX = originX + RESOURCE_NODE_CELL_SIZE / 2;
-        const sampleY = originY + RESOURCE_NODE_CELL_SIZE / 2;
+        const sampleX = originX + cellSize / 2;
+        const sampleY = originY + cellSize / 2;
         const noise = fractalNoise(resourceSeed, sampleX, sampleY, config);
         if (noise < threshold) continue;
 
-        const minX = originX + RESOURCE_NODE_MARGIN;
-        const maxX = endX - RESOURCE_NODE_MARGIN;
-        const minY = originY + RESOURCE_NODE_MARGIN;
-        const maxY = endY - RESOURCE_NODE_MARGIN;
+        const minX = originX + margin;
+        const maxX = endX - margin;
+        const minY = originY + margin;
+        const maxY = endY - margin;
         const preferredX =
           minX +
           (hash(resourceSeed, cellX, cellY, 0x243f6a88) % (maxX - minX + 1));
@@ -417,113 +410,9 @@ export function resourceNodesForMap(
           resource,
           richness: richnessForNoise(noise, threshold),
         });
-        coveredCells.add(`${cellX}:${cellY}`);
       }
     }
   });
-
-  for (const [continentIndex, zone] of Object.values(
-    RESOURCE_CONTINENT_ZONES,
-  ).entries()) {
-    const [minX, maxX, minY, maxY] = zoneBounds(map, zone);
-    if (maxX - minX + 1 <= RESOURCE_NODE_MARGIN * 2) continue;
-    if (maxY - minY + 1 <= RESOURCE_NODE_MARGIN * 2) continue;
-
-    for (const [resourceIndex, resource] of RESOURCE_VALUES.entries()) {
-      if (nodes.some((node) => nodeInZone(node, resource, map, zone))) {
-        continue;
-      }
-
-      const continentSeed = hash(
-        seed,
-        continentIndex,
-        resourceIndex,
-        0x510e527f,
-      );
-      const tile = findLandTile(
-        map,
-        minX,
-        maxX,
-        minY,
-        maxY,
-        minX + (continentSeed % (maxX - minX + 1)),
-        minY +
-          (hash(continentSeed, minX, minY, 0x9b05688c) % (maxY - minY + 1)),
-        (candidate) => {
-          const x = map.x(candidate);
-          const y = map.y(candidate);
-          return nodes.every(
-            (node) =>
-              node.resource !== resource ||
-              (node.x - x) ** 2 + (node.y - y) ** 2 >=
-                RESOURCE_MIN_NODE_DISTANCE ** 2,
-          );
-        },
-      );
-      if (tile === null) continue;
-
-      nodes.push({
-        x: map.x(tile),
-        y: map.y(tile),
-        resource,
-        richness: 2 + (continentSeed % 3),
-      });
-    }
-  }
-
-  // Guarantee a minimum strategic footprint without making any one resource
-  // uniform: uncovered land cells inherit a low-richness resource from a
-  // coarse deterministic patch selector.
-  for (let cellY = 0; cellY < cellsHigh; cellY++) {
-    for (let cellX = 0; cellX < cellsWide; cellX++) {
-      const originX = cellX * RESOURCE_NODE_CELL_SIZE;
-      const originY = cellY * RESOURCE_NODE_CELL_SIZE;
-      const endX = Math.min(
-        map.width() - 1,
-        originX + RESOURCE_NODE_CELL_SIZE - 1,
-      );
-      const endY = Math.min(
-        map.height() - 1,
-        originY + RESOURCE_NODE_CELL_SIZE - 1,
-      );
-      if (
-        endX - originX + 1 <= RESOURCE_NODE_MARGIN * 2 ||
-        endY - originY + 1 <= RESOURCE_NODE_MARGIN * 2 ||
-        coveredCells.has(`${cellX}:${cellY}`)
-      ) {
-        continue;
-      }
-
-      const minX = originX + RESOURCE_NODE_MARGIN;
-      const maxX = endX - RESOURCE_NODE_MARGIN;
-      const minY = originY + RESOURCE_NODE_MARGIN;
-      const maxY = endY - RESOURCE_NODE_MARGIN;
-      const fallbackSeed = hash(
-        seed,
-        Math.floor(cellX / 2),
-        Math.floor(cellY / 2),
-        0xa54ff53a,
-      );
-      const tile = findLandTile(
-        map,
-        minX,
-        maxX,
-        minY,
-        maxY,
-        minX + (fallbackSeed % (maxX - minX + 1)),
-        minY +
-          (hash(fallbackSeed, cellX, cellY, 0x13198a2e) % (maxY - minY + 1)),
-      );
-      if (tile === null) continue;
-
-      nodes.push({
-        x: map.x(tile),
-        y: map.y(tile),
-        resource: RESOURCE_VALUES[fallbackSeed % RESOURCE_VALUES.length],
-        richness: 1 + (fallbackSeed % 2),
-      });
-    }
-  }
 
   nodes.sort(
     (a, b) =>

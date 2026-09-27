@@ -1,7 +1,7 @@
 import type { GameMap } from "../core/game/GameMap";
 import {
   NaturalResource,
-  RESOURCE_NODE_CELL_SIZE,
+  resourceNodeCellSizeForMap,
   resourceNodesForMap,
 } from "../core/game/Resources";
 
@@ -220,10 +220,11 @@ export async function createResourceMapImage(
   if (!context) throw new Error("resource map canvas is unavailable");
   context.globalCompositeOperation = "source-over";
   const nodes = resourceNodesForMap(map, matchSeed);
+  const cellSize = resourceNodeCellSizeForMap(map);
 
   for (const node of nodes) {
     const color = RESOURCE_COLORS[node.resource];
-    const radius = RESOURCE_NODE_CELL_SIZE * 0.7 + node.richness * 10;
+    const radius = cellSize * 0.7 + node.richness * cellSize * 0.08;
     const gradient = context.createRadialGradient(
       node.x,
       node.y,
