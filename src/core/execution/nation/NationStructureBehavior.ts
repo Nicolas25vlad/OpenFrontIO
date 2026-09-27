@@ -12,7 +12,11 @@ import {
   UnitType,
 } from "../../game/Game";
 import { TileRef } from "../../game/GameMap";
-import { ProcessedResource } from "../../game/Resources";
+import {
+  NaturalResource,
+  ProcessedResource,
+  type ResourceNode,
+} from "../../game/Resources";
 import { Cluster } from "../../game/TrainStation";
 import { PseudoRandom } from "../../PseudoRandom";
 import { assertNever } from "../../Util";
@@ -131,6 +135,27 @@ const UNDER_ATTACK_THREAT_RATIO = 0.35;
  */
 const DEFENSE_POST_RATIO_PER_POST = 0.4;
 
+const RESOURCE_NODES_BY_GAME = new WeakMap<
+  Game,
+  Map<NaturalResource, ResourceNode[]>
+>();
+
+function resourceNodesByResource(
+  game: Game,
+): Map<NaturalResource, ResourceNode[]> {
+  const cached = RESOURCE_NODES_BY_GAME.get(game);
+  if (cached !== undefined) return cached;
+
+  const nodesByResource = new Map<NaturalResource, ResourceNode[]>(
+    Object.values(NaturalResource).map((resource) => [resource, []]),
+  );
+  for (const node of game.resourceNodes()) {
+    nodesByResource.get(node.resource)!.push(node);
+  }
+  RESOURCE_NODES_BY_GAME.set(game, nodesByResource);
+  return nodesByResource;
+}
+
 // Reusable neighbor buffer for hot loops; the simulation is single-threaded.
 const NEIGHBOR_SCRATCH: TileRef[] = [0, 0, 0, 0];
 
@@ -146,6 +171,7 @@ export class NationStructureBehavior {
   private builtCrowdedMapFirstStructure = false;
   private _hasHighStartingGold: boolean | null = null;
   private _postSaveUpStartTick: number | null = null;
+  private pendingMineOrders = new Map<NaturalResource, number>();
 
   constructor(
     private random: PseudoRandom,
@@ -546,6 +572,8 @@ export class NationStructureBehavior {
       }
     }
 
+    if (this.placementsCount > 0 && this.tryBuildResourceMine()) return true;
+
     if (!citiesDisabled && this.maybeSpawnStructure(UnitType.City)) {
       return true;
     }
@@ -583,6 +611,100 @@ export class NationStructureBehavior {
     }
 
     return this.maybeSpawnStructure(UnitType.Farm);
+  }
+
+  /**
+   * Restore the raw inputs that are holding back industrial recipes. The
+   * resource catalog is indexed once per game; each decision visits only
+   * deposits of currently scarce resources, never all map tiles.
+   */
+  private tryBuildResourceMine(): boolean {
+    const config = this.game.config();
+    if (!config.strategicEconomy?.() || config.isUnitDisabled(UnitType.Mine)) {
+      return false;
+    }
+
+    const rates = this.player.resourceRates();
+    const mines = this.player.units(UnitType.Mine);
+    const resourceTargets = Object.entries(ECONOMY.mineStockTargets) as [
+      NaturalResource,
+      number,
+    ][];
+    resourceTargets.sort(
+      ([resourceA, targetA], [resourceB, targetB]) =>
+        this.player.resourceAmount(resourceA) / targetA -
+        this.player.resourceAmount(resourceB) / targetB,
+    );
+
+    const nodesByResource = resourceNodesByResource(this.game);
+    const retryAfter =
+      (this.game.unitInfo(UnitType.Mine).constructionDuration ?? 0) +
+      ECONOMY.periodTicks;
+
+    for (const [resource, target] of resourceTargets) {
+      if (this.player.resourceAmount(resource) >= target) continue;
+      if (rates.production[resource] > rates.consumption[resource]) continue;
+
+      const minesForResource = mines.filter((mine) =>
+        this.game
+          .resourceDepositsAt(mine.tile())
+          .some(
+            (node) =>
+              node.resource === resource &&
+              this.game.resourceRemaining(mine.tile(), resource) > 0,
+          ),
+      );
+      const pendingSince = this.pendingMineOrders.get(resource);
+      if (pendingSince !== undefined) {
+        if (minesForResource.length > 0) {
+          if (
+            minesForResource.some((mine) => mine.isUnderConstruction()) ||
+            this.game.ticks() - pendingSince <= retryAfter
+          ) {
+            continue;
+          }
+          this.pendingMineOrders.delete(resource);
+        } else if (this.game.ticks() - pendingSince <= retryAfter) {
+          continue;
+        } else {
+          this.pendingMineOrders.delete(resource);
+        }
+      }
+      if (minesForResource.some((mine) => mine.isUnderConstruction())) continue;
+      if (minesForResource.length >= ECONOMY.maxMinesPerResource) continue;
+
+      for (const node of nodesByResource.get(resource) ?? []) {
+        const depositTile = this.game.ref(node.x, node.y);
+        if (
+          this.game.owner(depositTile) !== this.player ||
+          this.game.resourceRemaining(depositTile, resource) <= 0
+        ) {
+          continue;
+        }
+
+        const buildTile = this.player.canBuild(UnitType.Mine, depositTile);
+        if (
+          buildTile === false ||
+          !this.game
+            .resourceDepositsAt(buildTile)
+            .some(
+              (deposit) =>
+                deposit.resource === resource &&
+                this.game.resourceRemaining(buildTile, resource) > 0,
+            )
+        ) {
+          continue;
+        }
+
+        this.game.addExecution(
+          new ConstructionExecution(this.player, UnitType.Mine, buildTile),
+        );
+        this.pendingMineOrders.set(resource, this.game.ticks());
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private hasHighStartingGold(): boolean {
