@@ -3,6 +3,7 @@ import { ResourcePanel } from "../../src/client/hud/layers/ResourcePanel";
 import { GameView } from "../../src/client/view";
 import { EventBus } from "../../src/core/EventBus";
 import { emptyResourceRates, FULL_SUPPLY } from "../../src/core/game/Economy";
+import { UnitType } from "../../src/core/game/Game";
 import {
   emptyResourceStock,
   STOCK_RESOURCES,
@@ -24,7 +25,8 @@ test("shows actual stocks and all production balances; map toggle changes no sto
   rates.consumption.steel = 3;
   const panel = new ResourcePanel();
   panel.game = {
-    config: () => ({ strategicEconomy: () => true }),
+    config: () => ({ strategicEconomy: () => true, navalSectorSize: () => 64 }),
+    units: () => [],
     myPlayer: () => ({
       resourceAmount: (resource: keyof typeof stock) => stock[resource],
       resourceRates: () => rates,
@@ -54,4 +56,66 @@ test("shows actual stocks and all production balances; map toggle changes no sto
     "true",
   );
   expect(stock).toEqual(before);
+});
+
+test("shows owned-port sectors and active trade routes", async () => {
+  const me = {
+    isMe: () => true,
+    isFriendly: () => false,
+    displayName: () => "Me",
+  };
+  const trader = {
+    isMe: () => false,
+    isFriendly: () => false,
+    displayName: () => "Trader",
+  };
+  const port = {
+    type: () => UnitType.Port,
+    isActive: () => true,
+    tile: () => 10,
+    owner: () => me,
+  };
+  const warship = (owner: unknown, tile: number) => ({
+    isActive: () => true,
+    isUnderConstruction: () => false,
+    warshipState: () => ({ state: "patrolling" }),
+    tile: () => tile,
+    owner: () => owner,
+  });
+  const tradeShip = {
+    targetUnitId: () => 7,
+    owner: () => trader,
+  };
+  const player = {
+    units: (type?: UnitType) => (type === UnitType.Port ? [port] : []),
+    resourceAmount: () => 0,
+    resourceRates: () => emptyResourceRates(),
+    supplyStatus: () => FULL_SUPPLY,
+    tanks: () => 0,
+  };
+  const panel = new ResourcePanel();
+  panel.game = {
+    config: () => ({ strategicEconomy: () => true, navalSectorSize: () => 64 }),
+    myPlayer: () => player,
+    x: (tile: number) => tile,
+    y: () => 0,
+    units: (type: UnitType) =>
+      type === UnitType.Warship
+        ? [warship(me, 12), warship(trader, 20)]
+        : type === UnitType.TradeShip
+          ? [tradeShip]
+          : [],
+    unit: (id: number) => (id === 7 ? port : undefined),
+  } as unknown as GameView;
+  panel.eventBus = new EventBus();
+  document.body.append(panel);
+  panel.init();
+  await panel.updateComplete;
+
+  expect(panel.textContent).toContain("economy.naval_status");
+  expect(panel.textContent).toContain("economy.naval_sectors");
+  expect(panel.textContent).toContain("1+");
+  expect(panel.textContent).toContain("1−");
+  expect(panel.textContent?.replace(/\s+/g, " ")).toContain("Trader → Me");
+  expect(panel.textContent).toContain("economy.in_transit");
 });

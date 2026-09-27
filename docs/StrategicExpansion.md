@@ -225,6 +225,13 @@ Arquivos desta etapa: `src/core/configuration/StrategyConfig.ts`,
 `src/core/execution/PortExecution.ts`, `src/core/execution/TradeShipExecution.ts`,
 `tests/PortExecution.test.ts` e `tests/core/executions/TradeShipExecution.test.ts`.
 
+O painel econômico também lista os setores que contêm portos próprios, com suas
+coordenadas na grade, quantidade de portos e presença de navios de guerra
+aliados e de outros jogadores. A seção de comboios lista navios ativos ligados
+ao jogador ou a um aliado, indicando os donos do navio/destino e o setor do
+porto de destino. Essa leitura usa os updates de unidades existentes e não
+altera decisões ou regras autoritativas do core.
+
 Validação automatizada: os testes cobrem bloqueio por presença, contrapressão
 de escolta, retomada após perda de navio, carga/pagamento na chegada, respeito à
 reserva e devolução após captura do porto. A regressão naval/econômica passou:
@@ -253,9 +260,11 @@ também passaram após esta etapa.
    `strategicEconomy` desligado e confirme que não há carga automática.
 
 Esperado: o resultado muda deterministicamente com presença, escolta e perdas;
-nenhum update por tile ou mapa inteiro é criado. Faltam setores visíveis no HUD,
-rotas escolhidas/definidas pelo jogador e validação visual de multiplayer/replay.
-Os passos manuais continuam pendentes no PC principal.
+nenhum update por tile ou mapa inteiro é criado. O painel econômico mostra a
+grade setorial dos portos próprios e os comboios ativos relacionados ao
+jogador, mas ainda não desenha polígonos dos setores no mapa nem permite que o
+jogador defina rotas. A validação visual em multiplayer/replay continua
+pendente no PC principal.
 
 ## Cancelamento de proposta de aliança — issue #8 (parcial)
 

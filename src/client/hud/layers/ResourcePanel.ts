@@ -1,6 +1,7 @@
 import { html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { EventBus } from "../../../core/EventBus";
+import { UnitType } from "../../../core/game/Game";
 import {
   NaturalResource,
   ProcessedResource,
@@ -13,6 +14,7 @@ import { ToggleResourceMapEvent } from "../../InputHandler";
 import { RESOURCE_COLORS, resourceIconUrl } from "../../ResourceMap";
 import { renderNumber, translateText } from "../../Utils";
 import { GameView } from "../../view";
+import { UnitView } from "../../view/UnitView";
 
 const PRODUCT_ICONS: Record<ProcessedResource, string> = {
   fuel: "⛽",
@@ -64,6 +66,74 @@ export class ResourcePanel extends LitElement implements Controller {
         >`;
   }
 
+  private navalSectorSummary(ports: UnitView[]) {
+    if (ports.length === 0) return [];
+    const player = this.game.myPlayer()!;
+    const sectorSize = this.game.config().navalSectorSize();
+    const sectors = new Map<
+      string,
+      { x: number; y: number; ports: number; friendly: number; hostile: number }
+    >();
+    for (const port of ports) {
+      const x = Math.floor(this.game.x(port.tile()) / sectorSize);
+      const y = Math.floor(this.game.y(port.tile()) / sectorSize);
+      const key = `${x},${y}`;
+      const sector = sectors.get(key) ?? {
+        x,
+        y,
+        ports: 0,
+        friendly: 0,
+        hostile: 0,
+      };
+      sector.ports++;
+      sectors.set(key, sector);
+    }
+
+    for (const ship of this.game.units(UnitType.Warship)) {
+      if (
+        !ship.isActive() ||
+        ship.isUnderConstruction() ||
+        ship.warshipState().state === "docked"
+      ) {
+        continue;
+      }
+      const x = Math.floor(this.game.x(ship.tile()) / sectorSize);
+      const y = Math.floor(this.game.y(ship.tile()) / sectorSize);
+      const sector = sectors.get(`${x},${y}`);
+      if (sector === undefined) continue;
+      if (ship.owner().isMe() || ship.owner().isFriendly(player)) {
+        sector.friendly++;
+      } else {
+        sector.hostile++;
+      }
+    }
+    return [...sectors.values()].sort((a, b) => a.y - b.y || a.x - b.x);
+  }
+
+  private activeTradeRoutes() {
+    const player = this.game.myPlayer();
+    if (!player) return [];
+    const sectorSize = this.game.config().navalSectorSize();
+    return this.game.units(UnitType.TradeShip).flatMap((ship) => {
+      const targetID = ship.targetUnitId();
+      const port =
+        targetID === undefined ? undefined : this.game.unit(targetID);
+      if (
+        port?.type() !== UnitType.Port ||
+        !port.isActive() ||
+        (!ship.owner().isMe() &&
+          !ship.owner().isFriendly(player) &&
+          !port.owner().isMe() &&
+          !port.owner().isFriendly(player))
+      ) {
+        return [];
+      }
+      const x = Math.floor(this.game.x(port.tile()) / sectorSize);
+      const y = Math.floor(this.game.y(port.tile()) / sectorSize);
+      return [{ ship, port, x, y }];
+    });
+  }
+
   render() {
     const player = this.game?.myPlayer();
     if (!player || !this.game.config().strategicEconomy()) return null;
@@ -75,6 +145,8 @@ export class ResourcePanel extends LitElement implements Controller {
       ProcessedResource.Steel,
     ];
     const buildings = player.units().filter((unit) => unit.productionStatus());
+    const navalSectors = this.navalSectorSummary(player.units(UnitType.Port));
+    const tradeRoutes = this.activeTradeRoutes();
     return html` <aside
       class="w-fit min-w-[14rem] max-w-[21rem] p-2 bg-gray-950/95 shadow-xs rounded-lg text-white text-xs"
       @contextmenu=${(e: Event) => e.preventDefault()}
@@ -133,6 +205,57 @@ export class ResourcePanel extends LitElement implements Controller {
           ${player.supplyStatus().navy}%</span
         >
       </div>
+      ${navalSectors.length > 0 || tradeRoutes.length > 0
+        ? html`<details class="mt-2 border-t border-white/15 pt-1">
+            <summary class="cursor-pointer text-sky-300">
+              ${translateText("economy.naval_status")}
+            </summary>
+            ${navalSectors.length > 0
+              ? html`<div class="mt-1">
+                  <p class="text-[10px] text-gray-400">
+                    ${translateText("economy.naval_sectors")}
+                  </p>
+                  ${navalSectors.map(
+                    (sector) =>
+                      html`<div class="flex justify-between gap-2 text-[11px]">
+                        <span
+                          >${sector.x},${sector.y} · ${sector.ports} ⚓</span
+                        >
+                        <span>
+                          <span class="text-emerald-300"
+                            >${sector.friendly}+</span
+                          >
+                          /
+                          <span class="text-red-300">${sector.hostile}−</span>
+                        </span>
+                      </div>`,
+                  )}
+                </div>`
+              : null}
+            ${tradeRoutes.length > 0
+              ? html`<div class="mt-1 border-t border-white/5 pt-1">
+                  <p class="text-[10px] text-gray-400">
+                    ${translateText("economy.trade_routes")}
+                  </p>
+                  ${tradeRoutes.map(
+                    ({ ship, port, x, y }) =>
+                      html`<div
+                        class="flex justify-between gap-2 text-[11px]"
+                        title=${`${ship.owner().displayName()} → ${port.owner().displayName()}`}
+                      >
+                        <span class="truncate"
+                          >${ship.owner().displayName()} →
+                          ${port.owner().displayName()}</span
+                        >
+                        <span class="shrink-0 text-gray-300">
+                          ${x},${y} · ${translateText("economy.in_transit")}
+                        </span>
+                      </div>`,
+                  )}
+                </div>`
+              : null}
+          </details>`
+        : null}
       <details class="mt-2 border-t border-white/15 pt-1">
         <summary class="cursor-pointer text-emerald-300">
           ${translateText("economy.details")}
