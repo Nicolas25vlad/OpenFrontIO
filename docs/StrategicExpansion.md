@@ -79,10 +79,17 @@ posições de fronteira, determinismo, limiar de tropas e limite global;
 `tests/economy/Production.test.ts` e `tests/economy/StrategicReplay.test.ts`
 cobrem produção, updates e replay dos tanques; `tests/Attack.test.ts`,
 `tests/GameUpdateUtils.test.ts` e `tests/client/view/GameView.test.ts` cobrem
-envio, força de combate e sincronização da contagem nas investidas. Build e lint
-passaram; os testes focados da integração de ataques passaram (153 testes), além
+envio, força de combate, baixas em combate entre jogadores e sincronização da
+contagem nas investidas. Build e lint passaram; os testes focados da integração
+de ataques passaram (154 testes), além
 dos 89 testes focados na etapa de produção. A suíte completa também passou na
 etapa anterior (469 arquivos/5.576 testes e 63 arquivos/656 testes de servidor).
+Na execução completa mais recente, 466/469 arquivos passaram. As duas falhas
+reproduzíveis eram a ordenação de `en.json` e um mock incompleto do painel de
+recursos; ambas foram corrigidas e os três arquivos afetados passaram juntos
+(50 testes, incluindo a falha intermitente de armazenamento). Os 63 arquivos de
+servidor passaram após as correções. A suíte completa ainda precisa ser repetida
+para confirmar o resultado consolidado.
 No Node 26 do homelab, o comando completo requer Web Storage habilitado:
 
 ```sh

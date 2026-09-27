@@ -208,6 +208,64 @@ describe("land attack tanks", () => {
     expect(tankAttacker.tanks()).toBe(3);
     expect(tankAttacker.outgoingAttacks()).toHaveLength(0);
   });
+
+  test("takes deterministic tank casualties in player combat", async () => {
+    const tankGame = await setup("ocean_and_land", {
+      strategicEconomy: true,
+      infiniteGold: true,
+      instantBuild: true,
+    });
+    const attackerInfo = new PlayerInfo(
+      "tank combat attacker",
+      PlayerType.Human,
+      null,
+      "tank_combat_attacker_id",
+    );
+    const defenderInfo = new PlayerInfo(
+      "tank combat defender",
+      PlayerType.Human,
+      null,
+      "tank_combat_defender_id",
+    );
+    tankGame.addPlayer(attackerInfo);
+    tankGame.addPlayer(defenderInfo);
+    const tankAttacker = tankGame.player(attackerInfo.id);
+    const defender = tankGame.player(defenderInfo.id);
+    const attackerSpawn = tankGame.ref(0, 10);
+    tankGame.addExecution(
+      new SpawnExecution(gameID, tankAttacker.info(), attackerSpawn),
+      new SpawnExecution(gameID, defender.info(), tankGame.ref(0, 15)),
+    );
+    tankGame.executeNextTick();
+    tankGame.executeNextTick();
+
+    const neighbors: TileRef[] = [0, 0, 0, 0];
+    const numNeighbors = tankGame.map().neighbors4(attackerSpawn, neighbors);
+    const combatTile = neighbors
+      .slice(0, numNeighbors)
+      .find((tile) => tankGame.map().isLand(tile));
+    expect(combatTile).toBeDefined();
+    defender.conquer(combatTile!);
+
+    tankAttacker.addTroops(10_000);
+    tankAttacker.addTanks(1);
+    let observedAttackStrength = 0;
+    const testConfig = tankGame.config() as TestConfig;
+    testConfig.attackLogic = (input) => {
+      observedAttackStrength = input.attackTroops;
+      return { attackerTroopLoss: 2_000, defenderTroopLoss: 0, tickFraction: 1 };
+    };
+    tankGame.addExecution(
+      new AttackExecution(10_000, tankAttacker, defender.id()),
+    );
+    tankGame.executeNextTick();
+    tankGame.executeNextTick();
+
+    expect(observedAttackStrength).toBe(15_000);
+    expect(tankAttacker.outgoingAttacks()).toHaveLength(1);
+    expect(tankAttacker.outgoingAttacks()[0].tanks()).toBe(0);
+    expect(tankAttacker.tanks()).toBe(0);
+  });
 });
 
 let playerA: Player;
