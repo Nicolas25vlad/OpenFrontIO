@@ -1,4 +1,10 @@
-import { ECONOMY, NUCLEAR_RECIPE } from "../../configuration/StrategyConfig";
+import {
+  ECONOMY,
+  NUCLEAR_RECIPE,
+  STRATEGIC_COMBAT,
+  TANK_RECIPE,
+} from "../../configuration/StrategyConfig";
+import { hasResources } from "../../game/Economy";
 import {
   Attack,
   Difficulty,
@@ -140,6 +146,7 @@ const PRODUCTION_UNIT_TYPES = [
   UnitType.Factory,
   UnitType.Mine,
   UnitType.NuclearPlant,
+  UnitType.VehicleFactory,
 ] as const;
 
 const INFRASTRUCTURE_STATION_TYPES = [
@@ -192,6 +199,7 @@ export class NationStructureBehavior {
   private pendingMineOrders = new Map<NaturalResource, number>();
   private pendingInfrastructureOrderTick: number | null = null;
   private pendingNuclearPlantOrderTick: number | null = null;
+  private pendingVehicleFactoryOrderTick: number | null = null;
 
   constructor(
     private random: PseudoRandom,
@@ -598,6 +606,8 @@ export class NationStructureBehavior {
 
     if (this.placementsCount > 0 && this.tryBuildNuclearPlant()) return true;
 
+    if (this.placementsCount > 0 && this.tryBuildVehicleFactory()) return true;
+
     if (!citiesDisabled && this.maybeSpawnStructure(UnitType.City)) {
       return true;
     }
@@ -858,6 +868,41 @@ export class NationStructureBehavior {
     if (!this.maybeSpawnStructure(UnitType.NuclearPlant)) return false;
 
     this.pendingNuclearPlantOrderTick = this.game.ticks();
+    return true;
+  }
+
+  /** Build one vehicle factory only when the current tank reserve is below army demand. */
+  private tryBuildVehicleFactory(): boolean {
+    const config = this.game.config();
+    if (
+      !config.strategicEconomy?.() ||
+      config.isUnitDisabled(UnitType.VehicleFactory) ||
+      this.player.units(UnitType.VehicleFactory).length > 0
+    ) {
+      return false;
+    }
+
+    const targetTanks = Math.ceil(
+      this.player.troops() / STRATEGIC_COMBAT.infantryPerTank,
+    );
+    if (targetTanks <= this.player.tanks()) return false;
+    if (!hasResources(this.player, TANK_RECIPE.inputs)) return false;
+
+    const retryAfter =
+      (this.game.unitInfo(UnitType.VehicleFactory).constructionDuration ?? 0) +
+      ECONOMY.periodTicks;
+    if (this.pendingVehicleFactoryOrderTick !== null) {
+      if (
+        this.game.ticks() - this.pendingVehicleFactoryOrderTick <=
+        retryAfter
+      ) {
+        return false;
+      }
+      this.pendingVehicleFactoryOrderTick = null;
+    }
+
+    if (!this.maybeSpawnStructure(UnitType.VehicleFactory)) return false;
+    this.pendingVehicleFactoryOrderTick = this.game.ticks();
     return true;
   }
 
@@ -1227,6 +1272,8 @@ export class NationStructureBehavior {
         return this.missileSiloValue();
       case UnitType.Factory:
         return this.factoryValue();
+      case UnitType.VehicleFactory:
+        return this.factoryValue(UnitType.VehicleFactory);
       case UnitType.Port:
         return this.portValue();
       case UnitType.Infrastructure:
@@ -1387,11 +1434,13 @@ export class NationStructureBehavior {
    * Embargoed and bot neighbors are excluded. Per cluster, the best reachable
    * trade relationship determines the weight.
    */
-  private factoryValue(): (tile: TileRef) => number {
+  private factoryValue(
+    type: UnitType = UnitType.Factory,
+  ): (tile: TileRef) => number {
     const game = this.game;
     const player = this.player;
     const borderTiles = this.player.borderTiles();
-    const otherUnits = player.units(UnitType.Factory);
+    const otherUnits = player.units(type);
     const { borderSpacing, structureSpacing } = this.spacingConstants();
     const stationRange = game.config().trainStationMaxRange();
     const stationRangeSquared = stationRange * stationRange;

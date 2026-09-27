@@ -293,3 +293,73 @@ cancelamento, estado terminal de propostas resolvidas, atualização sincronizad
 e codificação do intent. `tsc --noEmit`, lint e `npm run build-dev` passaram. Faltam
 os demais termos de paz, trégua/capitulação e sua validação visual em replay e
 multiplayer; a issue permanece aberta.
+
+## Economia nuclear e Anti-ICBM — issue #9
+
+Na economia estratégica, a usina nuclear enriquece urânio com lotes limitados
+por período e exige urânio natural e combustível. Bombas atômicas, de hidrogênio
+e MIRVs consomem aço, circuitos e urânio enriquecido no pedido; o lançamento
+aguarda o tempo configurado e a fila do silo. Capturar o silo cancela a produção
+pendente sem devolver os materiais já consumidos. O Anti-ICBM usa no core os
+modificadores centrais de 20% de alcance e 15% de eficiência, enquanto a
+configuração legada conserva seus valores anteriores.
+
+Arquivos centrais: `src/core/configuration/StrategyConfig.ts`,
+`src/core/configuration/Config.ts`, `src/core/execution/ProductionExecution.ts`,
+`src/core/execution/ConstructionExecution.ts`, `src/core/execution/NukeExecution.ts`
+e `src/core/execution/SAMLauncherExecution.ts`.
+
+Validação automatizada nuclear: 9 arquivos/56 testes passaram, cobrindo receitas
+e custos, tempo de preparo e captura de silo, interceptação estratégica/legada,
+trajetórias, balanço, salvas contra SAM e replay determinístico. A suíte geral
+passou com 471 arquivos/5.595 testes; os testes de servidor passaram com 63
+arquivos/656 testes.
+
+### Checagem manual opcional no PC principal
+
+1. Em partida estratégica, abasteça uma usina com urânio e combustível e observe
+   o estoque de urânio enriquecido crescer por período. Sem qualquer insumo, a
+   produção deve parar.
+2. Construa um silo e encomende cada tipo de arma nuclear. Confira o consumo de
+   materiais e os tempos de preparo; captura do silo deve interromper a fila.
+3. Lance contra um SAM e confira a interceptação. Com a economia estratégica
+   desligada, compare o alcance e a cadência antigos do Anti-ICBM.
+
+O core, custos e resultados já foram validados automaticamente; a checagem acima
+serve para observar o feedback visual durante uma partida.
+
+## Prioridade de fábrica de veículos para nações — issue #10 (parcial)
+
+Na economia estratégica, uma nação sem Vehicle Factory pode priorizar uma
+construção quando ainda não tem tanques suficientes para acompanhar o tamanho
+do exército. O alvo é um tanque por 10.000 infantes, usando a proporção de
+`STRATEGIC_COMBAT`; a tentativa exige aço e combustível para o primeiro lote,
+respeita a configuração que desativa a estrutura e mantém apenas um pedido
+pendente durante o tempo de construção. O comportamento não roda em partidas
+legadas. A fábrica é posicionada usando os mesmos critérios de espaçamento e
+valor das fábricas existentes.
+
+Arquivos desta etapa: `src/core/execution/nation/NationStructureBehavior.ts` e
+`tests/economy/NationVehicleFactoryPriority.test.ts`.
+
+Validação automatizada: 73 testes passaram entre o novo cenário e os testes
+existentes de `NationStructureBehavior`; os casos incluem exércitos pequeno,
+médio e grande, estoque de tanque cheio, insumos insuficientes, economia legada
+e repetição sem duplicar pedido. A regressão de economia da IA passou em mais
+7 arquivos/24 testes, cobrindo prioridades de mina, infraestrutura, expansão de
+recursos, usinas nucleares, produção e replay determinístico. `tsc --noEmit`,
+lint, `npm run build-dev` e Prettier passaram.
+
+### Validação manual pendente no PC principal
+
+1. Rode `npm run dev:host` e inicie partidas com nações de 10.000, 50.000 e
+   100.000 infantes usando `strategicEconomy`.
+2. Observe se uma única Vehicle Factory é solicitada quando falta reserva de
+   tanques e há aço/combustível suficientes para produzir. Com estoque de tanques
+   no alvo ou sem os insumos, a nação não deve construir a fábrica.
+3. Repita com economia estratégica desligada; a nova prioridade não deve atuar.
+
+Esperado: a nação tenta no máximo uma construção por vez, respeita o limite de
+reserva e continua a usar as regras de construção existentes. A issue permanece
+aberta para decisões de tanques, fortificações, marinha, bloqueios e negociação
+de bots, além da cobertura adicional dos critérios de economia baixa/média/alta.
