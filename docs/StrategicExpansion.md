@@ -103,6 +103,9 @@ cálculo de combate. Os testes focados de ataque, supply e balance passaram
 (3 arquivos/33 testes), assim como `tsc --noEmit`, lint e build após essa
 alteração.
 
+Revalidação completa do branch em 2026-09-27: a suíte principal passou com 473
+arquivos e 5.607 testes, e a suíte de servidor com 63 arquivos e 656 testes.
+
 ### Validação manual pendente no PC principal
 
 1. Inicie o cliente com `npm run dev:host` e abra uma partida solo ou
