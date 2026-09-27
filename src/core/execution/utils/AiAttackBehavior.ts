@@ -1,3 +1,4 @@
+import { ECONOMY } from "../../configuration/StrategyConfig";
 import {
   Difficulty,
   Game,
@@ -13,6 +14,7 @@ import {
   UnitType,
 } from "../../game/Game";
 import { TileRef } from "../../game/GameMap";
+import { NaturalResource, type ResourceNode } from "../../game/Resources";
 import { canBuildTransportShip } from "../../game/TransportShipUtils";
 import { PseudoRandom } from "../../PseudoRandom";
 import {
@@ -35,6 +37,27 @@ import { closestTwoTiles } from "../Util";
 
 // Reusable neighbor buffer for hot loops; the simulation is single-threaded.
 const NEIGHBOR_SCRATCH: TileRef[] = [0, 0, 0, 0];
+
+const RESOURCE_NODES_BY_GAME = new WeakMap<
+  Game,
+  Map<NaturalResource, ResourceNode[]>
+>();
+
+function resourceNodesByResource(
+  game: Game,
+): Map<NaturalResource, ResourceNode[]> {
+  const cached = RESOURCE_NODES_BY_GAME.get(game);
+  if (cached !== undefined) return cached;
+
+  const nodesByResource = new Map<NaturalResource, ResourceNode[]>(
+    Object.values(NaturalResource).map((resource) => [resource, []]),
+  );
+  for (const node of game.resourceNodes()) {
+    nodesByResource.get(node.resource)!.push(node);
+  }
+  RESOURCE_NODES_BY_GAME.set(game, nodesByResource);
+  return nodesByResource;
+}
 
 export class AiAttackBehavior {
   private botAttackTroopsSent: number = 0;
@@ -831,11 +854,83 @@ export class AiAttackBehavior {
       // sharesBorderWith(TerraNullius) counts water tiles as TN (ownerID 0 = TN smallID),
       // so use a land-only adjacency check to decide land vs boat attack.
       if (this.hasLandBorderWithTerraNullius()) {
-        return this.sendLandAttack(target);
+        return this.sendLandAttack(
+          target,
+          this.preferredResourceExpansionTile(),
+        );
       } else {
         return this.sendBoatAttackToNearbyTerraNullius();
       }
     }
+  }
+
+  /**
+   * Select the nearest unowned deposit for the most constrained raw resource.
+   * The per-game deposit index avoids scanning map tiles during bot decisions.
+   */
+  private preferredResourceExpansionTile(): TileRef | null {
+    const config = this.game.config();
+    if (!config.strategicEconomy?.() || config.isUnitDisabled(UnitType.Mine)) {
+      return null;
+    }
+
+    const resourceTargets = Object.entries(ECONOMY.mineStockTargets) as [
+      NaturalResource,
+      number,
+    ][];
+    resourceTargets.sort(
+      ([resourceA, targetA], [resourceB, targetB]) =>
+        this.player.resourceAmount(resourceA) / targetA -
+        this.player.resourceAmount(resourceB) / targetB,
+    );
+
+    const rates = this.player.resourceRates();
+    const nodesByResource = resourceNodesByResource(this.game);
+    const mines = this.player.units(UnitType.Mine);
+    const center = this.getPlayerCenter(this.player);
+    const centerTile = this.game.ref(center.x, center.y);
+    let selectedTile: TileRef | null = null;
+    let selectedDistance = Infinity;
+
+    for (const [resource, target] of resourceTargets) {
+      if (this.player.resourceAmount(resource) >= target) continue;
+      if (rates.production[resource] > rates.consumption[resource]) continue;
+
+      const activeMines = mines.filter((mine) =>
+        this.game
+          .resourceDepositsAt(mine.tile())
+          .some(
+            (deposit) =>
+              deposit.resource === resource &&
+              this.game.resourceRemaining(mine.tile(), resource) > 0,
+          ),
+      );
+      if (activeMines.length >= ECONOMY.maxMinesPerResource) continue;
+
+      for (const node of nodesByResource.get(resource) ?? []) {
+        const tile = this.game.ref(node.x, node.y);
+        if (
+          this.game.owner(tile).isPlayer() ||
+          !this.game.isLand(tile) ||
+          this.game.isImpassable(tile) ||
+          this.game.resourceRemaining(tile, resource) <= 0
+        ) {
+          continue;
+        }
+
+        const distance = this.game.manhattanDist(centerTile, tile);
+        if (distance < selectedDistance) {
+          selectedTile = tile;
+          selectedDistance = distance;
+        }
+      }
+
+      // Resource urgency is sorted; use the closest neutral deposit of the
+      // first resource that has one instead of mixing lower-priority inputs.
+      if (selectedTile !== null) return selectedTile;
+    }
+
+    return null;
   }
 
   private hasLandBorderWithTerraNullius(): boolean {
@@ -1094,7 +1189,10 @@ export class AiAttackBehavior {
     return troops;
   }
 
-  private sendLandAttack(target: Player | TerraNullius): boolean {
+  private sendLandAttack(
+    target: Player | TerraNullius,
+    preferredExpansionTile: TileRef | null = null,
+  ): boolean {
     const troops = this.calculateAttackTroops(
       target,
       (targetTroops) => this.player.troops() - targetTroops,
@@ -1108,6 +1206,9 @@ export class AiAttackBehavior {
         troops,
         this.player,
         target.isPlayer() ? target.id() : this.game.terraNullius().id(),
+        null,
+        true,
+        preferredExpansionTile,
       ),
     );
     return true;

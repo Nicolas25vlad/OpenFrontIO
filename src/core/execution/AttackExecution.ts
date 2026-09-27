@@ -19,6 +19,7 @@ import { assertNever } from "../Util";
 import { FlatBinaryHeap } from "./utils/FlatBinaryHeap"; // adjust path if needed
 
 const malusForRetreat = 25;
+const RESOURCE_EXPANSION_DISTANCE_WEIGHT = 0.1;
 export class AttackExecution implements Execution {
   private active: boolean = true;
   private toConquer = new FlatBinaryHeap();
@@ -46,6 +47,7 @@ export class AttackExecution implements Execution {
     private _targetID: PlayerID | null,
     private sourceTile: TileRef | null = null,
     private removeTroops: boolean = true,
+    private preferredExpansionTile: TileRef | null = null,
   ) {}
 
   public targetID(): PlayerID | null {
@@ -417,9 +419,14 @@ export class AttackExecution implements Execution {
           break;
       }
 
-      const priority =
+      let priority =
         (this.random.nextInt(0, 7) + 10) * (1 - numOwnedByMe * 0.5 + mag / 2) +
         tickNow;
+      if (this.preferredExpansionTile !== null) {
+        priority +=
+          this.mg.manhattanDist(neighbor, this.preferredExpansionTile) *
+          RESOURCE_EXPANSION_DISTANCE_WEIGHT;
+      }
 
       this.toConquer.enqueue(neighbor, priority);
     }
