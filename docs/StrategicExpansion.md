@@ -118,3 +118,39 @@ tanques deve aumentar em lotes conforme a fábrica consome aço e combustível.
 Registre navegador,
 mapa e resultado em `StrategicCompatibilityChecklist.md`; a aprovação visual
 continua pendente até essa execução.
+
+## Fortificações niveladas — issue #6 (parcial)
+
+Na economia estratégica, postos de defesa podem ser melhorados até o nível 3.
+Cada nível amplia a perda de tropas e o custo de avanço dos ataques inimigos,
+acrescenta 100 pontos de saúde máxima e restaura a fortificação ao novo máximo.
+Quando uma investida resolve combate dentro do alcance, o posto de maior nível
+recebe 25 pontos de desgaste por tile. A saúde e o nível seguem no update da
+unidade existente e no hash determinístico; nukes continuam destruindo
+estruturas como antes. O sistema atual de artilharia naval só escolhe navios
+como alvo, então a regra de alvo naval permanece inalterada. A configuração
+legada mantém os bônus antigos e não permite melhoria de postos.
+
+Validação automatizada: `tests/PlayerImpl.test.ts` cobre níveis, teto, saúde e
+limite de melhorias em lote; `tests/UnitGrid.test.ts` cobre consulta espacial
+do posto de maior nível; `tests/economy/StrategicBalance.test.ts` verifica os
+bônus por nível sem alterar o modo legado; `tests/Attack.test.ts` cobre bônus
+observado pelo combate e desgaste, e `tests/PlayerImpl.test.ts` confirma que
+nível/saúde mudam o hash. Validação local: 7 arquivos/116 testes focados,
+`tsc --noEmit`, lint e build passaram; replay estratégico/nuclear: 2 arquivos,
+15 testes; servidor: 63 arquivos, 656 testes.
+
+### Validação manual pendente no PC principal
+
+1. Com `strategicEconomy` ligado, construa um posto de defesa e melhore-o duas
+   vezes. Confira os níveis 1, 2 e 3 e que a quarta melhoria não é oferecida.
+2. Deixe um inimigo atacar tiles dentro do alcance. Confira o avanço mais lento,
+   maiores perdas do atacante e a redução da saúde do posto após cada tile.
+3. Detone uma bomba próxima e confirme a destruição normal da estrutura.
+4. Repita com `strategicEconomy` desligado: o posto não deve ser melhorável e o
+   cálculo de ataque deve manter os valores legados.
+
+Esperado: níveis e saúde sincronizam sem recriar unidades nem duplicar bônus;
+desgaste é determinístico por tile e o posto deixa de conceder defesa ao ser
+destruído. A pintura de trincheiras na fronteira e sua leitura visual ainda
+estão pendentes nesta issue.

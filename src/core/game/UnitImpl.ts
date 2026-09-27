@@ -21,6 +21,7 @@ import { TileRef } from "./GameMap";
 import { GameUpdateType, UnitUpdate } from "./GameUpdates";
 import { PlayerImpl } from "./PlayerImpl";
 import { maxHealthWithVeterancy } from "./Veterancy";
+import { STRATEGIC_COMBAT } from "../configuration/StrategyConfig";
 
 export class UnitImpl implements Unit {
   private _active = true;
@@ -292,9 +293,14 @@ export class UnitImpl implements Unit {
 
   maxHealth(): number {
     const base = this.info().maxHealth ?? 1;
+    const levelHealth =
+      this._type === UnitType.DefensePost &&
+      this.mg.config().strategicEconomy()
+        ? (this._level - 1) * STRATEGIC_COMBAT.defensePostHealthPerLevel
+        : 0;
     // veterancy() is 0 for non-warships, so this returns base for them.
     return maxHealthWithVeterancy(
-      base,
+      base + levelHealth,
       this.veterancy(),
       this.mg.config().warshipVeterancyHealthBonus(),
     );
@@ -547,7 +553,14 @@ export class UnitImpl implements Unit {
   }
 
   hash(): number {
-    return this.tile() + simpleHash(this.type()) * this._id;
+    // Upgrade tiers and durability affect simulation outcomes and must be
+    // represented in deterministic game hashes as well as unit updates.
+    return (
+      this.tile() +
+      simpleHash(this.type()) * this._id +
+      this._level * 31 +
+      Number(this._health) * 37
+    );
   }
 
   toString(): string {
@@ -735,6 +748,8 @@ export class UnitImpl implements Unit {
   }
 
   increaseLevel(): void {
+    const maxLevel = this.info().maxLevel;
+    if (maxLevel !== undefined && this._level >= maxLevel) return;
     if (this._type === UnitType.SAMLauncher) {
       const currentTick = this.mg.ticks();
       const currentRange = this.mg.config().dynamicSamRange(this, currentTick);
@@ -746,6 +761,12 @@ export class UnitImpl implements Unit {
       };
     }
     this._level++;
+    if (
+      this._type === UnitType.DefensePost &&
+      this.mg.config().strategicEconomy()
+    ) {
+      this._health = toInt(this.maxHealth());
+    }
     // unitCount()/unitsOwned() are level-weighted and memoised on these versions
     this.mg.bumpUnitsVersion();
     this._owner._myUnitsVersion++;

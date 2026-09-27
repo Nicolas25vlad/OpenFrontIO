@@ -97,6 +97,12 @@ export const STRATEGIC_COMBAT = {
   antiIcbmEfficiencyMultiplier: 1.15,
   defensePostStrength: 6,
   defensePostSlowdown: 4,
+  defensePostStrengthPerLevel: 1,
+  defensePostSlowdownPerLevel: 1,
+  defensePostMaxLevel: 3,
+  defensePostMaxHealth: 300,
+  defensePostHealthPerLevel: 100,
+  defensePostWearPerTile: 25,
   /** One tank joins a land attack for every 10,000 infantry sent. */
   infantryPerTank: 10_000,
   /** Combat strength contributed by one tank, measured in infantry equivalents. */

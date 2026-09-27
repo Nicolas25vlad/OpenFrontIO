@@ -1647,6 +1647,8 @@ export class PlayerImpl implements Player {
     if (unit.owner() !== this) {
       return false;
     }
+    const maxLevel = this.mg.unitInfo(unit.type()).maxLevel;
+    if (maxLevel !== undefined && unit.level() >= maxLevel) return false;
     return true;
   }
 
@@ -1696,6 +1698,7 @@ export class PlayerImpl implements Player {
       const cost = config.unitInfo(u).cost(mg, this);
       let canUpgrade: number | false = false;
       let canBuild: TileRef | false = false;
+      let upgradeAmountLimit = MAX_UPGRADE_AMOUNT;
 
       if (tile !== null && this.canBuildUnitType(u, cost) && !inSpawnPhase) {
         if (this.canUpgradeUnitType(u)) {
@@ -1705,6 +1708,13 @@ export class PlayerImpl implements Player {
             this.isUnitValidToUpgrade(existingUnit)
           ) {
             canUpgrade = existingUnit.id();
+            const maxLevel = config.unitInfo(u).maxLevel;
+            if (maxLevel !== undefined) {
+              upgradeAmountLimit = Math.max(
+                0,
+                Math.min(MAX_UPGRADE_AMOUNT, maxLevel - existingUnit.level()),
+              );
+            }
           }
         }
         canBuild = this.canSpawnUnitType(u, tile, validTiles);
@@ -1717,9 +1727,9 @@ export class PlayerImpl implements Player {
       // already had n extra units — cost(mg, this, n).
       let upgradeCosts: Gold[] | undefined;
       if (canUpgrade !== false) {
-        upgradeCosts = new Array<Gold>(MAX_UPGRADE_AMOUNT);
+        upgradeCosts = new Array<Gold>(upgradeAmountLimit);
         let total = 0n;
-        for (let n = 0; n < MAX_UPGRADE_AMOUNT; n++) {
+        for (let n = 0; n < upgradeAmountLimit; n++) {
           total += config.unitInfo(u).cost(mg, this, n);
           upgradeCosts[n] = total;
         }

@@ -1155,6 +1155,24 @@ export class GameImpl implements Game {
     );
   }
 
+  highestLevelUnitNearby(
+    tile: TileRef,
+    searchRange: number,
+    type: UnitType,
+    playerId?: PlayerID,
+    includeUnderConstruction?: boolean,
+  ): Unit | undefined {
+    // GameImpl's grid contains core Units; the shared grid type also supports
+    // client UnitViews, which are never stored by the simulation.
+    return this.unitGrid.highestLevelUnitNearby(
+      tile,
+      searchRange,
+      type,
+      playerId,
+      includeUnderConstruction,
+    ) as Unit | undefined;
+  }
+
   anyUnitNearby(
     tile: TileRef,
     searchRange: number,

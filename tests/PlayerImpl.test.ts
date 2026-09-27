@@ -5,6 +5,7 @@ import {
   PlayerType,
   UnitType,
 } from "../src/core/game/Game";
+import { UnitImpl } from "../src/core/game/UnitImpl";
 import { setup } from "./util/Setup";
 
 let game: Game;
@@ -44,6 +45,55 @@ describe("PlayerImpl", () => {
       .find((bu) => bu.type === UnitType.DefensePost);
     expect(buDefensePost).toBeDefined();
     expect(buDefensePost!.canUpgrade).toBeFalsy();
+  });
+
+  test("strategic defense posts upgrade to level 3 and gain health", async () => {
+    const strategicGame = await setup(
+      "plains",
+      {
+        infiniteGold: true,
+        instantBuild: true,
+        strategicEconomy: true,
+      },
+      [new PlayerInfo("fortifier", PlayerType.Human, null, "fortifier_id")],
+    );
+    const fortifier = strategicGame.player("fortifier_id");
+    const tile = strategicGame.ref(0, 0);
+    fortifier.conquer(tile);
+    const post = fortifier.buildUnit(UnitType.DefensePost, tile, {});
+    expect(post.maxHealth()).toBe(300);
+    const levelOneHash = (post as UnitImpl).hash();
+    expect(
+      fortifier
+        .buildableUnits(tile)
+        .find((bu) => bu.type === UnitType.DefensePost)?.upgradeCosts,
+    ).toHaveLength(2);
+
+    post.modifyHealth(-100);
+    const wornHash = (post as UnitImpl).hash();
+    expect(wornHash).not.toBe(levelOneHash);
+    fortifier.upgradeUnit(post);
+    expect(post.level()).toBe(2);
+    expect((post as UnitImpl).hash()).not.toBe(wornHash);
+    expect(post.maxHealth()).toBe(400);
+    expect(post.health()).toBe(400);
+    expect(
+      fortifier
+        .buildableUnits(tile)
+        .find((bu) => bu.type === UnitType.DefensePost)?.upgradeCosts,
+    ).toHaveLength(1);
+
+    fortifier.upgradeUnit(post);
+    expect(post.level()).toBe(3);
+    expect(post.maxHealth()).toBe(500);
+    expect(fortifier.canUpgradeUnit(post)).toBe(false);
+    expect(
+      fortifier
+        .buildableUnits(tile)
+        .find((bu) => bu.type === UnitType.DefensePost)?.canUpgrade,
+    ).toBe(false);
+    post.increaseLevel();
+    expect(post.level()).toBe(3);
   });
 
   test("City can be upgraded from another city", () => {

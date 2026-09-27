@@ -266,6 +266,64 @@ describe("land attack tanks", () => {
     expect(tankAttacker.outgoingAttacks()[0].tanks()).toBe(0);
     expect(tankAttacker.tanks()).toBe(0);
   });
+
+  test("leveled fortifications strengthen and wear down under attack", async () => {
+    const fortGame = await setup("ocean_and_land", {
+      strategicEconomy: true,
+      infiniteGold: true,
+      instantBuild: true,
+    });
+    const attackerInfo = new PlayerInfo(
+      "fortification attacker",
+      PlayerType.Human,
+      null,
+      "fortification_attacker_id",
+    );
+    const defenderInfo = new PlayerInfo(
+      "fortification defender",
+      PlayerType.Human,
+      null,
+      "fortification_defender_id",
+    );
+    fortGame.addPlayer(attackerInfo);
+    fortGame.addPlayer(defenderInfo);
+    const fortAttacker = fortGame.player(attackerInfo.id);
+    const fortDefender = fortGame.player(defenderInfo.id);
+    const attackerSpawn = fortGame.ref(0, 10);
+    fortGame.addExecution(
+      new SpawnExecution(gameID, fortAttacker.info(), attackerSpawn),
+      new SpawnExecution(gameID, fortDefender.info(), fortGame.ref(0, 15)),
+    );
+    fortGame.executeNextTick();
+    fortGame.executeNextTick();
+
+    const neighbors: TileRef[] = [0, 0, 0, 0];
+    const numNeighbors = fortGame.map().neighbors4(attackerSpawn, neighbors);
+    const combatTile = neighbors
+      .slice(0, numNeighbors)
+      .find((tile) => fortGame.map().isLand(tile));
+    expect(combatTile).toBeDefined();
+    fortDefender.conquer(combatTile!);
+    const post = fortDefender.buildUnit(UnitType.DefensePost, combatTile!, {});
+    fortDefender.upgradeUnit(post);
+    fortDefender.upgradeUnit(post);
+
+    let observedPostLevel = 0;
+    const testConfig = fortGame.config() as TestConfig;
+    testConfig.attackLogic = (input) => {
+      observedPostLevel = input.defenderDefensePostLevel ?? 0;
+      return { attackerTroopLoss: 1, defenderTroopLoss: 0, tickFraction: 1 };
+    };
+    fortAttacker.addTroops(10_000);
+    fortGame.addExecution(
+      new AttackExecution(10_000, fortAttacker, fortDefender.id()),
+    );
+    fortGame.executeNextTick();
+    fortGame.executeNextTick();
+
+    expect(observedPostLevel).toBe(3);
+    expect(post.health()).toBe(475);
+  });
 });
 
 let playerA: Player;

@@ -258,6 +258,42 @@ export class UnitGrid {
     return false;
   }
 
+  highestLevelUnitNearby(
+    tile: TileRef,
+    searchRange: number,
+    type: UnitType,
+    playerId?: PlayerID,
+    includeUnderConstruction: boolean = false,
+  ): Unit | UnitView | undefined {
+    const { startGridX, endGridX, startGridY, endGridY } = this.getCellsInRange(
+      tile,
+      searchRange,
+    );
+    const rangeSquared = searchRange * searchRange;
+    let strongest: Unit | UnitView | undefined;
+    for (let cy = startGridY; cy <= endGridY; cy++) {
+      for (let cx = startGridX; cx <= endGridX; cx++) {
+        const unitSet = this.grid[cy][cx].get(type);
+        if (unitSet === undefined) continue;
+        for (const unit of unitSet) {
+          if (
+            this.unitIsInRange(
+              unit,
+              tile,
+              rangeSquared,
+              playerId,
+              includeUnderConstruction,
+            ) &&
+            (strongest === undefined || unit.level() > strongest.level())
+          ) {
+            strongest = unit;
+          }
+        }
+      }
+    }
+    return strongest;
+  }
+
   // Return true if any unit of the given types matches the predicate
   anyUnitNearby(
     tile: TileRef,

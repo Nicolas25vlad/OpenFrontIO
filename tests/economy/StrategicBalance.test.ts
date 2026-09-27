@@ -1,4 +1,8 @@
-import { Config } from "../../src/core/configuration/Config";
+import {
+  AttackLogicInput,
+  Config,
+} from "../../src/core/configuration/Config";
+import { PlayerType, TerrainType } from "../../src/core/game/Game";
 import { UserSettings } from "../../src/core/game/UserSettings";
 import { testGameConfig } from "../util/Wire";
 
@@ -21,4 +25,39 @@ test("Anti-ICBM range and throughput bonuses preserve all legacy levels", () => 
   expect(strategic.defensePostSpeedBonus()).toBeGreaterThan(
     legacy.defensePostSpeedBonus(),
   );
+  expect(strategic.defensePostDefenseBonus(2)).toBeGreaterThan(
+    strategic.defensePostDefenseBonus(1),
+  );
+  expect(strategic.defensePostSpeedBonus(3)).toBeGreaterThan(
+    strategic.defensePostSpeedBonus(1),
+  );
+  expect(legacy.defensePostDefenseBonus(3)).toBe(
+    legacy.defensePostDefenseBonus(1),
+  );
+
+  const attack: AttackLogicInput = {
+    terrain: TerrainType.Plains,
+    attackTroops: 50_000,
+    attacker: { type: PlayerType.Human, numTiles: 20_000 },
+    defender: {
+      type: PlayerType.Human,
+      numTiles: 20_000,
+      troops: 50_000,
+      isTraitor: false,
+      isDisconnectedTeammate: false,
+    },
+    defenderHasDefensePost: true,
+    defenderDefensePostLevel: 1,
+    falloutRatio: null,
+    borderSize: 100,
+  };
+  const levelOne = strategic.attackLogic(attack);
+  const levelThree = strategic.attackLogic({
+    ...attack,
+    defenderDefensePostLevel: 3,
+  });
+  expect(levelThree.attackerTroopLoss).toBeGreaterThan(
+    levelOne.attackerTroopLoss,
+  );
+  expect(levelThree.tickFraction).toBeGreaterThan(levelOne.tickFraction);
 });

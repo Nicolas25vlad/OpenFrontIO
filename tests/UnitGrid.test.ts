@@ -45,6 +45,39 @@ async function nearbyUnits(
 }
 
 describe("Unit Grid range tests", () => {
+  test("highestLevelUnitNearby returns the strongest active owned structure", async () => {
+    const game = await setup("plains", {
+      infiniteGold: true,
+      instantBuild: true,
+    });
+    const grid = new UnitGrid(game.map());
+    const player = game.addPlayer(
+      new PlayerInfo("test_player", PlayerType.Human, null, "test_id"),
+    );
+    const enemy = game.addPlayer(
+      new PlayerInfo("enemy", PlayerType.Human, null, "enemy_id"),
+    );
+    const tile = game.map().ref(0, 0);
+    const post = player.buildUnit(UnitType.DefensePost, tile, {});
+    post.increaseLevel();
+    grid.addUnit(post);
+
+    expect(
+      grid.highestLevelUnitNearby(tile, 30, UnitType.DefensePost, player.id()),
+    ).toBe(post);
+    expect(
+      grid.highestLevelUnitNearby(tile, 30, UnitType.DefensePost, enemy.id()),
+    ).toBeUndefined();
+    expect(
+      grid.highestLevelUnitNearby(
+        game.map().ref(50, 50),
+        1,
+        UnitType.DefensePost,
+        player.id(),
+      ),
+    ).toBeUndefined();
+  });
+
   const hasUnitCases = [
     ["plains", 0, 10, 0, true], // Same spot
     ["plains", 0, 10, 10, true], // Exactly on the range

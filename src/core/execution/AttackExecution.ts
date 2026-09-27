@@ -12,6 +12,7 @@ import {
   PlayerType,
   TerrainType,
   TerraNullius,
+  Unit,
   UnitType,
 } from "../game/Game";
 import { GameMap, TileRef } from "../game/GameMap";
@@ -338,10 +339,23 @@ export class AttackExecution implements Execution {
         continue;
       }
       this.addNeighbors(tileToConquer);
+      const defenderPost = targetPlayer
+        ? this.mg.highestLevelUnitNearby(
+            tileToConquer,
+            this.mg.config().defensePostRange(),
+            UnitType.DefensePost,
+            targetPlayer.id(),
+          )
+        : undefined;
       const { attackerTroopLoss, defenderTroopLoss, tickFraction } = this.mg
         .config()
         .attackLogic(
-          this.attackLogicInput(troopCount, tileToConquer, borderSize),
+          this.attackLogicInput(
+            troopCount,
+            tileToConquer,
+            borderSize,
+            defenderPost,
+          ),
         );
       tickBudget -= tickFraction;
       troopCount -= attackerTroopLoss;
@@ -349,6 +363,12 @@ export class AttackExecution implements Execution {
       this.applyTankCasualties(attackerTroopLoss, troopCount);
       if (targetPlayer) {
         targetPlayer.removeTroops(defenderTroopLoss);
+      }
+      if (defenderPost && this.mg.config().strategicEconomy()) {
+        defenderPost.modifyHealth(
+          -STRATEGIC_COMBAT.defensePostWearPerTile,
+          this._owner,
+        );
       }
       this._owner.conquer(tileToConquer);
       this.handleDeadDefender();
@@ -359,6 +379,7 @@ export class AttackExecution implements Execution {
     attackTroops: number,
     tile: TileRef,
     borderSize: number,
+    defenderPost: Unit | undefined,
   ): AttackLogicInput {
     const defender = this.target.isPlayer() ? this.target : null;
     const attackStrength =
@@ -368,14 +389,6 @@ export class AttackExecution implements Execution {
     // (active, not under construction, within range), without building a
     // result array per conquered tile — this runs for every tile of every
     // attack on the map.
-    const defenderHasDefensePost =
-      defender !== null &&
-      this.mg.hasUnitNearby(
-        tile,
-        this.mg.config().defensePostRange(),
-        UnitType.DefensePost,
-        defender.id(),
-      );
     return {
       terrain: this.map.terrainType(tile),
       attackTroops: attackStrength,
@@ -397,7 +410,8 @@ export class AttackExecution implements Execution {
               isDisconnectedTeammate:
                 defender.isDisconnected() && this._owner.isOnSameTeam(defender),
             },
-      defenderHasDefensePost,
+      defenderHasDefensePost: defenderPost !== undefined,
+      defenderDefensePostLevel: defenderPost?.level() ?? 0,
       falloutRatio: this.mg.hasFallout(tile)
         ? this.mg.numTilesWithFallout() / this.mg.numLandTiles()
         : null,

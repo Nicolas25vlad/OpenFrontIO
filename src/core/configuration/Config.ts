@@ -100,6 +100,8 @@ export interface AttackLogicInput {
   } | null;
   /** A defense post owned by the defender is in range of the tile. */
   defenderHasDefensePost: boolean;
+  /** Highest active defense-post level owned by the defender in range. */
+  defenderDefensePostLevel?: number;
   /** Fraction of land tiles with fallout, or null if the tile has no fallout. */
   falloutRatio: number | null;
   /** Tiles on the attack front this tick (plus jitter); fixed for the tick. */
@@ -375,12 +377,18 @@ export class Config {
     return 30;
   }
 
-  defensePostDefenseBonus(): number {
-    return this.strategicEconomy() ? STRATEGIC_COMBAT.defensePostStrength : 5;
+  defensePostDefenseBonus(level = 1): number {
+    return this.strategicEconomy()
+      ? STRATEGIC_COMBAT.defensePostStrength +
+          Math.max(0, level - 1) * STRATEGIC_COMBAT.defensePostStrengthPerLevel
+      : 5;
   }
 
-  defensePostSpeedBonus(): number {
-    return this.strategicEconomy() ? STRATEGIC_COMBAT.defensePostSlowdown : 3;
+  defensePostSpeedBonus(level = 1): number {
+    return this.strategicEconomy()
+      ? STRATEGIC_COMBAT.defensePostSlowdown +
+          Math.max(0, level - 1) * STRATEGIC_COMBAT.defensePostSlowdownPerLevel
+      : 3;
   }
 
   playerTeams(): TeamCountConfig {
@@ -645,6 +653,13 @@ export class Config {
             UnitType.DefensePost,
           ),
           constructionDuration: this.instantBuild() ? 0 : 5 * 10,
+          maxHealth: this.strategicEconomy()
+            ? STRATEGIC_COMBAT.defensePostMaxHealth
+            : undefined,
+          upgradable: this.strategicEconomy(),
+          maxLevel: this.strategicEconomy()
+            ? STRATEGIC_COMBAT.defensePostMaxLevel
+            : undefined,
         };
         break;
       case UnitType.SAMLauncher:
@@ -903,9 +918,11 @@ export class Config {
     if (this.strategicEconomy())
       tileCost /= 1 + (attacker.logistics ?? 0) / 100;
 
-    if (defender !== null && input.defenderHasDefensePost) {
-      mag *= this.defensePostDefenseBonus();
-      tileCost *= this.defensePostSpeedBonus();
+    const defensePostLevel =
+      input.defenderDefensePostLevel ?? (input.defenderHasDefensePost ? 1 : 0);
+    if (defender !== null && defensePostLevel > 0) {
+      mag *= this.defensePostDefenseBonus(defensePostLevel);
+      tileCost *= this.defensePostSpeedBonus(defensePostLevel);
     }
     if (input.falloutRatio !== null) {
       const fallout = this.falloutDefenseModifier(input.falloutRatio);

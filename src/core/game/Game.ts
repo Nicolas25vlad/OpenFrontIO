@@ -187,6 +187,8 @@ export interface UnitInfo {
   damage?: number;
   constructionDuration?: number;
   upgradable?: boolean;
+  /** Hard upgrade ceiling for structures with bounded defensive tiers. */
+  maxLevel?: number;
 }
 
 function unitTypeGroup<T extends readonly UnitType[]>(types: T) {
@@ -912,6 +914,14 @@ export interface Game extends GameMap {
     playerId?: PlayerID,
     includeUnderConstruction?: boolean,
   ): boolean;
+  /** Highest-level active unit in range, without allocating an array. */
+  highestLevelUnitNearby(
+    tile: TileRef,
+    searchRange: number,
+    type: UnitType,
+    playerId?: PlayerID,
+    includeUnderConstruction?: boolean,
+  ): Unit | undefined;
   anyUnitNearby(
     tile: TileRef,
     searchRange: number,
