@@ -84,6 +84,15 @@ describe("nation strategic mine priority", () => {
     expect(planMine()).toBe(false);
   });
 
+  it("indexes resource deposits once per game across repeated decisions", () => {
+    makeScarce(NaturalResource.Iron);
+    const resourceNodes = vi.spyOn(game, "resourceNodes");
+
+    expect(planMine()).toBe(false);
+    expect(planMine()).toBe(false);
+    expect(resourceNodes).toHaveBeenCalledTimes(1);
+  });
+
   it("does not queue duplicate mines for the same resource", () => {
     makeScarce(NaturalResource.Iron);
     ownedDeposit(NaturalResource.Iron);
