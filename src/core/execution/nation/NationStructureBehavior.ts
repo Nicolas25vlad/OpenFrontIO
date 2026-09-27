@@ -135,6 +135,24 @@ const UNDER_ATTACK_THREAT_RATIO = 0.35;
  */
 const DEFENSE_POST_RATIO_PER_POST = 0.4;
 
+const PRODUCTION_UNIT_TYPES = [
+  UnitType.Farm,
+  UnitType.Factory,
+  UnitType.Mine,
+  UnitType.NuclearPlant,
+] as const;
+
+const INFRASTRUCTURE_STATION_TYPES = [
+  UnitType.City,
+  UnitType.Port,
+  UnitType.Factory,
+  UnitType.Infrastructure,
+] as const;
+
+const MAX_LOGISTICS_INFRASTRUCTURE_LEVELS = Math.ceil(
+  ECONOMY.maxLogisticsBonus / ECONOMY.logisticsPerLevel,
+);
+
 const RESOURCE_NODES_BY_GAME = new WeakMap<
   Game,
   Map<NaturalResource, ResourceNode[]>
@@ -172,6 +190,7 @@ export class NationStructureBehavior {
   private _hasHighStartingGold: boolean | null = null;
   private _postSaveUpStartTick: number | null = null;
   private pendingMineOrders = new Map<NaturalResource, number>();
+  private pendingInfrastructureOrderTick: number | null = null;
 
   constructor(
     private random: PseudoRandom,
@@ -572,6 +591,8 @@ export class NationStructureBehavior {
       }
     }
 
+    if (this.placementsCount > 0 && this.tryBuildInfrastructure()) return true;
+
     if (this.placementsCount > 0 && this.tryBuildResourceMine()) return true;
 
     if (!citiesDisabled && this.maybeSpawnStructure(UnitType.City)) {
@@ -705,6 +726,70 @@ export class NationStructureBehavior {
     }
 
     return false;
+  }
+
+  /**
+   * Place infrastructure where it adds production coverage or relieves an
+   * active supply shortage through the existing rail network.
+   */
+  private tryBuildInfrastructure(): boolean {
+    const config = this.game.config();
+    if (
+      !config.strategicEconomy?.() ||
+      config.isUnitDisabled(UnitType.Infrastructure)
+    ) {
+      return false;
+    }
+
+    const infrastructure = this.player.units(UnitType.Infrastructure);
+    if (infrastructure.some((unit) => unit.isUnderConstruction())) return false;
+
+    const retryAfter =
+      (this.game.unitInfo(UnitType.Infrastructure).constructionDuration ?? 0) +
+      ECONOMY.periodTicks;
+    if (this.pendingInfrastructureOrderTick !== null) {
+      if (
+        this.game.ticks() - this.pendingInfrastructureOrderTick <=
+        retryAfter
+      ) {
+        return false;
+      }
+      this.pendingInfrastructureOrderTick = null;
+    }
+
+    const productionUnits = this.player.units([...PRODUCTION_UNIT_TYPES]);
+    const coveredProductionUnits = productionUnits.filter((unit) =>
+      infrastructure.some(
+        (infra) =>
+          !infra.isUnderConstruction() &&
+          this.game.euclideanDistSquared(unit.tile(), infra.tile()) <=
+            ECONOMY.infrastructureRadius ** 2,
+      ),
+    );
+    const hasUncoveredProduction =
+      coveredProductionUnits.length < productionUnits.length;
+
+    const stationManager = this.game.railNetwork().stationManager();
+    const connectedInfrastructureLevels = infrastructure.reduce(
+      (levels, unit) =>
+        levels +
+        ((stationManager.findStation(unit)?.getCluster()?.size() ?? 0) > 1
+          ? unit.level()
+          : 0),
+      0,
+    );
+    const hasSupplyShortage =
+      this.player.supplyStatus().infantry < 100 ||
+      this.player.supplyStatus().navy < 100;
+    const canImproveLogistics =
+      hasSupplyShortage &&
+      connectedInfrastructureLevels < MAX_LOGISTICS_INFRASTRUCTURE_LEVELS;
+
+    if (!hasUncoveredProduction && !canImproveLogistics) return false;
+    if (!this.maybeSpawnStructure(UnitType.Infrastructure)) return false;
+
+    this.pendingInfrastructureOrderTick = this.game.ticks();
+    return true;
   }
 
   private hasHighStartingGold(): boolean {
@@ -1012,6 +1097,7 @@ export class NationStructureBehavior {
     let bestValue = 0;
     for (const t of tiles) {
       const v = valueFunction(t);
+      if (type === UnitType.Infrastructure && v <= 0) continue;
       if (v <= bestValue && bestTile !== null) continue;
       if (!this.player.canBuild(type, t)) continue;
       // Found a better tile
@@ -1074,6 +1160,8 @@ export class NationStructureBehavior {
         return this.factoryValue();
       case UnitType.Port:
         return this.portValue();
+      case UnitType.Infrastructure:
+        return this.infrastructureValue();
       case UnitType.SAMLauncher:
         return this.samLauncherValue();
       default:
@@ -1135,6 +1223,58 @@ export class NationStructureBehavior {
       w += closestOtherDist;
 
       return w;
+    };
+  }
+
+  /**
+   * Score infrastructure by marginal coverage of production structures, with
+   * a smaller bonus for connecting it to an existing station when logistics
+   * are currently constrained.
+   */
+  private infrastructureValue(): (tile: TileRef) => number {
+    const game = this.game;
+    const player = this.player;
+    const infrastructure = player
+      .units(UnitType.Infrastructure)
+      .filter((unit) => !unit.isUnderConstruction());
+    const productionUnits = player.units([...PRODUCTION_UNIT_TYPES]);
+    const stationUnits = player.units([...INFRASTRUCTURE_STATION_TYPES]);
+    const stationRangeSquared = game.config().trainStationMaxRange() ** 2;
+    const infrastructureRadiusSquared = ECONOMY.infrastructureRadius ** 2;
+    const supply = player.supplyStatus();
+    const needsLogistics = supply.infantry < 100 || supply.navy < 100;
+
+    return (tile) => {
+      let score = 0;
+
+      for (const producer of productionUnits) {
+        const currentlyCovered = infrastructure.some(
+          (infra) =>
+            game.euclideanDistSquared(producer.tile(), infra.tile()) <=
+            infrastructureRadiusSquared,
+        );
+        if (
+          !currentlyCovered &&
+          game.euclideanDistSquared(tile, producer.tile()) <=
+            infrastructureRadiusSquared
+        ) {
+          score += producer.level();
+        }
+      }
+
+      if (
+        needsLogistics &&
+        stationUnits.some(
+          (station) =>
+            !station.isUnderConstruction() &&
+            game.euclideanDistSquared(tile, station.tile()) <=
+              stationRangeSquared,
+        )
+      ) {
+        score += 1;
+      }
+
+      return score;
     };
   }
 
