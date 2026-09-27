@@ -66,14 +66,22 @@ cada 50 ticks por padrão, com tamanho, zoom mínimo, opacidade e limite no
 Como início da etapa de tanques da mesma issue, a Vehicle Factory já produz
 reservas autoritativas: cada lote consome 5 unidades de aço e 2 de combustível,
 e o estoque é sincronizado em `PlayerUpdate` e mostrado no painel econômico.
-Produção e sincronização estão cobertas por testes; seleção, transporte em
-ataques, combate e movimento ainda precisam ser integrados.
+Em ataques terrestres da economia estratégica, um tanque acompanha cada 10.000
+infantes enviados (limitado ao estoque disponível). Cada tanque contribui força
+equivalente a 5.000 infantes e pode sofrer baixas determinísticas; retiradas
+devolvem os tanques sobreviventes. Ataques por barco não carregam tanques. A
+contagem viaja no delta compacto e aparece nas listas e rótulos de ataques.
+Ainda faltam seleção/movimento de tanques como unidades independentes, carga
+naval de tanques e decisões específicas dos bots.
 
 Validação automatizada: `tests/client/render/gl/TroopGarrisons.test.ts` cobre
 posições de fronteira, determinismo, limiar de tropas e limite global;
 `tests/economy/Production.test.ts` e `tests/economy/StrategicReplay.test.ts`
-cobrem produção, updates e replay dos tanques. Build e lint passaram; os testes
-focados desta etapa passaram (89 testes). A suíte completa também passou na
+cobrem produção, updates e replay dos tanques; `tests/Attack.test.ts`,
+`tests/GameUpdateUtils.test.ts` e `tests/client/view/GameView.test.ts` cobrem
+envio, força de combate e sincronização da contagem nas investidas. Build e lint
+passaram; os testes focados da integração de ataques passaram (153 testes), além
+dos 89 testes focados na etapa de produção. A suíte completa também passou na
 etapa anterior (469 arquivos/5.576 testes e 63 arquivos/656 testes de servidor).
 No Node 26 do homelab, o comando completo requer Web Storage habilitado:
 
@@ -87,15 +95,20 @@ NODE_OPTIONS="--experimental-webstorage --localstorage-file=/tmp/openfront-vites
    multiplayer. Faça o teste com `strategicEconomy` ligado e desligado.
 2. Com a economia estratégica ligada, construa uma Vehicle Factory e forneça
    aço e combustível. Confira o contador de tanques no painel após alguns ticks.
-3. Em uma nação com pelo menos 25.000 tropas, aproxime a câmera da fronteira
+3. Envie pelo menos 25.000 tropas por terra. Confira dois tanques no rótulo do
+   ataque e a redução correspondente do estoque. Cancele a investida e confira a
+   devolução dos sobreviventes; repita contra um jogador para observar baixas.
+4. Em uma nação com pelo menos 25.000 tropas, aproxime a câmera da fronteira
    até os ícones aparecerem. Confira uma região interior e uma fronteira entre
    dois jogadores.
-4. Afaste a câmera até os ícones desaparecerem e aproxime novamente.
-5. Faça uma conquista na fronteira e confira se os grupos acompanham o novo
+5. Afaste a câmera até os ícones desaparecerem e aproxime novamente.
+6. Faça uma conquista na fronteira e confira se os grupos acompanham o novo
    território em até 50 ticks. Repita avançando e voltando em um replay.
 
 Esperado: pequenos grupos de duas silhuetas em pixel art, coloridos pelo dono
-do território e restritos às fronteiras; nenhum grupo no interior. A
+do território e restritos às fronteiras; nenhum grupo no interior. O ataque
+deve exibir a quantidade de tanques, consumir reserva ao sair e devolver apenas
+os sobreviventes ao cancelar. A
 quantidade cresce em degraus com as tropas, respeita o limite visual, some
 abaixo do zoom mínimo e não muda os resultados de combate. O contador de
 tanques deve aumentar em lotes conforme a fábrica consome aço e combustível.

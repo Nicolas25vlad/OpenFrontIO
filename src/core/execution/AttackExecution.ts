@@ -1,5 +1,6 @@
 import { renderTroops } from "../../client/Utils";
 import { AttackLogicInput } from "../configuration/Config";
+import { STRATEGIC_COMBAT } from "../configuration/StrategyConfig";
 import {
   Attack,
   Difficulty,
@@ -25,6 +26,7 @@ export class AttackExecution implements Execution {
   private toConquer = new FlatBinaryHeap();
 
   private random = new PseudoRandom(123);
+  private tankCasualtyRemainder = 0;
 
   private target: Player | TerraNullius;
 
@@ -33,6 +35,7 @@ export class AttackExecution implements Execution {
   private map: GameMap;
 
   private attack: Attack | null = null;
+  private startTanks = 0;
 
   // Cached smallIDs for integer owner comparisons in hot loops.
   private ownerSmallID: number;
@@ -124,11 +127,25 @@ export class AttackExecution implements Execution {
       // combined total, turning the leftover fractions into free troops.
       this.startTroops = this._owner.removeTroops(this.startTroops);
     }
+    // Tanks are a reserve asset and only join land attacks launched from the
+    // player's territory. Boat cargo remains infantry until transport is
+    // explicitly implemented.
+    if (
+      this.removeTroops &&
+      this.sourceTile === null &&
+      this.mg.config().strategicEconomy()
+    ) {
+      const requestedTanks = Math.floor(
+        this.startTroops / STRATEGIC_COMBAT.infantryPerTank,
+      );
+      this.startTanks = this._owner.removeTanks(requestedTanks);
+    }
     this.attack = this._owner.createAttack(
       this.target,
       this.startTroops,
       this.sourceTile,
       new Set<TileRef>(),
+      this.startTanks,
     );
 
     if (this.sourceTile !== null) {
@@ -144,12 +161,23 @@ export class AttackExecution implements Execution {
       if (incoming.attacker() === this.target) {
         // Target has opposing attack, cancel them out
         if (incoming.troops() > this.attack.troops()) {
-          incoming.setTroops(incoming.troops() - this.attack.troops());
+          const originalTroops = incoming.troops();
+          const remaining = originalTroops - this.attack.troops();
+          incoming.setTroops(remaining);
+          incoming.setTanks(
+            this.tanksForRemainingForce(incoming, remaining, originalTroops),
+          );
           this.attack.delete();
           this.active = false;
           return;
         } else {
-          this.attack.setTroops(this.attack.troops() - incoming.troops());
+          const originalTroops = this.attack.troops();
+          const remaining = originalTroops - incoming.troops();
+          this.attack.setTroops(remaining);
+          this.attack.setTanks(
+            this.tanksForRemainingForce(this.attack, remaining, originalTroops),
+          );
+          incoming.setTanks(0);
           incoming.delete();
         }
       }
@@ -162,6 +190,7 @@ export class AttackExecution implements Execution {
         this.attack.sourceTile() === null
       ) {
         this.attack.setTroops(this.attack.troops() + outgoing.troops());
+        this.attack.setTanks(this.attack.tanks() + outgoing.tanks());
         outgoing.delete();
       }
     }
@@ -224,6 +253,10 @@ export class AttackExecution implements Execution {
 
     const survivors = this.attack.troops() - deaths;
     this._owner.addTroops(survivors);
+    const tankDeaths = Math.ceil(
+      this.attack.tanks() * (malusPercent / 100),
+    );
+    this._owner.addTanks(this.attack.tanks() - tankDeaths);
     this.attack.delete();
     this.active = false;
 
@@ -313,6 +346,7 @@ export class AttackExecution implements Execution {
       tickBudget -= tickFraction;
       troopCount -= attackerTroopLoss;
       this.attack.setTroops(troopCount);
+      this.applyTankCasualties(attackerTroopLoss, troopCount);
       if (targetPlayer) {
         targetPlayer.removeTroops(defenderTroopLoss);
       }
@@ -327,6 +361,9 @@ export class AttackExecution implements Execution {
     borderSize: number,
   ): AttackLogicInput {
     const defender = this.target.isPlayer() ? this.target : null;
+    const attackStrength =
+      attackTroops +
+      (this.attack?.tanks() ?? 0) * STRATEGIC_COMBAT.tankCombatPower;
     // Same test as scanning nearbyUnits() for a post owned by the defender
     // (active, not under construction, within range), without building a
     // result array per conquered tile — this runs for every tile of every
@@ -341,7 +378,7 @@ export class AttackExecution implements Execution {
       );
     return {
       terrain: this.map.terrainType(tile),
-      attackTroops,
+      attackTroops: attackStrength,
       attacker: {
         type: this._owner.type(),
         numTiles: this._owner.numTilesOwned(),
@@ -366,6 +403,39 @@ export class AttackExecution implements Execution {
         : null,
       borderSize,
     };
+  }
+
+  private tanksForRemainingForce(
+    attack: Attack,
+    remainingTroops: number,
+    originalTroops: number,
+  ): number {
+    if (originalTroops <= 0) return 0;
+    return Math.floor(attack.tanks() * (remainingTroops / originalTroops));
+  }
+
+  private applyTankCasualties(attackerTroopLoss: number, remainingTroops: number): void {
+    if (this.attack === null || this.attack.tanks() === 0 || attackerTroopLoss <= 0) {
+      return;
+    }
+    const force =
+      Math.max(0, remainingTroops) +
+      this.attack.tanks() * STRATEGIC_COMBAT.tankCombatPower;
+    if (force <= 0) return;
+    const expectedLosses =
+      (attackerTroopLoss *
+        this.attack.tanks() *
+        STRATEGIC_COMBAT.tankCasualtyMultiplier) /
+      force;
+    this.tankCasualtyRemainder += expectedLosses;
+    const casualties = Math.min(
+      this.attack.tanks(),
+      Math.floor(this.tankCasualtyRemainder),
+    );
+    if (casualties > 0) {
+      this.attack.setTanks(this.attack.tanks() - casualties);
+      this.tankCasualtyRemainder -= casualties;
+    }
   }
 
   private rejectIncomingAllianceRequests(target: Player) {

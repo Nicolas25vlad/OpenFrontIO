@@ -101,7 +101,7 @@ export class GameImpl implements Game {
   private tileUpdatePairs: number[] = [];
   /** [smallID, tilesOwned, gold, troops] quads — see PlayerImpl.toUpdate. */
   private playerStatsQuads: number[] = [];
-  /** [smallID, direction, index, troops] quads — see packAttackTroopDeltas. */
+  /** [smallID, direction, index, troops, tanks] records — see packAttackTroopDeltas. */
   private attackTroopsQuads: number[] = [];
   private motionPlanRecords: MotionPlanRecord[] = [];
   private planDrivenUnitIds = new Set<number>();

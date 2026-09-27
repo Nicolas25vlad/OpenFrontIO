@@ -44,6 +44,7 @@ export interface AttackData {
   attackerID: number;
   targetID: number;
   troops: number;
+  tanks?: number;
   id: string;
   retreating: boolean;
 }

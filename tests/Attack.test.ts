@@ -161,6 +161,55 @@ describe("Attack", () => {
   });
 });
 
+describe("land attack tanks", () => {
+  test("commits a troop-proportional tank force and includes it in combat strength", async () => {
+    const tankGame = await setup("ocean_and_land", {
+      strategicEconomy: true,
+      infiniteGold: true,
+      instantBuild: true,
+    });
+    const tankAttackerInfo = new PlayerInfo(
+      "tank attacker",
+      PlayerType.Human,
+      null,
+      "tank_attacker_id",
+    );
+    tankGame.addPlayer(tankAttackerInfo);
+    const tankAttacker = tankGame.player(tankAttackerInfo.id);
+    const spawn = tankGame.ref(0, 10);
+    tankGame.addExecution(
+      new SpawnExecution(gameID, tankAttacker.info(), spawn),
+    );
+    tankGame.executeNextTick();
+    tankGame.executeNextTick();
+
+    tankAttacker.addTroops(25_000);
+    tankAttacker.addTanks(3);
+    let observedAttackStrength = 0;
+    const testConfig = tankGame.config() as TestConfig;
+    testConfig.attackLogic = (input) => {
+      observedAttackStrength = input.attackTroops;
+      return { attackerTroopLoss: 1, defenderTroopLoss: 0, tickFraction: 1 };
+    };
+
+    tankGame.addExecution(
+      new AttackExecution(25_000, tankAttacker, tankGame.terraNullius().id()),
+    );
+    tankGame.executeNextTick();
+    tankGame.executeNextTick();
+
+    expect(tankAttacker.tanks()).toBe(1);
+    expect(tankAttacker.outgoingAttacks()).toHaveLength(1);
+    expect(tankAttacker.outgoingAttacks()[0].tanks()).toBe(2);
+    expect(observedAttackStrength).toBe(35_000);
+
+    tankAttacker.outgoingAttacks()[0].executeRetreat();
+    tankGame.executeNextTick();
+    expect(tankAttacker.tanks()).toBe(3);
+    expect(tankAttacker.outgoingAttacks()).toHaveLength(0);
+  });
+});
+
 let playerA: Player;
 let playerB: Player;
 

@@ -440,14 +440,14 @@ export class GameView implements GameMap {
       }
     }
 
-    // Packed attack troop counts: [ownerSmallID, direction, index, troops]
-    // quads. The attack arrays themselves are only resent when membership/
+    // Packed attack forces: [ownerSmallID, direction, index, troops, tanks]
+    // records. The attack arrays themselves are only resent when membership/
     // order changes, which is also what keeps these indexes valid — a tick
     // either resends an array (fresh troops included) or patches it, never
     // both. See packAttackTroopDeltas.
     const packedAttacks = gu.packedAttackUpdates;
     if (packedAttacks !== undefined) {
-      for (let i = 0; i + 3 < packedAttacks.length; i += 4) {
+      for (let i = 0; i + 4 < packedAttacks.length; i += 5) {
         const state = this._playerStates.get(packedAttacks[i]);
         if (state === undefined) continue;
         const attacks =
@@ -457,6 +457,7 @@ export class GameView implements GameMap {
         const attack = attacks[packedAttacks[i + 2]];
         if (attack !== undefined) {
           attack.troops = packedAttacks[i + 3];
+          attack.tanks = packedAttacks[i + 4];
         }
       }
     }

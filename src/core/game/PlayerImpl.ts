@@ -239,8 +239,8 @@ export class PlayerImpl implements Player {
    * updates (they churn for nearly every alive player every tick): when any
    * of them changed, a `[smallID, tilesOwned, gold, troops, goldEarned]`
    * quint is pushed to `statsOut` instead, which GameImpl drains into the
-   * transferable `packedPlayerUpdates` buffer. Attack troop counts likewise
-   * go to `attackTroopsOut` as `[smallID, direction, index, troops]` quads
+   * transferable `packedPlayerUpdates` buffer. Attack force counts likewise
+   * go to `attackTroopsOut` as `[smallID, direction, index, troops, tanks]` records
    * (→ `packedAttackUpdates`) instead of re-sending whole attack arrays.
    *
    * `lastSentUpdate` is updated to the full snapshot on every call.
@@ -357,6 +357,7 @@ export class PlayerImpl implements Player {
               attackerID: a.attacker().smallID(),
               targetID: a.target().smallID(),
               troops: a.troops(),
+              tanks: a.tanks(),
               id: a.id(),
               retreating: a.retreating(),
             } satisfies AttackUpdate;
@@ -371,6 +372,7 @@ export class PlayerImpl implements Player {
             attackerID: a.attacker().smallID(),
             targetID: a.target().smallID(),
             troops: a.troops(),
+            tanks: a.tanks(),
             id: a.id(),
             retreating: a.retreating(),
           } satisfies AttackUpdate;
@@ -2093,6 +2095,7 @@ export class PlayerImpl implements Player {
     troops: number,
     sourceTile: TileRef | null,
     border: Set<number>,
+    tanks = 0,
   ): Attack {
     const attack = new AttackImpl(
       this._pseudo_random.nextID(),
@@ -2102,6 +2105,7 @@ export class PlayerImpl implements Player {
       sourceTile,
       border,
       this.mg,
+      tanks,
     );
     this._outgoingAttacks.push(attack);
     if (target.isPlayer()) {

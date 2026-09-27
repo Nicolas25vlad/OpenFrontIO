@@ -294,15 +294,17 @@ describe("packAttackTroopDeltas", () => {
     troops: number,
     id = "a",
     retreating = false,
+    tanks = 0,
   ): AttackUpdate => ({
     attackerID: 1,
     targetID: 2,
     troops,
+    tanks,
     id,
     retreating,
   });
 
-  it("emits [owner, direction, index, troops] quads for changed troop counts", () => {
+  it("emits [owner, direction, index, troops, tanks] records for changed forces", () => {
     const out: number[] = [];
     packAttackTroopDeltas(
       [attack(10, "a"), attack(20, "b")],
@@ -311,7 +313,19 @@ describe("packAttackTroopDeltas", () => {
       1,
       out,
     );
-    expect(out).toEqual([7, 1, 1, 15]);
+    expect(out).toEqual([7, 1, 1, 15, 0]);
+  });
+
+  it("emits a record when only the tank count changes", () => {
+    const out: number[] = [];
+    packAttackTroopDeltas(
+      [attack(10, "a", false, 2)],
+      [attack(10, "a", false, 1)],
+      7,
+      0,
+      out,
+    );
+    expect(out).toEqual([7, 0, 0, 10, 1]);
   });
 
   it("emits nothing when arrays are not membership-equal (diff resends them)", () => {

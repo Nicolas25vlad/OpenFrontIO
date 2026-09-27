@@ -114,7 +114,7 @@ export class AttackingTroopsController implements Controller {
       const defender = this.game.playerBySmallID(attack.targetID);
       if (!defender || !defender.isPlayer()) continue;
       activeIDs.add(attack.id);
-      this.ensureEntry(attack.id, attack.troops, false);
+      this.ensureEntry(attack.id, attack.troops, attack.tanks ?? 0, false);
     }
 
     // Incoming: only label attacks coming from another player; skip tribes.
@@ -128,7 +128,7 @@ export class AttackingTroopsController implements Controller {
         continue;
       }
       activeIDs.add(attack.id);
-      this.ensureEntry(attack.id, attack.troops, true);
+      this.ensureEntry(attack.id, attack.troops, attack.tanks ?? 0, true);
     }
 
     for (const id of this.attacks.keys()) {
@@ -158,8 +158,13 @@ export class AttackingTroopsController implements Controller {
       });
   }
 
-  private ensureEntry(attackID: string, troops: number, isIncoming: boolean) {
-    const text = renderTroops(troops);
+  private ensureEntry(
+    attackID: string,
+    troops: number,
+    tanks: number,
+    isIncoming: boolean,
+  ) {
+    const text = `${renderTroops(troops)}${tanks > 0 ? ` · 🛡${tanks}` : ""}`;
     const existing = this.attacks.get(attackID);
     if (existing) {
       existing.text = text;

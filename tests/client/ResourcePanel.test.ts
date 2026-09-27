@@ -29,6 +29,7 @@ test("shows actual stocks and all production balances; map toggle changes no sto
       resourceAmount: (resource: keyof typeof stock) => stock[resource],
       resourceRates: () => rates,
       supplyStatus: () => FULL_SUPPLY,
+      tanks: () => 0,
       units: () => [],
     }),
   } as unknown as GameView;

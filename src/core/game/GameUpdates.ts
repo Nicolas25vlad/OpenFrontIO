@@ -48,15 +48,15 @@ export interface GameUpdateViewData {
    */
   packedPlayerUpdates?: Float64Array;
   /**
-   * Packed attack troop-count changes as
-   * `[ownerSmallID, direction, index, troops]` float64 quads, where
+   * Packed attack force changes as
+   * `[ownerSmallID, direction, index, troops, tanks]` float64 records, where
    * `direction` is 0 for the owner's outgoingAttacks and 1 for
-   * incomingAttacks, and `index` addresses that array. Troop counts change
+   * incomingAttacks, and `index` addresses that array. Attack forces change
    * every tick for every active attack, so they travel here instead of
    * re-sending whole attack arrays in PlayerUpdate diffs; the arrays
    * themselves are only resent when membership/order/retreating changes —
    * which also guarantees the receiver's indexes line up (see
-   * packAttackTroopDeltas). Absent when no attack troop count changed.
+   * packAttackTroopDeltas). Absent when no attack force changed.
    */
   packedAttackUpdates?: Float64Array;
   /**
@@ -212,6 +212,8 @@ export interface AttackUpdate {
   attackerID: number;
   targetID: number;
   troops: number;
+  /** Tanks assigned to the attack. */
+  tanks?: number;
   id: string;
   retreating: boolean;
 }

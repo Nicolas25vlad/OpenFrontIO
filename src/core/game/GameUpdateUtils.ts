@@ -268,9 +268,9 @@ function stringSetEqual(a?: Set<string>, b?: Set<string>): boolean {
 }
 
 /**
- * Attack-array equality ignoring troop counts: same attacks, same order,
- * same retreating flags. When this holds, only troop counts can differ, and
- * those travel as packed quads (packAttackTroopDeltas) addressed by index —
+ * Attack-array equality ignoring force counts: same attacks, same order,
+ * same retreating flags. When this holds, troop/tank counts can differ, and
+ * those travel as packed records (packAttackTroopDeltas) addressed by index —
  * which stays valid precisely because any membership/order change makes
  * this false and resends the whole array.
  */
@@ -297,7 +297,7 @@ function attackArrayMembershipEqual(
 }
 
 /**
- * Direction lane of a `packedAttackUpdates` quad: which of the owner's attack
+ * Direction lane of a `packedAttackUpdates` record: which of the owner's attack
  * arrays the index addresses. Encoder (PlayerImpl.toUpdate →
  * packAttackTroopDeltas) and decoder (client GameView.update) must both use
  * these.
@@ -306,8 +306,8 @@ export const ATTACK_DELTA_OUTGOING = 0;
 export const ATTACK_DELTA_INCOMING = 1;
 
 /**
- * Push a `[ownerSmallID, direction, index, troops]` quad onto `out` for each
- * attack whose troop count changed between `prev` and `next`. No-op when the
+ * Push a `[ownerSmallID, direction, index, troops, tanks]` record onto `out`
+ * for each attack whose force changed between `prev` and `next`. No-op when the
  * arrays are not membership-equal — diffPlayerUpdate resends the whole array
  * that tick (carrying fresh troop counts), so patches would be redundant and
  * their indexes unreliable.
@@ -322,8 +322,11 @@ export function packAttackTroopDeltas(
   if (prev === next || !prev || !next) return;
   if (!attackArrayMembershipEqual(prev, next)) return;
   for (let i = 0; i < next.length; i++) {
-    if (prev[i].troops !== next[i].troops) {
-      out.push(ownerSmallID, direction, i, next[i].troops);
+    if (
+      prev[i].troops !== next[i].troops ||
+      (prev[i].tanks ?? 0) !== (next[i].tanks ?? 0)
+    ) {
+      out.push(ownerSmallID, direction, i, next[i].troops, next[i].tanks ?? 0);
     }
   }
 }

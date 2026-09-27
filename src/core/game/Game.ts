@@ -416,6 +416,9 @@ export interface Attack {
   attacker(): Player;
   troops(): number;
   setTroops(troops: number): void;
+  /** Armored vehicles committed to this attack. */
+  tanks(): number;
+  setTanks(tanks: number): void;
   isActive(): boolean;
   delete(): void;
   // The tile the attack originated from, mostly used for boat attacks.
@@ -800,6 +803,7 @@ export interface Player {
     troops: number,
     sourceTile: TileRef | null,
     border: Set<number>,
+    tanks?: number,
   ): Attack;
   outgoingAttacks(): Attack[];
   incomingAttacks(): Attack[];

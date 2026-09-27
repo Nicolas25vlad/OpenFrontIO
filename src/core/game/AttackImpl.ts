@@ -17,6 +17,7 @@ export class AttackImpl implements Attack {
     private _sourceTile: TileRef | null,
     private _border: Set<number>,
     private _mg: GameImpl,
+    private _tanks = 0,
   ) {}
 
   sourceTile(): TileRef | null {
@@ -34,6 +35,14 @@ export class AttackImpl implements Attack {
   }
   setTroops(troops: number) {
     this._troops = Math.max(0, troops);
+  }
+
+  tanks(): number {
+    return this._tanks;
+  }
+
+  setTanks(tanks: number): void {
+    this._tanks = Math.max(0, Math.floor(tanks));
   }
 
   isActive() {

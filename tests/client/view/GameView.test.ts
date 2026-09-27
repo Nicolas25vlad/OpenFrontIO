@@ -204,7 +204,7 @@ describe("GameView.update — packed channels", () => {
     expect(alice.goldEarned()).toBe(5000);
   });
 
-  it("packedAttackUpdates patches troop counts by direction and index", () => {
+  it("packedAttackUpdates patches troop and tank counts by direction and index", () => {
     const game = makeGameView();
     game.update(
       withPlayers(1, [
@@ -216,6 +216,7 @@ describe("GameView.update — packed channels", () => {
               attackerID: 1,
               targetID: 2,
               troops: 500,
+              tanks: 3,
               id: "a1",
               retreating: false,
             },
@@ -223,6 +224,7 @@ describe("GameView.update — packed channels", () => {
               attackerID: 1,
               targetID: 3,
               troops: 300,
+              tanks: 2,
               id: "a2",
               retreating: false,
             },
@@ -232,6 +234,7 @@ describe("GameView.update — packed channels", () => {
               attackerID: 4,
               targetID: 1,
               troops: 80,
+              tanks: 1,
               id: "a3",
               retreating: false,
             },
@@ -241,13 +244,18 @@ describe("GameView.update — packed channels", () => {
     );
 
     const gu = makeEmptyGu(2);
-    // [ownerSmallID, direction (0=outgoing, 1=incoming), index, troops]
-    gu.packedAttackUpdates = new Float64Array([1, 0, 1, 290, 1, 1, 0, 75]);
+    // [ownerSmallID, direction (0=outgoing, 1=incoming), index, troops, tanks]
+    gu.packedAttackUpdates = new Float64Array([
+      1, 0, 1, 290, 1,
+      1, 1, 0, 75, 0,
+    ]);
     game.update(gu);
 
     const alice = game.player("alice");
     expect(alice.outgoingAttacks().map((a) => a.troops)).toEqual([500, 290]);
     expect(alice.incomingAttacks().map((a) => a.troops)).toEqual([75]);
+    expect(alice.outgoingAttacks().map((a) => a.tanks)).toEqual([3, 1]);
+    expect(alice.incomingAttacks().map((a) => a.tanks)).toEqual([0]);
   });
 
   it("quints for unknown smallIDs and out-of-range attack indexes are ignored", () => {
@@ -257,7 +265,10 @@ describe("GameView.update — packed channels", () => {
     );
     const gu = makeEmptyGu(2);
     gu.packedPlayerUpdates = new Float64Array([99, 1, 1, 1, 1]);
-    gu.packedAttackUpdates = new Float64Array([1, 0, 5, 123, 99, 1, 0, 7]);
+    gu.packedAttackUpdates = new Float64Array([
+      1, 0, 5, 123, 0,
+      99, 1, 0, 7, 0,
+    ]);
     expect(() => game.update(gu)).not.toThrow();
   });
 
@@ -318,7 +329,7 @@ describe("GameView.update — packed channels", () => {
         ],
       },
     ];
-    gu.packedAttackUpdates = new Float64Array([1, 1, 0, 75]);
+    gu.packedAttackUpdates = new Float64Array([1, 1, 0, 75, 2]);
     game.update(gu);
 
     const alice = game.player("alice");

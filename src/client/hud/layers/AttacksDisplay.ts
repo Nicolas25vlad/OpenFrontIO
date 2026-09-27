@@ -223,7 +223,7 @@ export class AttacksDisplay extends LitElement implements Controller {
                   class="h-4 w-4"
                   style="filter: brightness(0) saturate(100%) invert(27%) sepia(91%) saturate(4551%) hue-rotate(348deg) brightness(89%) contrast(97%)"
                 />↓</span
-              ><span class="ml-1">${renderTroops(attack.troops)}</span>
+              ><span class="ml-1">${renderTroops(attack.troops)}${attack.tanks ? html` · 🛡${attack.tanks}` : ""}</span>
               <span class="truncate ml-1"
                 >${(
                   this.game.playerBySmallID(attack.attackerID) as PlayerView
@@ -270,7 +270,7 @@ export class AttacksDisplay extends LitElement implements Controller {
                   class="h-4 w-4"
                   style="filter: brightness(0) saturate(100%) invert(62%) sepia(80%) saturate(500%) hue-rotate(175deg) brightness(100%)"
                 />↑</span
-              ><span class="ml-1">${renderTroops(attack.troops)}</span>
+              ><span class="ml-1">${renderTroops(attack.troops)}${attack.tanks ? html` · 🛡${attack.tanks}` : ""}</span>
               <span class="truncate ml-1"
                 >${(
                   this.game.playerBySmallID(attack.targetID) as PlayerView
@@ -311,7 +311,7 @@ export class AttacksDisplay extends LitElement implements Controller {
                   class="h-4 w-4"
                   style="filter: brightness(0) saturate(100%) invert(62%) sepia(80%) saturate(500%) hue-rotate(175deg) brightness(100%)"
                 />↑</span
-              ><span class="ml-1">${renderTroops(landAttack.troops)}</span>
+              ><span class="ml-1">${renderTroops(landAttack.troops)}${landAttack.tanks ? html` · 🛡${landAttack.tanks}` : ""}</span>
               ${translateText("help_modal.ui_wilderness")}`,
             className:
               "text-left text-aquarius inline-flex items-center gap-0.5 lg:gap-1 min-w-0",

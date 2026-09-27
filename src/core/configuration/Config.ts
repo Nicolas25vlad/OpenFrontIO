@@ -80,6 +80,7 @@ export function parseGameEnv(value: string | undefined): GameEnv {
 
 export interface AttackLogicInput {
   terrain: TerrainType;
+  /** Infantry plus armored combat strength, in infantry equivalents. */
   attackTroops: number;
   attacker: {
     type: PlayerType;

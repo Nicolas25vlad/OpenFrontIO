@@ -97,6 +97,12 @@ export const STRATEGIC_COMBAT = {
   antiIcbmEfficiencyMultiplier: 1.15,
   defensePostStrength: 6,
   defensePostSlowdown: 4,
+  /** One tank joins a land attack for every 10,000 infantry sent. */
+  infantryPerTank: 10_000,
+  /** Combat strength contributed by one tank, measured in infantry equivalents. */
+  tankCombatPower: 5_000,
+  /** Tanks take casualties faster than infantry to keep them expendable. */
+  tankCasualtyMultiplier: 100,
 } as const;
 
 /** Nation AI nuclear launch pacing and repeated-target avoidance. */
