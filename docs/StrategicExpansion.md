@@ -68,7 +68,9 @@ reservas autoritativas: cada lote consome 5 unidades de aço e 2 de combustível
 e o estoque é sincronizado em `PlayerUpdate` e mostrado no painel econômico.
 Em ataques terrestres da economia estratégica, um tanque acompanha cada 10.000
 infantes enviados (limitado ao estoque disponível). Cada tanque contribui força
-equivalente a 5.000 infantes e pode sofrer baixas determinísticas; retiradas
+equivalente a 5.000 infantes e dá 5% de velocidade de avanço, limitado a 50% por
+ataque. A velocidade é calculada no core e seus parâmetros ficam em
+`STRATEGIC_COMBAT`. Tanques podem sofrer baixas determinísticas; retiradas
 devolvem os tanques sobreviventes. Ataques por barco não carregam tanques. A
 contagem viaja no delta compacto e aparece nas listas e rótulos de ataques.
 Ainda faltam seleção/movimento de tanques como unidades independentes, carga
@@ -92,6 +94,15 @@ NODE_OPTIONS="--experimental-webstorage --localstorage-file=/tmp/openfront-vites
 NODE_OPTIONS="--experimental-webstorage --localstorage-file=/tmp/openfront-vitest-server-$$" npx vitest run tests/server
 ```
 
+A velocidade de avanço dos tanques foi adicionada em
+`src/core/configuration/StrategyConfig.ts`, `src/core/configuration/Config.ts`
+e `src/core/execution/AttackExecution.ts`. `tests/economy/StrategicBalance.test.ts`
+confirma o bônus configurado, seu teto e compatibilidade legada;
+`tests/Attack.test.ts` confirma que os tanques embarcados no ataque chegam ao
+cálculo de combate. Os testes focados de ataque, supply e balance passaram
+(3 arquivos/33 testes), assim como `tsc --noEmit`, lint e build após essa
+alteração.
+
 ### Validação manual pendente no PC principal
 
 1. Inicie o cliente com `npm run dev:host` e abra uma partida solo ou
@@ -99,8 +110,10 @@ NODE_OPTIONS="--experimental-webstorage --localstorage-file=/tmp/openfront-vites
 2. Com a economia estratégica ligada, construa uma Vehicle Factory e forneça
    aço e combustível. Confira o contador de tanques no painel após alguns ticks.
 3. Envie pelo menos 25.000 tropas por terra. Confira dois tanques no rótulo do
-   ataque e a redução correspondente do estoque. Cancele a investida e confira a
-   devolução dos sobreviventes; repita contra um jogador para observar baixas.
+   ataque e a redução correspondente do estoque. Compare o avanço com uma
+   investida sem tanques: os dois tanques devem acelerar o avanço terrestre.
+   Cancele a investida e confira a devolução dos sobreviventes; repita contra
+   um jogador para observar baixas.
 4. Em uma nação com pelo menos 25.000 tropas, aproxime a câmera da fronteira
    até os ícones aparecerem. Confira uma região interior e uma fronteira entre
    dois jogadores.
@@ -110,10 +123,10 @@ NODE_OPTIONS="--experimental-webstorage --localstorage-file=/tmp/openfront-vites
 
 Esperado: pequenos grupos de duas silhuetas em pixel art, coloridos pelo dono
 do território e restritos às fronteiras; nenhum grupo no interior. O ataque
-deve exibir a quantidade de tanques, consumir reserva ao sair e devolver apenas
-os sobreviventes ao cancelar. A
+deve exibir a quantidade de tanques, consumir reserva ao sair, avançar mais
+rápido com os tanques e devolver apenas os sobreviventes ao cancelar. A
 quantidade cresce em degraus com as tropas, respeita o limite visual, some
-abaixo do zoom mínimo e não muda os resultados de combate. O contador de
+abaixo do zoom mínimo e os ícones de guarnição não mudam o combate. O contador de
 tanques deve aumentar em lotes conforme a fábrica consome aço e combustível.
 Registre navegador,
 mapa e resultado em `StrategicCompatibilityChecklist.md`; a aprovação visual

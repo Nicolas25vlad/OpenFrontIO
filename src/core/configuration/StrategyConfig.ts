@@ -114,6 +114,9 @@ export const STRATEGIC_COMBAT = {
   tankCombatPower: 5_000,
   /** Tanks take casualties faster than infantry to keep them expendable. */
   tankCasualtyMultiplier: 100,
+  /** Each tank increases strategic land-attack advance speed by 5%, up to 50%. */
+  tankAdvanceSpeedPerTankPercent: 5,
+  tankAdvanceSpeedMaxPercent: 50,
 } as const;
 
 /** Coastal naval sectors are derived from active units; they add no map state. */

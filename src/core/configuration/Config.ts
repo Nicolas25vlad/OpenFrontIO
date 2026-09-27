@@ -89,6 +89,8 @@ export interface AttackLogicInput {
     numTiles: number;
     supply?: number;
     logistics?: number;
+    /** Tanks assigned to this land attack (boat attacks remain infantry-only). */
+    tanks?: number;
   };
   /** null when attacking terra nullius. */
   defender: {
@@ -939,6 +941,13 @@ export class Config {
     tileCost *= defenderSupply / attackerSupply;
     if (this.strategicEconomy())
       tileCost /= 1 + (attacker.logistics ?? 0) / 100;
+    if (this.strategicEconomy() && (attacker.tanks ?? 0) > 0) {
+      const tankSpeedBonus = Math.min(
+        STRATEGIC_COMBAT.tankAdvanceSpeedMaxPercent,
+        (attacker.tanks ?? 0) * STRATEGIC_COMBAT.tankAdvanceSpeedPerTankPercent,
+      );
+      tileCost /= 1 + tankSpeedBonus / 100;
+    }
 
     const defensePostLevel =
       input.defenderDefensePostLevel ?? (input.defenderHasDefensePost ? 1 : 0);

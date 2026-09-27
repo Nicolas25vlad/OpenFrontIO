@@ -254,9 +254,7 @@ export class AttackExecution implements Execution {
 
     const survivors = this.attack.troops() - deaths;
     this._owner.addTroops(survivors);
-    const tankDeaths = Math.ceil(
-      this.attack.tanks() * (malusPercent / 100),
-    );
+    const tankDeaths = Math.ceil(this.attack.tanks() * (malusPercent / 100));
     this._owner.addTanks(this.attack.tanks() - tankDeaths);
     this.attack.delete();
     this.active = false;
@@ -404,6 +402,7 @@ export class AttackExecution implements Execution {
         numTiles: this._owner.numTilesOwned(),
         supply: this._owner.supplyStatus().infantry,
         logistics: this._owner.supplyStatus().logistics,
+        tanks: this.attack?.tanks() ?? 0,
       },
       defender:
         defender === null
@@ -436,8 +435,15 @@ export class AttackExecution implements Execution {
     return Math.floor(attack.tanks() * (remainingTroops / originalTroops));
   }
 
-  private applyTankCasualties(attackerTroopLoss: number, remainingTroops: number): void {
-    if (this.attack === null || this.attack.tanks() === 0 || attackerTroopLoss <= 0) {
+  private applyTankCasualties(
+    attackerTroopLoss: number,
+    remainingTroops: number,
+  ): void {
+    if (
+      this.attack === null ||
+      this.attack.tanks() === 0 ||
+      attackerTroopLoss <= 0
+    ) {
       return;
     }
     const force =

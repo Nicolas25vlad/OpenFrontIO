@@ -1,7 +1,5 @@
-import {
-  AttackLogicInput,
-  Config,
-} from "../../src/core/configuration/Config";
+import { AttackLogicInput, Config } from "../../src/core/configuration/Config";
+import { STRATEGIC_COMBAT } from "../../src/core/configuration/StrategyConfig";
 import { PlayerType, TerrainType } from "../../src/core/game/Game";
 import { UserSettings } from "../../src/core/game/UserSettings";
 import { testGameConfig } from "../util/Wire";
@@ -79,4 +77,56 @@ test("Anti-ICBM range and throughput bonuses preserve all legacy levels", () => 
   expect(legacy.attackLogic({ ...attack, defenderTrenchLevel: 3 })).toEqual(
     legacy.attackLogic(attack),
   );
+});
+
+test("strategic tanks improve land-attack advance speed up to the configured cap", () => {
+  const legacy = new Config(testGameConfig(), new UserSettings(), false);
+  const strategic = new Config(
+    testGameConfig({ strategicEconomy: true }),
+    new UserSettings(),
+    false,
+  );
+  const attack: AttackLogicInput = {
+    terrain: TerrainType.Plains,
+    attackTroops: 50_000,
+    attacker: { type: PlayerType.Human, numTiles: 10_000 },
+    defender: {
+      type: PlayerType.Human,
+      numTiles: 10_000,
+      troops: 50_000,
+      isTraitor: false,
+      isDisconnectedTeammate: false,
+    },
+    defenderHasDefensePost: false,
+    falloutRatio: null,
+    borderSize: 100,
+  };
+  const infantryOnly = strategic.attackLogic(attack);
+  const oneTank = strategic.attackLogic({
+    ...attack,
+    attacker: { ...attack.attacker, tanks: 1 },
+  });
+  const cappedTanks = strategic.attackLogic({
+    ...attack,
+    attacker: { ...attack.attacker, tanks: 100 },
+  });
+  const atCap = strategic.attackLogic({
+    ...attack,
+    attacker: {
+      ...attack.attacker,
+      tanks: Math.ceil(
+        STRATEGIC_COMBAT.tankAdvanceSpeedMaxPercent /
+          STRATEGIC_COMBAT.tankAdvanceSpeedPerTankPercent,
+      ),
+    },
+  });
+
+  expect(oneTank.tickFraction).toBeLessThan(infantryOnly.tickFraction);
+  expect(cappedTanks.tickFraction).toBeCloseTo(atCap.tickFraction);
+  expect(
+    legacy.attackLogic({
+      ...attack,
+      attacker: { ...attack.attacker, tanks: 100 },
+    }),
+  ).toEqual(legacy.attackLogic(attack));
 });

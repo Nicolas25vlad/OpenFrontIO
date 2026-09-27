@@ -186,9 +186,11 @@ describe("land attack tanks", () => {
     tankAttacker.addTroops(25_000);
     tankAttacker.addTanks(3);
     let observedAttackStrength = 0;
+    let observedAttackTanks = 0;
     const testConfig = tankGame.config() as TestConfig;
     testConfig.attackLogic = (input) => {
       observedAttackStrength = input.attackTroops;
+      observedAttackTanks = input.attacker.tanks ?? 0;
       return { attackerTroopLoss: 1, defenderTroopLoss: 0, tickFraction: 1 };
     };
 
@@ -202,6 +204,7 @@ describe("land attack tanks", () => {
     expect(tankAttacker.outgoingAttacks()).toHaveLength(1);
     expect(tankAttacker.outgoingAttacks()[0].tanks()).toBe(2);
     expect(observedAttackStrength).toBe(35_000);
+    expect(observedAttackTanks).toBe(2);
 
     tankAttacker.outgoingAttacks()[0].executeRetreat();
     tankGame.executeNextTick();
@@ -253,7 +256,11 @@ describe("land attack tanks", () => {
     const testConfig = tankGame.config() as TestConfig;
     testConfig.attackLogic = (input) => {
       observedAttackStrength = input.attackTroops;
-      return { attackerTroopLoss: 2_000, defenderTroopLoss: 0, tickFraction: 1 };
+      return {
+        attackerTroopLoss: 2_000,
+        defenderTroopLoss: 0,
+        tickFraction: 1,
+      };
     };
     tankGame.addExecution(
       new AttackExecution(10_000, tankAttacker, defender.id()),
