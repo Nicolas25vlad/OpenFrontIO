@@ -175,7 +175,7 @@ Validação automatizada específica: `tests/core/game/GameMap.tileStateBuffer.t
 `tests/core/executions/BuildTrenchExecution.test.ts`,
 `tests/economy/StrategicBalance.test.ts` e `tests/Attack.test.ts` — 4 arquivos,
 38 testes passaram. `tsc --noEmit`, lint e `npm run build-dev` passaram, incluindo
-o shader no bundle. A suite serial completa ainda está em execução.
+o shader no bundle. A suite serial completa passou com 470 arquivos e 5.590 testes.
 
 ### Validação manual pendente no PC principal
 
@@ -207,14 +207,28 @@ retirados ou em reparo deixam de contar. O cálculo consulta somente a vizinhan�
 espacial do porto e o componente de água conectado; não mantém estado por tile.
 Rotas já em curso continuam seguindo as regras de interceptação existentes.
 
+Navios comerciais estratégicos também transportam até cinco unidades de um
+recurso por viagem, na ordem comida, combustível e aço. A rota carrega apenas
+estoque acima da reserva do exportador e abaixo do alvo de importação do
+comprador; cada unidade custa 100 de ouro. O comprador deposita o valor quando
+o navio parte e o exportador recebe ao chegar. Se o porto de destino for
+capturado pelo dono da origem, a rota é cancelada e carga e depósito retornam
+aos donos originais. Quando o próprio comboio é capturado, ele redireciona para
+um porto ativo do captor: a carga é entregue ali e o comprador recebe o depósito
+de volta. Sem porto alcançável ou se o navio for afundado, carga e depósito são
+perdidos. Valores, reservas, alvos e ordem ficam centralizados em
+`NAVAL_TRADE`.
+
 Arquivos desta etapa: `src/core/configuration/StrategyConfig.ts`,
 `src/core/configuration/Config.ts`, `src/core/game/NavalSupremacy.ts`,
-`src/core/execution/PortExecution.ts` e `tests/PortExecution.test.ts`.
+`src/core/execution/PortExecution.ts`, `src/core/execution/TradeShipExecution.ts`,
+`tests/PortExecution.test.ts` e `tests/core/executions/TradeShipExecution.test.ts`.
 
-Validação automatizada: o teste de `PortExecution` cobre bloqueio por presença,
-contrapressão de escolta e retomada após perda de navio. Os cenários de comércio
-passaram: 4 arquivos/34 testes. `tsc --noEmit`, lint, `npm run build-dev` e
-Prettier também passaram após esta etapa.
+Validação automatizada: os testes cobrem bloqueio por presença, contrapressão
+de escolta, retomada após perda de navio, carga/pagamento na chegada, respeito à
+reserva e devolução após captura do porto. A regressão naval/econômica passou:
+5 arquivos/38 testes. `tsc --noEmit`, lint, `npm run build-dev` e Prettier
+também passaram após esta etapa.
 
 ### Validação manual pendente no PC principal
 
@@ -226,9 +240,18 @@ Prettier também passaram após esta etapa.
 3. Posicione um navio do dono do porto ou de um aliado no setor. Quando a
    vantagem hostil ficar abaixo de dois, novas rotas devem voltar a ocorrer.
    Afunde ou retire um navio hostil e confirme que a rota também é retomada.
-4. Repita com `strategicEconomy` desligado e confirme que a seleção antiga de
-   portos continua igual.
+4. Observe uma viagem em que o porto de origem tenha excedente de comida e o
+   destino esteja abaixo do alvo. A carga deve sair do estoque ao partir e
+   chegar ao porto; o ouro deve ser debitado do importador no embarque e creditado
+   ao exportador na chegada. Verifique também os limites da reserva de cada
+   recurso e a devolução de carga/depósito ao capturar o porto de destino pelo
+   dono da origem.
+5. Capture um comboio carregado com outro jogador. Ele deve seguir para o porto
+   do captor, que recebe a carga; o comprador original recupera o depósito.
+   Afunde um comboio carregado: carga e depósito devem ser perdidos. Repita com
+   `strategicEconomy` desligado e confirme que não há carga automática.
 
 Esperado: o resultado muda deterministicamente com presença, escolta e perdas;
 nenhum update por tile ou mapa inteiro é criado. Faltam setores visíveis no HUD,
-rotas escolhidas/definidas pelo jogador e comboios com carga de recursos real.
+rotas escolhidas/definidas pelo jogador e validação visual de multiplayer/replay.
+Os passos manuais continuam pendentes no PC principal.

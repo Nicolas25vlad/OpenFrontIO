@@ -122,6 +122,23 @@ export const NAVAL_SUPREMACY = {
   blockadeAdvantage: 2,
 } as const;
 
+/** One-time resource cargo carried by strategic port-to-port trade ships. */
+export const NAVAL_TRADE = {
+  cargoUnits: 5,
+  cargoPricePerUnit: 100n,
+  exportReserve: {
+    [Product.Food]: 120,
+    [Product.Fuel]: 30,
+    [Product.Steel]: 40,
+  },
+  importTarget: {
+    [Product.Food]: 240,
+    [Product.Fuel]: 60,
+    [Product.Steel]: 80,
+  },
+  cargoOrder: [Product.Food, Product.Fuel, Product.Steel],
+} as const;
+
 /** Nation AI nuclear launch pacing and repeated-target avoidance. */
 export const NUCLEAR_AI = {
   atomBombPerceivedCostIncreasePercent: 50,

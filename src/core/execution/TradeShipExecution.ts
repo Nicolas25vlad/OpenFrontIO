@@ -1,4 +1,5 @@
 import { renderNumber } from "../../client/Utils";
+import { NAVAL_TRADE } from "../configuration/StrategyConfig";
 import {
   Execution,
   Game,
@@ -8,6 +9,7 @@ import {
   UnitType,
 } from "../game/Game";
 import { TileRef } from "../game/GameMap";
+import { ProcessedResource as Product } from "../game/Resources";
 import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { findClosestBy } from "../Util";
@@ -21,6 +23,12 @@ export class TradeShipExecution implements Execution {
   private tilesTraveled = 0;
   private motionPlanId = 1;
   private motionPlanDst: TileRef | null = null;
+  private cargo?: {
+    resource: Product;
+    amount: number;
+    buyer: Player;
+    payment: bigint;
+  };
 
   private static _staggerCounter = 0;
 
@@ -56,6 +64,7 @@ export class TradeShipExecution implements Execution {
         targetUnit: this._dstPort,
         lastSetSafeFromPirates: ticks,
       });
+      this.loadStrategicCargo(this.origOwner, this._dstPort.owner());
       this.mg.stats().boatSendTrade(this.origOwner, this._dstPort.owner());
     }
 
@@ -83,6 +92,7 @@ export class TradeShipExecution implements Execution {
     // If a player captures another player's port while trading we should delete
     // the ship.
     if (dstPortOwner.id() === this.srcPort.owner().id()) {
+      this.refundCargo();
       this.tradeShip.delete(false);
       this.active = false;
       return;
@@ -92,6 +102,7 @@ export class TradeShipExecution implements Execution {
       !this.wasCaptured &&
       (!this._dstPort.isActive() || !tradeShipOwner.canTrade(dstPortOwner))
     ) {
+      this.refundCargo();
       this.tradeShip.delete(false);
       this.active = false;
       return;
@@ -207,7 +218,55 @@ export class TradeShipExecution implements Execution {
         .stats()
         .boatArriveTrade(this.srcPort.owner(), this._dstPort.owner(), gold);
     }
+    if (this.cargo) {
+      this._dstPort.owner().addResource(this.cargo.resource, this.cargo.amount);
+      if (this.wasCaptured) {
+        // A captured convoy delivers its cargo to the captor's port, while
+        // the original buyer gets its escrow back.
+        this.cargo.buyer.addGold(this.cargo.payment);
+      } else {
+        this.origOwner.addGold(this.cargo.payment);
+      }
+      this.cargo = undefined;
+    }
     return;
+  }
+
+  private loadStrategicCargo(seller: Player, buyer: Player): void {
+    if (!this.mg.config().strategicEconomy() || seller === buyer) return;
+    const pricePerUnit = NAVAL_TRADE.cargoPricePerUnit;
+    const affordableUnits = Number(buyer.gold() / pricePerUnit);
+    for (const resource of NAVAL_TRADE.cargoOrder) {
+      const shortage =
+        NAVAL_TRADE.importTarget[resource] - buyer.resourceAmount(resource);
+      const surplus =
+        seller.resourceAmount(resource) - NAVAL_TRADE.exportReserve[resource];
+      const amount = Math.min(
+        NAVAL_TRADE.cargoUnits,
+        shortage,
+        surplus,
+        affordableUnits,
+      );
+      if (amount <= 0) continue;
+
+      const payment = BigInt(amount) * pricePerUnit;
+      const removed = seller.removeResource(resource, amount);
+      const paid = buyer.removeGold(payment);
+      if (removed !== amount || paid !== payment) {
+        if (removed > 0) seller.addResource(resource, removed);
+        if (paid > 0n) buyer.addGold(paid);
+        return;
+      }
+      this.cargo = { resource, amount, buyer, payment };
+      return;
+    }
+  }
+
+  private refundCargo(): void {
+    if (!this.cargo) return;
+    this.origOwner.addResource(this.cargo.resource, this.cargo.amount);
+    this.cargo.buyer.addGold(this.cargo.payment);
+    this.cargo = undefined;
   }
 
   isActive(): boolean {

@@ -1,5 +1,14 @@
 import { TradeShipExecution } from "../../../src/core/execution/TradeShipExecution";
-import { Game, MessageType, Player, Unit } from "../../../src/core/game/Game";
+import {
+  Game,
+  MessageType,
+  Player,
+  PlayerInfo,
+  PlayerType,
+  Unit,
+  UnitType,
+} from "../../../src/core/game/Game";
+import { ProcessedResource } from "../../../src/core/game/Resources";
 import { PathStatus } from "../../../src/core/pathfinding/types";
 import { setup } from "../../util/Setup";
 
@@ -199,5 +208,166 @@ describe("TradeShipExecution", () => {
     expect(pirate.addGold).toHaveBeenCalled();
     expect(pirate.addPiracyGold).toHaveBeenCalled();
     expect(pirate.addTradeGold).not.toHaveBeenCalled();
+  });
+});
+
+describe("strategic trade cargo", () => {
+  test("moves scarce supplies and pays the exporter when the convoy arrives", async () => {
+    const game = await setup(
+      "big_plains",
+      {
+        strategicEconomy: true,
+        infiniteGold: true,
+        instantBuild: true,
+      },
+      [
+        new PlayerInfo("seller", PlayerType.Human, null, "seller"),
+        new PlayerInfo("buyer", PlayerType.Human, null, "buyer"),
+      ],
+    );
+    const seller = game.player("seller");
+    const buyer = game.player("buyer");
+    const reserves: Record<
+      ProcessedResource.Food | ProcessedResource.Fuel | ProcessedResource.Steel,
+      number
+    > = {
+      [ProcessedResource.Food]: 120,
+      [ProcessedResource.Fuel]: 30,
+      [ProcessedResource.Steel]: 40,
+    };
+    const tradedResources: (
+      | ProcessedResource.Food
+      | ProcessedResource.Fuel
+      | ProcessedResource.Steel
+    )[] = [
+      ProcessedResource.Food,
+      ProcessedResource.Fuel,
+      ProcessedResource.Steel,
+    ];
+    const sourceTile = game.ref(10, 10);
+    const destinationTile = game.ref(150, 150);
+    seller.conquer(sourceTile);
+    buyer.conquer(destinationTile);
+    seller.addGold(100_000n);
+    buyer.addGold(100_000n);
+    const sourcePort = seller.buildUnit(UnitType.Port, sourceTile, {});
+    const destinationPort = buyer.buildUnit(UnitType.Port, destinationTile, {});
+    for (const resource of tradedResources) {
+      const sellerAmount = seller.resourceAmount(resource);
+      if (sellerAmount > reserves[resource]) {
+        seller.removeResource(resource, sellerAmount - reserves[resource]);
+      } else if (sellerAmount < reserves[resource]) {
+        seller.addResource(resource, reserves[resource] - sellerAmount);
+      }
+      buyer.removeResource(resource, buyer.resourceAmount(resource));
+    }
+    seller.addResource(ProcessedResource.Food, 100);
+    const sellerFoodBefore = seller.resourceAmount(ProcessedResource.Food);
+    const sellerGoldBefore = seller.gold();
+    const buyerGoldBefore = buyer.gold();
+    const routeRevenue = game.config().tradeShipGold(0, seller);
+    const execution = new TradeShipExecution(
+      seller,
+      sourcePort,
+      destinationPort,
+    );
+    execution.init(game, 0);
+    execution["pathFinder"] = {
+      next: vi.fn(() => ({
+        status: PathStatus.COMPLETE,
+        node: destinationTile,
+      })),
+    } as any;
+
+    execution.tick(1);
+
+    expect(seller.resourceAmount(ProcessedResource.Food)).toBe(
+      sellerFoodBefore - 5,
+    );
+    expect(buyer.resourceAmount(ProcessedResource.Food)).toBe(5);
+    expect(buyer.gold()).toBe(buyerGoldBefore - 500n + routeRevenue);
+    expect(seller.gold()).toBe(sellerGoldBefore + 500n + routeRevenue);
+
+    seller.removeResource(
+      ProcessedResource.Food,
+      seller.resourceAmount(ProcessedResource.Food) -
+        reserves[ProcessedResource.Food],
+    );
+    buyer.removeResource(
+      ProcessedResource.Food,
+      buyer.resourceAmount(ProcessedResource.Food),
+    );
+    const buyerGoldWithoutSurplus = buyer.gold();
+    const secondTrade = new TradeShipExecution(
+      seller,
+      sourcePort,
+      destinationPort,
+    );
+    secondTrade.init(game, 2);
+    secondTrade["pathFinder"] = {
+      next: vi.fn(() => ({
+        status: PathStatus.COMPLETE,
+        node: destinationTile,
+      })),
+    } as any;
+    secondTrade.tick(3);
+
+    expect(seller.resourceAmount(ProcessedResource.Food)).toBe(120);
+    expect(buyer.resourceAmount(ProcessedResource.Food)).toBe(0);
+    expect(buyer.gold()).toBe(
+      buyerGoldWithoutSurplus + game.config().tradeShipGold(0, seller),
+    );
+
+    seller.addResource(ProcessedResource.Food, 5);
+    const buyerGoldBeforeCanceledRoute = buyer.gold();
+    const canceledTrade = new TradeShipExecution(
+      seller,
+      sourcePort,
+      destinationPort,
+    );
+    canceledTrade.init(game, 4);
+    canceledTrade["pathFinder"] = {
+      next: vi.fn(() => ({ status: PathStatus.NEXT, node: 32 })),
+      pathForTraversal: vi.fn(() => [32]),
+    } as any;
+    canceledTrade.tick(5);
+    expect(buyer.gold()).toBe(buyerGoldBeforeCanceledRoute - 500n);
+    seller.captureUnit(destinationPort);
+    canceledTrade.tick(6);
+
+    expect(seller.resourceAmount(ProcessedResource.Food)).toBe(125);
+    expect(buyer.gold()).toBe(buyerGoldBeforeCanceledRoute);
+
+    buyer.captureUnit(destinationPort);
+    const buyerGoldBeforeCapture = buyer.gold();
+    const sellerGoldBeforeCapture = seller.gold();
+    const capturedTrade = new TradeShipExecution(
+      seller,
+      sourcePort,
+      destinationPort,
+    );
+    capturedTrade.init(game, 7);
+    capturedTrade["pathFinder"] = {
+      next: vi.fn(() => ({ status: PathStatus.NEXT, node: 32 })),
+      pathForTraversal: vi.fn(() => [32]),
+    } as any;
+    capturedTrade.tick(8);
+    expect(buyer.gold()).toBe(buyerGoldBeforeCapture - 500n);
+    const cargoShip = game.units(UnitType.TradeShip)[0];
+    buyer.captureUnit(cargoShip);
+    capturedTrade["pathFinder"] = {
+      next: vi.fn(() => ({
+        status: PathStatus.COMPLETE,
+        node: destinationTile,
+      })),
+    } as any;
+    capturedTrade.tick(9);
+
+    expect(buyer.resourceAmount(ProcessedResource.Food)).toBe(5);
+    expect(buyer.gold()).toBe(
+      buyerGoldBeforeCapture + game.config().tradeShipGold(1, buyer),
+    );
+    expect(seller.resourceAmount(ProcessedResource.Food)).toBe(120);
+    expect(seller.gold()).toBe(sellerGoldBeforeCapture);
   });
 });
