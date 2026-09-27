@@ -372,11 +372,13 @@ Arquivos desta etapa: `src/core/execution/nation/NationStructureBehavior.ts` e
 `tests/economy/NationVehicleFactoryPriority.test.ts`,
 `tests/economy/NationFarmPriority.test.ts`.
 
-Validação automatizada: 74 testes passaram nos cenários de fazenda, fábrica de
+Validação automatizada: 76 testes passaram nos cenários de fazenda, fábrica de
 veículos e `NationStructureBehavior`. Os casos incluem exércitos pequeno, médio
 e grande, estoque de tanque cheio, insumos insuficientes, economia legada,
 repetição sem duplicar pedido e posicionamento da fazenda até enfileirar sua
-construção. A regressão de economia da IA passou em mais 7 arquivos/24 testes,
+construção. Agora a cobertura de 5.000, 25.000 e 100.000 tropas usa partidas
+reais e confirma que a fazenda é construída após o pedido. A regressão de
+economia da IA passou em mais 7 arquivos/24 testes,
 cobrindo prioridades de mina, infraestrutura, expansão de recursos, usinas
 nucleares, produção e replay determinístico. `tsc --noEmit`, lint,
 `npm run build-dev` e Prettier passaram. A suíte principal passou com 473
