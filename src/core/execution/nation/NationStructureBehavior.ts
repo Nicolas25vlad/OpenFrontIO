@@ -1268,6 +1268,8 @@ export class NationStructureBehavior {
     switch (type) {
       case UnitType.City:
         return this.cityValue();
+      case UnitType.Farm:
+        return this.farmValue();
       case UnitType.MissileSilo:
         return this.missileSiloValue();
       case UnitType.Factory:
@@ -1285,6 +1287,22 @@ export class NationStructureBehavior {
       default:
         throw new Error(`Value function not implemented for ${type}`);
     }
+  }
+
+  /** Prefer farms with room around them so production is spread across owned land. */
+  private farmValue(): (tile: TileRef) => number {
+    const game = this.game;
+    const otherUnits = this.player.units(UnitType.Farm);
+    const { structureSpacing } = this.spacingConstants();
+
+    return (tile) => {
+      const otherTiles = new Set(otherUnits.map((unit) => unit.tile()));
+      otherTiles.delete(tile);
+      return Math.min(
+        nearestTileDist(game, otherTiles, tile),
+        structureSpacing,
+      );
+    };
   }
 
   /**

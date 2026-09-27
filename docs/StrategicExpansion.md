@@ -339,25 +339,36 @@ pendente durante o tempo de construção. O comportamento não roda em partidas
 legadas. A fábrica é posicionada usando os mesmos critérios de espaçamento e
 valor das fábricas existentes.
 
-Arquivos desta etapa: `src/core/execution/nation/NationStructureBehavior.ts` e
-`tests/economy/NationVehicleFactoryPriority.test.ts`.
+O benchmark de 1.800 ticks também expôs que a prioridade de comida já tentava
+construir fazendas, mas faltava um critério de posicionamento para `Farm`. A
+seleção agora espaça fazendas existentes e conclui a decisão sem erro; o caso
+ganhou um teste focado.
 
-Validação automatizada: 73 testes passaram entre o novo cenário e os testes
-existentes de `NationStructureBehavior`; os casos incluem exércitos pequeno,
-médio e grande, estoque de tanque cheio, insumos insuficientes, economia legada
-e repetição sem duplicar pedido. A regressão de economia da IA passou em mais
-7 arquivos/24 testes, cobrindo prioridades de mina, infraestrutura, expansão de
-recursos, usinas nucleares, produção e replay determinístico. `tsc --noEmit`,
-lint, `npm run build-dev` e Prettier passaram.
+Arquivos desta etapa: `src/core/execution/nation/NationStructureBehavior.ts` e
+`tests/economy/NationVehicleFactoryPriority.test.ts`,
+`tests/economy/NationFarmPriority.test.ts`.
+
+Validação automatizada: 74 testes passaram nos cenários de fazenda, fábrica de
+veículos e `NationStructureBehavior`. Os casos incluem exércitos pequeno, médio
+e grande, estoque de tanque cheio, insumos insuficientes, economia legada,
+repetição sem duplicar pedido e posicionamento da fazenda até enfileirar sua
+construção. A regressão de economia da IA passou em mais 7 arquivos/24 testes,
+cobrindo prioridades de mina, infraestrutura, expansão de recursos, usinas
+nucleares, produção e replay determinístico. `tsc --noEmit`, lint,
+`npm run build-dev` e Prettier passaram. A suíte principal passou com 473
+arquivos/5.601 testes e a de servidor com 63 arquivos/656 testes.
 
 ### Validação manual pendente no PC principal
 
-1. Rode `npm run dev:host` e inicie partidas com nações de 10.000, 50.000 e
-   100.000 infantes usando `strategicEconomy`.
-2. Observe se uma única Vehicle Factory é solicitada quando falta reserva de
-   tanques e há aço/combustível suficientes para produzir. Com estoque de tanques
-   no alvo ou sem os insumos, a nação não deve construir a fábrica.
-3. Repita com economia estratégica desligada; a nova prioridade não deve atuar.
+1. Rode `npm run dev:host` e inicie partidas com nações usando
+   `strategicEconomy` e tropas suficientes para consumir a reserva de comida.
+2. Observe a construção de fazendas quando o estoque de comida fica abaixo do
+   alvo; a decisão deve escolher um tile válido e não gerar erro no turno.
+3. Teste com 10.000, 50.000 e 100.000 infantes se a nação solicita uma única
+   Vehicle Factory quando faltam tanques e existem aço/combustível. Com estoque
+   no alvo ou sem insumos, ela não deve solicitá-la.
+4. Repita com economia estratégica desligada; essas novas prioridades não devem
+   atuar.
 
 Esperado: a nação tenta no máximo uma construção por vez, respeita o limite de
 reserva e continua a usar as regras de construção existentes. A issue permanece
