@@ -15,12 +15,20 @@ export function buildTree(s: RenderSettings, d: RenderSettings): DebugNode[] {
       toggle(s.passEnabled, "trail", d.passEnabled),
       toggle(s.passEnabled, "structure", d.passEnabled),
       toggle(s.passEnabled, "unit", d.passEnabled),
+      toggle(s.passEnabled, "troopGarrison", d.passEnabled),
       toggle(s.passEnabled, "name", d.passEnabled),
       toggle(s.passEnabled, "falloutBloom", d.passEnabled),
       toggle(s.passEnabled, "railroad", d.passEnabled),
       toggle(s.passEnabled, "fx", d.passEnabled),
       toggle(s.passEnabled, "bar", d.passEnabled),
       toggle(s.passEnabled, "nameDebug", d.passEnabled, "Name Debug Boxes"),
+    ]),
+
+    folder("Troop Garrisons", [
+      slider(s.troopGarrison, "unitSize", d.troopGarrison, 0.2, 3, 0.05),
+      slider(s.troopGarrison, "minZoom", d.troopGarrison, 0.2, 5, 0.05),
+      slider(s.troopGarrison, "alpha", d.troopGarrison, 0, 1, 0.05),
+      slider(s.troopGarrison, "refreshTicks", d.troopGarrison, 10, 300, 10),
     ]),
 
     folder("Fallout Bloom", [

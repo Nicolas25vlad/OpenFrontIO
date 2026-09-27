@@ -50,6 +50,7 @@ export interface RenderSettings {
     territoryPatterns: boolean;
     structure: boolean;
     unit: boolean;
+    troopGarrison: boolean;
     name: boolean;
     falloutBloom: boolean;
     falloutLight: boolean;
@@ -267,6 +268,15 @@ export interface RenderSettings {
     hBombGlowStrength: number; // peak opacity of the glow
     hBombGlowInner: number; // radial falloff start (0..1, quad-space)
     untargetableAlpha: number; // alpha for nukes SAMs can't target (0..1)
+  };
+  troopGarrison: {
+    /** Pixel-art squad width/height in world tiles. */
+    unitSize: number;
+    /** Hide garrisons below this zoom to avoid map-wide visual noise. */
+    minZoom: number;
+    alpha: number;
+    maxInstances: number;
+    refreshTicks: number;
   };
   name: {
     lerpSpeed: number;

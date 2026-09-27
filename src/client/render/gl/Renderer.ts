@@ -62,6 +62,7 @@ import { StructurePass } from "./passes/StructurePass";
 import { TerrainPass } from "./passes/TerrainPass";
 import { TerritoryPass } from "./passes/TerritoryPass";
 import { TrailPass } from "./passes/TrailPass";
+import { TroopGarrisonPass } from "./passes/TroopGarrisonPass";
 import { UnitPass } from "./passes/UnitPass";
 import { WorldTextPass } from "./passes/WorldTextPass";
 import type { RenderSettings } from "./RenderSettings";
@@ -132,6 +133,7 @@ export class GPURenderer {
   private structurePass: StructurePass;
   private structureLevelPass: StructureLevelPass;
   private unitPass: UnitPass;
+  private troopGarrisonPass: TroopGarrisonPass;
   private namePass: NamePass;
   private fxPass: FxPass;
   private rangeCirclePass: RangeCirclePass;
@@ -187,6 +189,7 @@ export class GPURenderer {
 
   private animId: number | null = null;
   private frameTick = 0;
+  private currentGameTick = 0;
   private mapW = 0;
   private mapH = 0;
 
@@ -581,6 +584,13 @@ export class GPURenderer {
       this.settings,
       config,
     );
+    this.troopGarrisonPass = new TroopGarrisonPass(
+      gl,
+      this.paletteTex,
+      this.settings,
+      mapW,
+      mapH,
+    );
     this.namePass = new NamePass(
       gl,
       header,
@@ -698,6 +708,7 @@ export class GPURenderer {
   ): void {
     this.territoryPass.setLiveRef(tileState);
     this.trailPass.setLiveRef(trailState);
+    this.troopGarrisonPass.setTileState(tileState);
   }
 
   uploadLiveDelta(
@@ -705,6 +716,7 @@ export class GPURenderer {
     changedTiles: readonly number[],
   ): void {
     this.territoryPass.applyLiveDelta(tileState, changedTiles);
+    this.troopGarrisonPass.setTileState(tileState);
   }
 
   uploadLiveTrailDelta(
@@ -882,6 +894,7 @@ export class GPURenderer {
   }
 
   updateUnits(units: Map<number, UnitState>, gameTick: number): void {
+    this.currentGameTick = gameTick;
     this.lastUnits = units;
     this.frameTick++;
     this.unitPass.setFrameTick(this.frameTick);
@@ -899,6 +912,7 @@ export class GPURenderer {
     statusData?: Map<number, PlayerStatusData>,
   ): void {
     this.namePass.updateNames(names, players, snap, statusData);
+    this.troopGarrisonPass.updatePlayers(players, this.currentGameTick);
 
     // Extract local player's allies + teammates for SAM radius coloring
     if (this.localPlayerID > 0) {
@@ -1345,6 +1359,9 @@ export class GPURenderer {
     if (pe.borderStamp) this.borderStampPass.draw(cam);
     if (pe.railroad) this.railroadPass.draw(cam, zoom);
     if (pe.unit) this.unitPass.drawGround(cam);
+    if (pe.troopGarrison && !this.altView) {
+      this.troopGarrisonPass.draw(cam, zoom);
+    }
     if (pe.falloutBloom) this.bloomPass.draw(cam, this.frameTick);
     this.samRadiusPass.draw(cam);
     this.rangeCirclePass.draw(cam);
@@ -1491,6 +1508,7 @@ export class GPURenderer {
     this.structurePass.dispose();
     this.structureLevelPass.dispose();
     this.unitPass.dispose();
+    this.troopGarrisonPass.dispose();
     this.namePass.dispose();
     this.fxPass.dispose();
     this.worldTextPass.dispose();

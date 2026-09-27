@@ -53,3 +53,34 @@ Itens só são marcados após implementação e verificação. `src/core` é a s
 ## Estado inicial verificado em 2026-09-13
 
 Issues #1–#11 abertas. Worktree contém fundação de recursos, heatmap, categorias e implementação parcial de mina. Ainda falta processamento e a integração da mina na barra inferior; testes anteriores não demonstram a expansão completa. Corrigir também reservas sobrepostas, validade de terreno após alterações e semântica de replay (repetir um build não equivale a reproduzir uma partida).
+
+## Tropas visuais agrupadas — issue #5 (parcial)
+
+O renderer agora desenha grupos de soldados em pixel art nas fronteiras de
+território. Cada grupo representa 25.000 tropas; o total é limitado a 32 por
+jogador e 2.048 instâncias por mapa. A camada é visual, não cria unidades no
+core nem altera combate, updates ou replay. A lista de grupos é recalculada a
+cada 50 ticks por padrão, com tamanho, zoom mínimo, opacidade e limite no
+`render-settings.json`.
+
+Validação automatizada: `tests/client/render/gl/TroopGarrisons.test.ts` cobre
+posições de fronteira, determinismo, limiar de tropas e limite global. Build,
+lint e suíte completa são registrados no commit desta etapa.
+
+### Validação manual pendente no PC principal
+
+1. Inicie o cliente com `npm run dev:host` e abra uma partida solo ou
+   multiplayer. Faça o teste com `strategicEconomy` ligado e desligado.
+2. Em uma nação com pelo menos 25.000 tropas, aproxime a câmera da fronteira
+   até os ícones aparecerem. Confira uma região interior e uma fronteira entre
+   dois jogadores.
+3. Afaste a câmera até os ícones desaparecerem e aproxime novamente.
+4. Faça uma conquista na fronteira e confira se os grupos acompanham o novo
+   território em até 50 ticks. Repita avançando e voltando em um replay.
+
+Esperado: pequenos grupos de duas silhuetas em pixel art, coloridos pelo dono
+do território e restritos às fronteiras; nenhum grupo no interior. A
+quantidade cresce em degraus com as tropas, respeita o limite visual, some
+abaixo do zoom mínimo e não muda os resultados de combate. Registre navegador,
+mapa e resultado em `StrategicCompatibilityChecklist.md`; a aprovação visual
+continua pendente até essa execução.
