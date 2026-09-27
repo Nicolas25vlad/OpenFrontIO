@@ -34,6 +34,7 @@
 import "./Shims"; // must be first: browser-global shims for client code
 
 import fs from "fs";
+import v8 from "node:v8";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GameView } from "../../../src/client/view/GameView";
@@ -50,6 +51,7 @@ import {
   GameUpdateType,
   GameUpdateViewData,
   HashUpdate,
+  PlayerUpdate,
 } from "../../../src/core/game/GameUpdates";
 import { loadTerrainMap } from "../../../src/core/game/TerrainMapLoader";
 import { createGameRunner } from "../../../src/core/GameRunner";
@@ -401,6 +403,10 @@ async function main(): Promise<void> {
   let maxTilePairs = 0;
   let unitUpdatesTotal = 0;
   let playerUpdatesTotal = 0;
+  let updateObjectBytesTotal = 0;
+  let transferredBytesTotal = 0;
+  let playerRecordBytesTotal = 0;
+  const playerFieldUpdates = new Map<string, number>();
 
   let turnNumber = 0;
   const runTick = (recordInto: typeof stats): boolean => {
@@ -427,7 +433,26 @@ async function main(): Promise<void> {
     totalTilePairs += pairs;
     maxTilePairs = Math.max(maxTilePairs, pairs);
     unitUpdatesTotal += gu.updates[GameUpdateType.Unit].length;
-    playerUpdatesTotal += gu.updates[GameUpdateType.Player].length;
+    const playerUpdates = gu.updates[GameUpdateType.Player] as PlayerUpdate[];
+    playerUpdatesTotal += playerUpdates.length;
+    for (const update of playerUpdates) {
+      playerRecordBytesTotal += v8.serialize(update).byteLength;
+      for (const field of Object.keys(update)) {
+        playerFieldUpdates.set(field, (playerFieldUpdates.get(field) ?? 0) + 1);
+      }
+    }
+    updateObjectBytesTotal += v8.serialize({
+      tick: gu.tick,
+      updates: gu.updates,
+      playerNameViewData: gu.playerNameViewData,
+      tickExecutionDuration: gu.tickExecutionDuration,
+      pendingTurns: gu.pendingTurns,
+    }).byteLength;
+    transferredBytesTotal +=
+      gu.packedTileUpdates.byteLength +
+      (gu.packedMotionPlans?.byteLength ?? 0) +
+      (gu.packedPlayerUpdates?.byteLength ?? 0) +
+      (gu.packedAttackUpdates?.byteLength ?? 0);
 
     // Same transfer list as Worker.worker.ts sendGameUpdateBatch().
     const transfers: Transferable[] = [gu.packedTileUpdates.buffer];
@@ -593,6 +618,23 @@ async function main(): Promise<void> {
   console.log(
     `Player updates:   ${playerUpdatesTotal} total, ` +
       `mean ${(playerUpdatesTotal / Math.max(1, n)).toFixed(1)}/tick`,
+  );
+  const approximatePayloadBytes =
+    updateObjectBytesTotal + transferredBytesTotal;
+  console.log(
+    `Update payload:   ${(approximatePayloadBytes / 1024 / 1024).toFixed(2)} MB approx, ` +
+      `${(approximatePayloadBytes / Math.max(1, n)).toFixed(0)} B/tick ` +
+      `(objects ${(updateObjectBytesTotal / 1024 / 1024).toFixed(2)} MB via V8 serializer; ` +
+      `transfer buffers ${(transferredBytesTotal / 1024 / 1024).toFixed(2)} MB exact)`,
+  );
+  console.log(
+    `PlayerUpdate:    ${(playerRecordBytesTotal / 1024).toFixed(1)} KB V8-serialized ` +
+      `(${(playerRecordBytesTotal / Math.max(1, playerUpdatesTotal)).toFixed(0)} B/update); ` +
+      `fields: ${Array.from(playerFieldUpdates)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([field, count]) => `${field}=${count}`)
+        .join(", ")}`,
   );
   console.log(
     `GPU dispatch:     updateUnits saw ${glStats.unitsSeen} unit-entries, ` +

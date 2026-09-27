@@ -112,15 +112,23 @@ npm run perf:client -- --ticks 1800 --bots 40 --seed strategic-quality-long-2026
 | Cliente: burst principal média / p95 / máximo | 0,36 / 0,58 / 3,02 ms | 0,40 / 0,85 / 3,77 ms |
 | Pares de tile: média / máximo por tick | 629 / 3.489 | 493 / 3.489 |
 | Updates de jogador no período | 4.563 | 17.187 |
+| PlayerUpdate records (V8 estimate) | 0,62 MB | 3,24 MB |
+| Other object data (V8 estimate) | 2,31 MB | 2,35 MB |
+| Transfer buffers (exact byteLength) | 19,65 MB | 17,08 MB |
+| Payload estimate combined | 22,57 MB | 22,67 MB |
 | Heap máximo do cliente | 128 MB | 131 MB |
 
 Hashes finais reproduzidos entre os harnesses para cada modo: `20338747193607844`
 (legado) e `13300853492325580` (estratégico). Os modos divergem no estado da
 partida, então estes números são um perfil de referência, não uma comparação
 estatística de regressão. O volume de pares de tile não cresceu no modo
-estratégico. O número maior de updates de jogador coincide com os campos
-econômicos ativos e merece comparação de tamanho em uma janela maior antes de
-otimizações; o p95 do burst principal ficou abaixo do limite de 16,7 ms do
-cliente. O perfil estratégico também percorreu o gatilho de fazenda no tick 702,
-que revelou e levou à correção do critério ausente de posicionamento. Nenhum
-estado novo por tile ou schema de rede foi introduzido pela prioridade de bot.
+estratégico. O objeto de PlayerUpdate cresceu porque envia stocks, rates e supply
+quando mudam (`supply=8.134`, `resources=5.569`, `resourceRates=2.279` campos);
+os campos inalterados continuam omitidos pelo diff. A estimativa total ficou
+praticamente igual porque o modo estratégico emitiu menos pares de tile nessa
+simulação. A parte de objetos usa `v8.serialize` como aproximação da clonagem;
+os buffers transferidos usam `byteLength` exato. O p95 do burst principal ficou
+abaixo de 16,7 ms. O perfil estratégico também percorreu o gatilho de fazenda no
+tick 702, que revelou e levou à correção do critério ausente de posicionamento.
+Nenhum estado novo por tile ou schema de rede foi introduzido pela prioridade
+de bot.
