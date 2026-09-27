@@ -1,5 +1,6 @@
 import { ConstructionExecution } from "../../src/core/execution/ConstructionExecution";
 import { MineExecution } from "../../src/core/execution/MineExecution";
+import { UpgradeStructureExecution } from "../../src/core/execution/UpgradeStructureExecution";
 import {
   Game,
   Player,
@@ -75,6 +76,30 @@ describe("mine extraction", () => {
     game.executeNextTick();
     expect(player.units(UnitType.Mine)).toHaveLength(anyRemaining ? 1 : 0);
     expect(player.resourceAmount(node.resource)).toBe(reserve);
+  });
+
+  test("upgrading a mine increases extraction and duplicate ticks are ignored", () => {
+    const node = game.resourceNodes()[0];
+    const tile = game.ref(node.x, node.y);
+    player.conquer(tile);
+    game.addExecution(new ConstructionExecution(player, UnitType.Mine, tile));
+    for (let i = 0; i < 11; i++) game.executeNextTick();
+
+    const mine = player.units(UnitType.Mine)[0];
+    game.endSpawnPhase();
+    game.addExecution(new UpgradeStructureExecution(player, mine.id()));
+    game.executeNextTick();
+    expect(mine.level()).toBe(2);
+
+    const before = player.resourceAmount(node.resource);
+    const execution = new MineExecution(mine);
+    execution.init(game);
+    execution.tick(10);
+    execution.tick(10);
+
+    expect(player.resourceAmount(node.resource) - before).toBe(
+      node.richness * 4,
+    );
   });
 });
 

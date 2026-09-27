@@ -17,6 +17,8 @@ import { setup } from "../util/Setup";
 async function replayStrategicEconomy(): Promise<{
   hashes: number[];
   enrichedUranium: number;
+  minedResource: NaturalResource;
+  minedAmount: number;
 }> {
   const game: Game = await setup(
     "big_plains",
@@ -50,6 +52,20 @@ async function replayStrategicEconomy(): Promise<{
     game.addExecution(new ConstructionExecution(player, type, game.ref(x, 50)));
   }
 
+  const mineNodes = [...game.resourceNodes()].sort((a, b) => {
+    const distanceFromExistingStructures = (node: { x: number; y: number }) =>
+      Math.min(
+        ...[45, 65, 85, 105].map((x) => (node.x - x) ** 2 + (node.y - 50) ** 2),
+      );
+    return (
+      distanceFromExistingStructures(b) - distanceFromExistingStructures(a)
+    );
+  });
+  const mineNode = mineNodes[0];
+  const mineTile = game.ref(mineNode.x, mineNode.y);
+  player.conquer(mineTile);
+  game.addExecution(new ConstructionExecution(player, UnitType.Mine, mineTile));
+
   const hashes: number[] = [];
   for (let tick = 0; tick < 400; tick++) {
     const updates = game.executeNextTick();
@@ -63,6 +79,8 @@ async function replayStrategicEconomy(): Promise<{
   return {
     hashes,
     enrichedUranium: player.resourceAmount(ProcessedResource.EnrichedUranium),
+    minedResource: mineNode.resource,
+    minedAmount: player.resourceAmount(mineNode.resource),
   };
 }
 
@@ -74,4 +92,7 @@ test("strategic economy produces identical replay hashes across simulations", as
   expect(first.hashes).toEqual(second.hashes);
   expect(first.enrichedUranium).toBeGreaterThan(0);
   expect(first.enrichedUranium).toBe(second.enrichedUranium);
+  expect(first.minedAmount).toBeGreaterThan(1000);
+  expect(first.minedResource).toBe(second.minedResource);
+  expect(first.minedAmount).toBe(second.minedAmount);
 });
