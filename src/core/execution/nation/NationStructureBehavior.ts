@@ -1,4 +1,4 @@
-import { ECONOMY } from "../../configuration/StrategyConfig";
+import { ECONOMY, NUCLEAR_RECIPE } from "../../configuration/StrategyConfig";
 import {
   Attack,
   Difficulty,
@@ -191,6 +191,7 @@ export class NationStructureBehavior {
   private _postSaveUpStartTick: number | null = null;
   private pendingMineOrders = new Map<NaturalResource, number>();
   private pendingInfrastructureOrderTick: number | null = null;
+  private pendingNuclearPlantOrderTick: number | null = null;
 
   constructor(
     private random: PseudoRandom,
@@ -595,6 +596,8 @@ export class NationStructureBehavior {
 
     if (this.placementsCount > 0 && this.tryBuildResourceMine()) return true;
 
+    if (this.placementsCount > 0 && this.tryBuildNuclearPlant()) return true;
+
     if (!citiesDisabled && this.maybeSpawnStructure(UnitType.City)) {
       return true;
     }
@@ -789,6 +792,72 @@ export class NationStructureBehavior {
     if (!this.maybeSpawnStructure(UnitType.Infrastructure)) return false;
 
     this.pendingInfrastructureOrderTick = this.game.ticks();
+    return true;
+  }
+
+  /**
+   * Build one nuclear plant after a nation has a usable launch path and the
+   * raw inputs and fuel to begin its authoritative production loop.
+   */
+  private tryBuildNuclearPlant(): boolean {
+    const config = this.game.config();
+    if (
+      !config.strategicEconomy?.() ||
+      config.isUnitDisabled(UnitType.NuclearPlant)
+    ) {
+      return false;
+    }
+
+    if (this.player.units(UnitType.NuclearPlant).length > 0) return false;
+
+    const atomEnabled = !config.isUnitDisabled(UnitType.AtomBomb);
+    const hydrogenEnabled = !config.isUnitDisabled(UnitType.HydrogenBomb);
+    const mirvEnabled = !config.isUnitDisabled(UnitType.MIRV);
+    const hasMissileSilo = this.player
+      .units(UnitType.MissileSilo)
+      .some((silo) => !silo.isUnderConstruction());
+    const canLaunchNuclearWeapon =
+      mirvEnabled || (hasMissileSilo && (atomEnabled || hydrogenEnabled));
+    if (!canLaunchNuclearWeapon) return false;
+
+    const uraniumCost = NUCLEAR_RECIPE.inputs[NaturalResource.Uranium] ?? 0;
+    if (
+      this.player.resourceAmount(NaturalResource.Uranium) < uraniumCost ||
+      this.player.resourceAmount(ProcessedResource.Fuel) <
+        (NUCLEAR_RECIPE.inputs[ProcessedResource.Fuel] ?? 0)
+    ) {
+      return false;
+    }
+
+    const enrichedReserve = Math.max(
+      0,
+      ...[UnitType.AtomBomb, UnitType.HydrogenBomb, UnitType.MIRV]
+        .filter((type) => !config.isUnitDisabled(type))
+        .map(
+          (type) =>
+            config.resourceCost(type)[ProcessedResource.EnrichedUranium] ?? 0,
+        ),
+    );
+    if (
+      this.player.resourceAmount(ProcessedResource.EnrichedUranium) >=
+      enrichedReserve
+    ) {
+      return false;
+    }
+
+    const retryAfter =
+      (this.game.unitInfo(UnitType.NuclearPlant).constructionDuration ?? 0) +
+      ECONOMY.periodTicks;
+    if (this.pendingNuclearPlantOrderTick !== null) {
+      if (this.game.ticks() - this.pendingNuclearPlantOrderTick <= retryAfter) {
+        return false;
+      }
+      this.pendingNuclearPlantOrderTick = null;
+    }
+
+    if (!this.maybeSpawnStructure(UnitType.NuclearPlant)) return false;
+
+    this.pendingNuclearPlantOrderTick = this.game.ticks();
     return true;
   }
 
@@ -1162,6 +1231,8 @@ export class NationStructureBehavior {
         return this.portValue();
       case UnitType.Infrastructure:
         return this.infrastructureValue();
+      case UnitType.NuclearPlant:
+        return this.nuclearPlantValue();
       case UnitType.SAMLauncher:
         return this.samLauncherValue();
       default:
@@ -1274,6 +1345,35 @@ export class NationStructureBehavior {
         score += 1;
       }
 
+      return score;
+    };
+  }
+
+  /** Prefer nuclear plants near cities and infrastructure production bonuses. */
+  private nuclearPlantValue(): (tile: TileRef) => number {
+    const game = this.game;
+    const cities = this.player.units(UnitType.City);
+    const infrastructure = this.player.units(UnitType.Infrastructure);
+    const urbanRadiusSquared = ECONOMY.urbanRadius ** 2;
+    const infrastructureRadiusSquared = ECONOMY.infrastructureRadius ** 2;
+
+    return (tile) => {
+      let score = 0;
+      for (const city of cities) {
+        if (
+          game.euclideanDistSquared(tile, city.tile()) <= urbanRadiusSquared
+        ) {
+          score = Math.max(score, city.level() * 2);
+        }
+      }
+      for (const infra of infrastructure) {
+        if (
+          game.euclideanDistSquared(tile, infra.tile()) <=
+          infrastructureRadiusSquared
+        ) {
+          score = Math.max(score, infra.level());
+        }
+      }
       return score;
     };
   }
