@@ -116,6 +116,10 @@ export class ResourcePanel extends LitElement implements Controller {
             </span>`,
         )}
       </div>
+      <div class="flex justify-between gap-2 border-t border-white/10 pt-1">
+        <span>🛡 ${translateText("economy.tanks")}</span>
+        <strong class="tabular-nums">${renderNumber(player.tanks())}</strong>
+      </div>
       <div
         class="flex justify-between gap-2 text-[11px]"
         title=${translateText("economy.supply_hint")}

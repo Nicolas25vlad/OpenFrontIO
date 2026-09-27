@@ -259,6 +259,8 @@ export interface PlayerUpdate {
   resourceRates?: ResourceRates;
   supply?: SupplyStatus;
   troops?: number;
+  /** Strategic armored vehicles held in the player's reserve. */
+  tanks?: number;
   allies?: number[];
   embargoes?: Set<PlayerID>;
   isTraitor?: boolean;

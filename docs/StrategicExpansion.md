@@ -63,24 +63,42 @@ core nem altera combate, updates ou replay. A lista de grupos é recalculada a
 cada 50 ticks por padrão, com tamanho, zoom mínimo, opacidade e limite no
 `render-settings.json`.
 
+Como início da etapa de tanques da mesma issue, a Vehicle Factory já produz
+reservas autoritativas: cada lote consome 5 unidades de aço e 2 de combustível,
+e o estoque é sincronizado em `PlayerUpdate` e mostrado no painel econômico.
+Produção e sincronização estão cobertas por testes; seleção, transporte em
+ataques, combate e movimento ainda precisam ser integrados.
+
 Validação automatizada: `tests/client/render/gl/TroopGarrisons.test.ts` cobre
-posições de fronteira, determinismo, limiar de tropas e limite global. Build,
-lint e suíte completa são registrados no commit desta etapa.
+posições de fronteira, determinismo, limiar de tropas e limite global;
+`tests/economy/Production.test.ts` e `tests/economy/StrategicReplay.test.ts`
+cobrem produção, updates e replay dos tanques. Build e lint passaram; os testes
+focados desta etapa passaram (89 testes). A suíte completa também passou na
+etapa anterior (469 arquivos/5.576 testes e 63 arquivos/656 testes de servidor).
+No Node 26 do homelab, o comando completo requer Web Storage habilitado:
+
+```sh
+NODE_OPTIONS="--experimental-webstorage --localstorage-file=/tmp/openfront-vitest-$$" npm test
+```
 
 ### Validação manual pendente no PC principal
 
 1. Inicie o cliente com `npm run dev:host` e abra uma partida solo ou
    multiplayer. Faça o teste com `strategicEconomy` ligado e desligado.
-2. Em uma nação com pelo menos 25.000 tropas, aproxime a câmera da fronteira
+2. Com a economia estratégica ligada, construa uma Vehicle Factory e forneça
+   aço e combustível. Confira o contador de tanques no painel após alguns ticks.
+3. Em uma nação com pelo menos 25.000 tropas, aproxime a câmera da fronteira
    até os ícones aparecerem. Confira uma região interior e uma fronteira entre
    dois jogadores.
-3. Afaste a câmera até os ícones desaparecerem e aproxime novamente.
-4. Faça uma conquista na fronteira e confira se os grupos acompanham o novo
+4. Afaste a câmera até os ícones desaparecerem e aproxime novamente.
+5. Faça uma conquista na fronteira e confira se os grupos acompanham o novo
    território em até 50 ticks. Repita avançando e voltando em um replay.
 
 Esperado: pequenos grupos de duas silhuetas em pixel art, coloridos pelo dono
 do território e restritos às fronteiras; nenhum grupo no interior. A
 quantidade cresce em degraus com as tropas, respeita o limite visual, some
-abaixo do zoom mínimo e não muda os resultados de combate. Registre navegador,
+abaixo do zoom mínimo e não muda os resultados de combate. O contador de
+tanques deve aumentar em lotes conforme a fábrica consome aço e combustível.
+Registre navegador,
 mapa e resultado em `StrategicCompatibilityChecklist.md`; a aprovação visual
 continua pendente até essa execução.

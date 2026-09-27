@@ -630,4 +630,15 @@ describe("diffPlayerUpdate — every scalar field must be wired up", () => {
     } as PlayerUpdate);
     expect(state.isDecaying).toBe(true);
   });
+
+  it("merges an updated tank reserve through to the client state", () => {
+    const state = makePlayerState({ tanks: 0 });
+    applyStateUpdate(state, { ...base, tanks: 12 } as PlayerUpdate);
+    expect(state.tanks).toBe(12);
+    applyStateUpdate(state, {
+      type: GameUpdateType.Player,
+      id: "p1",
+    } as PlayerUpdate);
+    expect(state.tanks).toBe(12);
+  });
 });

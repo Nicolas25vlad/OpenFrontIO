@@ -53,6 +53,7 @@ export function diffPlayerUpdate(
     prev.tradeGold === next.tradeGold &&
     prev.trainGold === next.trainGold &&
     prev.piracyGold === next.piracyGold &&
+    prev.tanks === next.tanks &&
     resourceStockEqual(prev.resources, next.resources) &&
     resourceRatesEqual(prev.resourceRates, next.resourceRates) &&
     supplyEqual(prev.supply, next.supply) &&
@@ -110,6 +111,7 @@ export function diffPlayerUpdate(
   setIfDifferent("tradeGold", prev.tradeGold === next.tradeGold);
   setIfDifferent("trainGold", prev.trainGold === next.trainGold);
   setIfDifferent("piracyGold", prev.piracyGold === next.piracyGold);
+  setIfDifferent("tanks", prev.tanks === next.tanks);
   setIfDifferent(
     "resources",
     resourceStockEqual(prev.resources, next.resources),
@@ -205,6 +207,7 @@ export function applyStateUpdate(target: PlayerState, pu: PlayerUpdate): void {
       consumption: cloneResourceStock(pu.resourceRates.consumption),
     };
   if (pu.troops !== undefined) target.troops = pu.troops;
+  if (pu.tanks !== undefined) target.tanks = pu.tanks;
   if (pu.supply !== undefined) target.supply = { ...pu.supply };
   if (pu.isTraitor !== undefined) target.isTraitor = pu.isTraitor;
   if (pu.traitorRemainingTicks !== undefined) {

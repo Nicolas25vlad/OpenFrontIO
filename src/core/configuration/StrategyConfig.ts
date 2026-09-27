@@ -28,6 +28,7 @@ export const ECONOMY = {
   maxInfrastructureBonus: 40,
   railBonus: 20,
   factoryBatches: 2,
+  vehicleFactoryBatches: 1,
   farmFood: 8,
   fertilizedFood: 16,
   nuclearBatches: 1,
@@ -82,6 +83,12 @@ export const RESOURCE_COSTS: Partial<Record<UnitType, ResourceAmounts>> = {
 
 export const NUCLEAR_RECIPE = {
   inputs: { [Raw.Uranium]: 3, [Product.Fuel]: 1 },
+  amount: 1,
+};
+
+/** One tank is assembled from steel and fuel at a vehicle factory. */
+export const TANK_RECIPE = {
+  inputs: { [Product.Steel]: 5, [Product.Fuel]: 2 },
   amount: 1,
 };
 

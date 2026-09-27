@@ -682,6 +682,7 @@
     "shortage": "Missing input",
     "stock": "Stock",
     "supply": "Army supply",
+    "tanks": "Tanks",
     "supply_hint": "Supply consumes food, fuel and steel. Shortages reduce growth, combat and speed; connected infrastructure lowers maintenance."
   },
   "effects": {

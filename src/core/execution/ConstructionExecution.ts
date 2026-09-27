@@ -174,6 +174,7 @@ export class ConstructionExecution implements Execution {
         this.mg.addExecution(new FactoryExecution(this.structure!));
         break;
       case UnitType.VehicleFactory:
+        this.mg.addExecution(new ProductionExecution(this.structure!));
         break;
       default:
         console.warn(

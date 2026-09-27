@@ -135,6 +135,7 @@ export class PlayerImpl implements Player {
 
   private _gold: bigint;
   private _troops: bigint;
+  private _tanks = 0;
   /** Replaced on mutation so the previous PlayerUpdate remains an immutable snapshot. */
   private _resources: ResourceStock = emptyResourceStock();
   private _supply: Readonly<SupplyStatus> = FULL_SUPPLY;
@@ -407,6 +408,7 @@ export class PlayerImpl implements Player {
       resourceRates: this._resourceRates,
       supply: this.mg.config().strategicEconomy() ? this._supply : undefined,
       troops: this.troops(),
+      tanks: this._tanks,
       allies: allies,
       embargoes: embargoes,
       isTraitor: this.isTraitor(),
@@ -1516,6 +1518,28 @@ export class PlayerImpl implements Player {
     return Number(toRemove);
   }
 
+  tanks(): number {
+    return this._tanks;
+  }
+
+  addTanks(tanks: number): void {
+    if (!Number.isFinite(tanks) || tanks <= 0) return;
+    const amount = Math.floor(tanks);
+    if (amount === 0) return;
+    if (!Number.isSafeInteger(this._tanks + amount)) {
+      throw new RangeError("tank count exceeds the safe integer range");
+    }
+    this._tanks += amount;
+  }
+
+  removeTanks(tanks: number): number {
+    if (!Number.isFinite(tanks) || tanks <= 0) return 0;
+    const amount = Math.floor(tanks);
+    const removed = Math.min(this._tanks, amount);
+    this._tanks -= removed;
+    return removed;
+  }
+
   captureUnit(unit: Unit): void {
     if (unit.owner() === this) {
       throw new Error(`Cannot capture unit, ${this} already owns ${unit}`);
@@ -2033,6 +2057,7 @@ export class PlayerImpl implements Player {
           this._supply.navy * 19 +
           this._supply.logistics * 23
         : 0) +
+      this._tanks * 29 +
       simpleHash(this.id()) * (this.troops() + this.numTilesOwned()) +
       STOCK_RESOURCES.reduce(
         (hash, resource, index) =>

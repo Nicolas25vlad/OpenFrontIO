@@ -100,6 +100,7 @@ function stateFromUpdate(pu: PlayerUpdate): PlayerState {
         }
       : emptyResourceRates(),
     troops: pu.troops!,
+    tanks: pu.tanks ?? 0,
     supply: pu.supply ? { ...pu.supply } : undefined,
     isTraitor: pu.isTraitor!,
     traitorRemainingTicks: Math.max(0, pu.traitorRemainingTicks ?? 0),
@@ -566,6 +567,10 @@ export class PlayerView {
 
   troops(): number {
     return this.state.troops;
+  }
+
+  tanks(): number {
+    return this.state.tanks ?? 0;
   }
 
   totalUnitLevels(type: UnitType): number {

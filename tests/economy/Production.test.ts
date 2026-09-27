@@ -11,7 +11,7 @@ import {
   PlayerType,
   UnitType,
 } from "../../src/core/game/Game";
-import { GameUpdateType } from "../../src/core/game/GameUpdates";
+import { GameUpdateType, PlayerUpdate } from "../../src/core/game/GameUpdates";
 import {
   ProcessedResource as Product,
   NaturalResource as Raw,
@@ -130,6 +130,44 @@ describe("strategic production", () => {
     farm.setUnderConstruction(true);
     production.tick(30);
     expect(player.resourceAmount(Product.Food)).toBe(24);
+  });
+
+  test("vehicle factories assemble tanks from steel and fuel", async () => {
+    const game = await economyGame();
+    emptyStocks(game);
+    const player = game.player("industry");
+    const tile = game.ref(50, 50);
+    player.conquer(tile);
+    player.addResource(Product.Steel, 30 + 5);
+    player.addResource(Product.Circuits, 5);
+    player.addResource(Product.Fuel, 2);
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.VehicleFactory, tile),
+    );
+    const initialUpdate = player.toUpdate();
+    expect(initialUpdate?.tanks).toBe(0);
+    let tankUpdate: PlayerUpdate | undefined;
+    for (let i = 0; i < 12; i++) {
+      const updates = game.executeNextTick();
+      tankUpdate =
+        (updates[GameUpdateType.Player] as PlayerUpdate[]).find(
+          (update) => update.id === player.id(),
+        ) ?? tankUpdate;
+    }
+
+    const factory = player.units(UnitType.VehicleFactory)[0];
+    expect(player.tanks()).toBe(1);
+    expect(player.resourceAmount(Product.Steel)).toBe(0);
+    expect(player.resourceAmount(Product.Fuel)).toBe(0);
+    expect(factory.toUpdate().production?.produced).toBe(1);
+    expect(tankUpdate?.tanks).toBe(1);
+
+    game.executeNextTick();
+    expect(player.tanks()).toBe(1);
+    for (let i = 0; i < 8; i++) game.executeNextTick();
+    game.executeNextTick();
+    expect(player.tanks()).toBe(1);
+    expect(factory.toUpdate().production?.shortage).toBe(true);
   });
 
   test("local city and infrastructure bonuses are bounded and ownership-aware", async () => {

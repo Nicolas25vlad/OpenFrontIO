@@ -134,6 +134,7 @@ export function makePlayerUpdate(
     goldEarned: 0n,
     resources: emptyResourceStock(),
     troops: 100,
+    tanks: 0,
     allies: [],
     embargoes: new Set(),
     isTraitor: false,

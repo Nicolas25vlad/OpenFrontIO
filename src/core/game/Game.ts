@@ -693,6 +693,10 @@ export interface Player {
   setTroops(troops: number): void;
   addTroops(troops: number): void;
   removeTroops(troops: number): number;
+  /** Strategic armored vehicles available for the next land offensive. */
+  tanks(): number;
+  addTanks(tanks: number): void;
+  removeTanks(tanks: number): number;
 
   // Units
   // Fixed-arity + array overloads instead of a rest parameter: the rest array

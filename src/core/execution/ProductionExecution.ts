@@ -2,6 +2,7 @@ import {
   ECONOMY,
   INDUSTRIAL_RECIPES,
   NUCLEAR_RECIPE,
+  TANK_RECIPE,
 } from "../configuration/StrategyConfig";
 import {
   consumeResources,
@@ -68,6 +69,21 @@ export class ProductionExecution implements Execution {
         }
         owner.addResource(Product.EnrichedUranium, NUCLEAR_RECIPE.amount);
         status.produced += NUCLEAR_RECIPE.amount;
+      }
+    } else if (unit.type() === UnitType.VehicleFactory) {
+      const budget = productionBudget(
+        ECONOMY.vehicleFactoryBatches,
+        unit.level(),
+        status.efficiency,
+        period,
+      );
+      for (let batch = 0; batch < budget; batch++) {
+        if (!consumeResources(owner, TANK_RECIPE.inputs)) {
+          status.shortage = true;
+          break;
+        }
+        owner.addTanks(TANK_RECIPE.amount);
+        status.produced += TANK_RECIPE.amount;
       }
     } else if (unit.type() === UnitType.Factory) {
       const budget = productionBudget(

@@ -83,6 +83,7 @@ export interface PlayerState {
   resourceRates?: ResourceRates;
   supply?: import("../../../core/game/Economy").SupplyStatus;
   troops: number;
+  tanks?: number;
   isTraitor: boolean;
   traitorRemainingTicks: number;
   inDoomsdayClock: boolean;
