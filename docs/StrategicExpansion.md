@@ -176,7 +176,9 @@ Validação automatizada específica: `tests/core/game/GameMap.tileStateBuffer.t
 `tests/economy/StrategicBalance.test.ts` e `tests/Attack.test.ts` — 4 arquivos,
 38 testes passaram. `tsc --noEmit`, lint e `npm run build-dev` passaram, incluindo
 o shader no bundle. A suite completa passou com 471 arquivos e 5.595 testes;
-os testes de servidor são executados separadamente.
+os testes de servidor são executados separadamente. `tests/core/executions/NukeExecution.test.ts`
+também confirma que a detonação limpa o estado de trincheira dos tiles atingidos
+e sem dono; os 15 testes desse arquivo passaram nesta rodada.
 
 ### Validação manual pendente no PC principal
 
@@ -191,6 +193,8 @@ os testes de servidor são executados separadamente.
 4. Repita em tile interior, território inimigo e com aço insuficiente: a opção
    deve ficar desativada e nenhum recurso deve ser consumido. Repita com
    `strategicEconomy` desligado e confirme que o botão não aparece.
+5. Detone uma bomba sobre uma fronteira com trincheira. Os tiles atingidos que
+   perderem seu dono devem ficar sem nível de trincheira.
 
 Esperado: o servidor/core rejeita qualquer tile inválido mesmo que um cliente
 envie o intent manualmente; clientes e replay recebem o mesmo nível via update

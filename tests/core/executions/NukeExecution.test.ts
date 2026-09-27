@@ -73,6 +73,20 @@ describe("NukeExecution", () => {
     expect(defensePost.touch).not.toHaveBeenCalled();
   });
 
+  test("nuke impact clears trenches on relinquished tiles", () => {
+    const target = game.ref(1, 1);
+    game.setTrenchLevel(target, 3);
+    player.buildUnit(UnitType.MissileSilo, target, {});
+
+    game.addExecution(
+      new NukeExecution(UnitType.AtomBomb, player, target, target),
+    );
+    executeTicks(game, 10);
+
+    expect(game.hasOwner(target)).toBe(false);
+    expect(game.trenchLevel(target)).toBe(0);
+  });
+
   test("nuke should only be targetable near src and dst", async () => {
     player.buildUnit(UnitType.MissileSilo, game.ref(1, 1), {});
     const nukeExec = new NukeExecution(
