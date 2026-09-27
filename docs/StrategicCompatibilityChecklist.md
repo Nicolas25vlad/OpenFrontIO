@@ -65,3 +65,59 @@ O plano de requisitos e o estado de implementação ficam em
 [`StrategicExpansion.md`](StrategicExpansion.md). Este documento é um gate de
 validação, não uma declaração de que todos os sistemas estratégicos já foram
 aprovados.
+
+## Regressão automatizada — 2026-09-27
+
+Após o commit `58684a3a`, a suíte principal passou com 472 arquivos e 5.600
+testes; a suíte de servidor passou com 63 arquivos e 656 testes. Os comandos
+foram executados em modo serial no Node 26 com Web Storage:
+
+```sh
+NODE_OPTIONS="--experimental-webstorage --localstorage-file=/tmp/openfront-vitest-quality-20260927" npx vitest run --maxWorkers=1
+NODE_OPTIONS="--experimental-webstorage --localstorage-file=/tmp/openfront-vitest-server-quality-20260927" npx vitest run tests/server --maxWorkers=1
+```
+
+`npm run build-dev`, `npm run lint` e `npx prettier --check` nos arquivos
+alterados também passaram. A prioridade de fábrica de veículos não cria estado
+por tile, não altera schemas ou updates de rede e é coberta em economia
+estratégica e modo legado por `tests/economy/NationVehicleFactoryPriority.test.ts`.
+As decisões visuais e de multiplayer dos sistemas com HUD continuam pendentes
+no PC principal, conforme os procedimentos por issue em
+[`StrategicExpansion.md`](StrategicExpansion.md).
+
+## Comparação dos harnesses — 2026-09-27
+
+Os harnesses `perf:game` e `perf:client` agora aceitam `--strategic-economy`,
+para comparar a mesma seed e população com a regra desligada/ligada. O shim de
+cliente fornece `document` e eventos via JSDOM, e o stub WebGL reconhece os
+uploads de glow e ribbons que o builder já dispara.
+
+Execução no mapa World, seed `strategic-quality-nations-20260927`, 40 bots,
+nações padrão (112 jogadores), 300 ticks de jogo, sem profiler:
+
+```sh
+npm run perf:game -- --ticks 300 --bots 40 --seed strategic-quality-nations-20260927 --window 100 --no-cpu-profile --no-exec-profile --no-gc-profile --no-alloc-profile
+npm run perf:game -- --ticks 300 --bots 40 --seed strategic-quality-nations-20260927 --window 100 --no-cpu-profile --no-exec-profile --no-gc-profile --no-alloc-profile --strategic-economy
+npm run perf:client -- --ticks 300 --bots 40 --seed strategic-quality-nations-20260927 --no-cpu-profile
+npm run perf:client -- --ticks 300 --bots 40 --seed strategic-quality-nations-20260927 --no-cpu-profile --strategic-economy
+```
+
+| Medida | Legado | Estratégica |
+| --- | ---: | ---: |
+| Simulação por tick: média / p95 / máximo | 4,96 / 10,1 / 23,4 ms | 5,56 / 12,3 / 23,4 ms |
+| Heap máximo da simulação | 55 MB | 43 MB |
+| Worker tick: média / p95 / máximo | 5,05 / 10,4 / 23,1 ms | 5,46 / 12,0 / 22,9 ms |
+| Cliente: burst principal média / p95 / máximo | 0,40 / 0,69 / 1,82 ms | 0,58 / 1,46 / 3,03 ms |
+| Pares de tile: média / máximo por tick | 1.152 / 3.530 | 1.155 / 3.530 |
+| Updates de jogador no período | 1.262 | 5.925 |
+| Heap máximo do cliente | 98 MB | 109 MB |
+
+Hashes finais reproduzidos entre harnesses para cada modo: `6485522067183785`
+(legado) e `6070320339526102` (estratégico). Esta amostra é curta e muda a
+simulação ao alternar o modo; os tempos não são uma comparação estatística de
+regressão. Não houve crescimento relevante nos pares de tile. O maior número de
+updates de jogador coincide com os campos econômicos ativos e deve ser medido
+em uma janela mais longa antes de qualquer otimização; nesta amostra, os p95 de
+clone e GameView ficaram individualmente abaixo de 1,5 ms por tick, e o p95 do
+burst principal ficou abaixo do limite de 16,7 ms do cliente. Nenhum estado
+novo por tile ou schema de rede foi introduzido pela prioridade de bot.

@@ -22,6 +22,7 @@
  * Usage:
  *   npm run perf:game -- [--map world] [--ticks 1800] [--bots 400]
  *                        [--seed perf-default] [--top 30] [--window 1000]
+ *                        [--strategic-economy]
  *                        [--no-cpu-profile] [--no-exec-profile]
  *                        [--no-gc-profile] [--no-alloc-profile]
  *                        [--footprint] [--snapshot-at 0,2000,12000]
@@ -94,6 +95,7 @@ interface Options {
   footprint: boolean;
   snapshotAt: number[];
   waterNukes: boolean;
+  strategicEconomy: boolean;
 }
 
 function resolveMap(name: string): GameMapType {
@@ -125,6 +127,7 @@ function parseArgs(argv: string[]): Options {
     footprint: false,
     snapshotAt: [],
     waterNukes: false,
+    strategicEconomy: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -181,6 +184,9 @@ function parseArgs(argv: string[]): Options {
       case "--water-nukes":
         opts.waterNukes = true;
         break;
+      case "--strategic-economy":
+        opts.strategicEconomy = true;
+        break;
       default:
         throw new Error(`unknown argument: ${arg}`);
     }
@@ -231,6 +237,7 @@ async function main(): Promise<void> {
     instantBuild: false,
     randomSpawn: false,
     waterNukes: opts.waterNukes ? true : undefined,
+    strategicEconomy: opts.strategicEconomy ? true : undefined,
   };
   const gameStart: GameStartInfo = {
     gameID: opts.seed,
@@ -401,7 +408,10 @@ async function main(): Promise<void> {
   const alive = game.players().filter((p) => p.isAlive());
 
   console.log(`\n${"=".repeat(72)}`);
-  console.log(`Full game perf: ${opts.map}, ${summary.count} game ticks`);
+  console.log(
+    `Full game perf: ${opts.map}, ${summary.count} game ticks, ` +
+      `strategic economy=${opts.strategicEconomy ? "on" : "off"}`,
+  );
   console.log("=".repeat(72));
 
   console.log(`\n--- Game state at end ---`);

@@ -28,7 +28,8 @@
  *
  * Usage:
  *   npm run perf:client -- [--map world] [--ticks 1800] [--bots 400]
- *                          [--seed perf-default] [--top 30] [--no-cpu-profile]
+ *                          [--seed perf-default] [--top 30]
+ *                          [--strategic-economy] [--no-cpu-profile]
  */
 import "./Shims"; // must be first: browser-global shims for client code
 
@@ -79,6 +80,7 @@ interface Options {
   seed: string;
   top: number;
   cpuProfile: boolean;
+  strategicEconomy: boolean;
 }
 
 function resolveMap(name: string): GameMapType {
@@ -103,6 +105,7 @@ function parseArgs(argv: string[]): Options {
     seed: "perf-default",
     top: 30,
     cpuProfile: true,
+    strategicEconomy: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -136,6 +139,9 @@ function parseArgs(argv: string[]): Options {
       case "--no-cpu-profile":
         opts.cpuProfile = false;
         break;
+      case "--strategic-economy":
+        opts.strategicEconomy = true;
+        break;
       default:
         throw new Error(`unknown argument: ${arg}`);
     }
@@ -167,6 +173,7 @@ function createGlStub() {
     setPlayerSpawn: noop("setPlayerSpawn"),
     setLocalPlayerID: noop("setLocalPlayerID"),
     setLocalRailColor: noop("setLocalRailColor"),
+    updateSmallPlayerGlow: noop("updateSmallPlayerGlow"),
     updateSpawnOverlay: noop("updateSpawnOverlay"),
     initSkinAtlas: noop("initSkinAtlas"),
     applyTerrainRects: (rects: unknown[]) =>
@@ -178,6 +185,7 @@ function createGlStub() {
       changedTilesSeen += changed.length;
     },
     uploadLiveTrailDelta: noop("uploadLiveTrailDelta"),
+    updateSpiralRibbons: noop("updateSpiralRibbons"),
     applyFullTiles: noop("applyFullTiles"),
     applyDelta: noop("applyDelta"),
     uploadRailroadState: noop("uploadRailroadState"),
@@ -319,6 +327,7 @@ async function main(): Promise<void> {
     infiniteTroops: false,
     instantBuild: false,
     randomSpawn: false,
+    strategicEconomy: opts.strategicEconomy ? true : undefined,
   };
   const gameStart: GameStartInfo = {
     gameID: opts.seed,
@@ -329,7 +338,8 @@ async function main(): Promise<void> {
 
   console.log(
     `Loading map "${opts.map}" (bots=${opts.bots}, nations=${opts.nations}, ` +
-      `seed=${opts.seed}, ticks=${opts.ticks})...`,
+      `seed=${opts.seed}, ticks=${opts.ticks}, ` +
+      `strategic economy=${opts.strategicEconomy ? "on" : "off"})...`,
   );
 
   const mapLoader = new NodeGameMapLoader(
