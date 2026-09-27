@@ -24,6 +24,9 @@ function setBootstrapConfig() {
 
 beforeEach(async () => {
   setBootstrapConfig();
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    new Response(null, { status: 204 }),
+  );
   await logOut();
   vi.restoreAllMocks();
 });

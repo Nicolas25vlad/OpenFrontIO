@@ -175,7 +175,8 @@ Validação automatizada específica: `tests/core/game/GameMap.tileStateBuffer.t
 `tests/core/executions/BuildTrenchExecution.test.ts`,
 `tests/economy/StrategicBalance.test.ts` e `tests/Attack.test.ts` — 4 arquivos,
 38 testes passaram. `tsc --noEmit`, lint e `npm run build-dev` passaram, incluindo
-o shader no bundle. A suite serial completa passou com 470 arquivos e 5.590 testes.
+o shader no bundle. A suite completa passou com 471 arquivos e 5.595 testes;
+os testes de servidor são executados separadamente.
 
 ### Validação manual pendente no PC principal
 

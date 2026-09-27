@@ -266,6 +266,9 @@ export default defineConfig(({ mode }) => {
     test: {
       globals: true,
       environment: "jsdom",
+      environmentOptions: {
+        jsdom: { url: "http://localhost" },
+      },
       setupFiles: "./tests/setup.ts",
       // Git worktrees live inside the repo, so their tests match the default
       // glob and run against that worktree's own (often stale) source and
