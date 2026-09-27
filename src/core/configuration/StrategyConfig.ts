@@ -23,6 +23,7 @@ export const ECONOMY = {
   nuclearBatches: 1,
   productionRevenue: 150n,
   infantryPerFood: 5000,
+  foodReservePeriods: 6,
   navalFuelPerLevel: 2,
   shipsPerSteel: 5,
   supplyFloor: 35,

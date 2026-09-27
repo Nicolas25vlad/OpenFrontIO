@@ -1,3 +1,4 @@
+import { ECONOMY } from "../../configuration/StrategyConfig";
 import {
   Attack,
   Difficulty,
@@ -11,6 +12,7 @@ import {
   UnitType,
 } from "../../game/Game";
 import { TileRef } from "../../game/GameMap";
+import { ProcessedResource } from "../../game/Resources";
 import { Cluster } from "../../game/TrainStation";
 import { PseudoRandom } from "../../PseudoRandom";
 import { assertNever } from "../../Util";
@@ -167,6 +169,14 @@ export class NationStructureBehavior {
       if (this.defensePostNeeded()) {
         return false;
       }
+    }
+
+    // Food is a survival resource: do not let the high-gold structure pause or
+    // team save-up window delay a farm after the reserve threshold is reached.
+    if (this.tryBuildFoodFarm()) {
+      this.lastStructureTick = this.game.ticks();
+      this.placementsCount++;
+      return true;
     }
 
     if (this.isOnStructureCooldown()) {
@@ -541,6 +551,38 @@ export class NationStructureBehavior {
     }
 
     return false;
+  }
+
+  /**
+   * Keep food production close to infantry demand before spending a scarce
+   * structure turn on expansion or military buildings. This is opt-in with
+   * the strategic economy, so legacy nation behavior remains unchanged.
+   */
+  private tryBuildFoodFarm(): boolean {
+    const config = this.game.config();
+    if (!config.strategicEconomy?.() || config.isUnitDisabled(UnitType.Farm)) {
+      return false;
+    }
+
+    const foodDemand = Math.ceil(
+      this.player.troops() / ECONOMY.infantryPerFood,
+    );
+    if (foodDemand <= 0) return false;
+
+    const farmCapacity = this.player
+      .units(UnitType.Farm)
+      .reduce(
+        (capacity, farm) => capacity + farm.level() * ECONOMY.farmFood,
+        0,
+      );
+    if (farmCapacity >= foodDemand) return false;
+
+    const foodReserve = foodDemand * ECONOMY.foodReservePeriods;
+    if (this.player.resourceAmount(ProcessedResource.Food) >= foodReserve) {
+      return false;
+    }
+
+    return this.maybeSpawnStructure(UnitType.Farm);
   }
 
   private hasHighStartingGold(): boolean {

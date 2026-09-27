@@ -2,6 +2,7 @@ import { vi } from "vitest";
 import { ConstructionExecution } from "../src/core/execution/ConstructionExecution";
 import { NationStructureBehavior } from "../src/core/execution/nation/NationStructureBehavior";
 import { Difficulty, PlayerType, UnitType } from "../src/core/game/Game";
+import { ProcessedResource } from "../src/core/game/Resources";
 import { Cluster } from "../src/core/game/TrainStation";
 import { PseudoRandom } from "../src/core/PseudoRandom";
 
@@ -979,5 +980,115 @@ describe("NationStructureBehavior.getOrBuildReachableStations", () => {
     (behavior as any).getOrBuildReachableStations();
 
     expect(buildSpy).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("NationStructureBehavior strategic food support", () => {
+  function foodBehavior(options: {
+    strategicEconomy?: boolean;
+    troops: number;
+    food: number;
+    farmLevels?: number[];
+    farmDisabled?: boolean;
+  }) {
+    const game = makeGame() as any;
+    game.sharedWaterComponents = () => null;
+    game.ticks = () => 1;
+    game.config = () => ({
+      strategicEconomy: () => options.strategicEconomy ?? true,
+      isUnitDisabled: (type: UnitType) =>
+        type === UnitType.DefensePost ||
+        (type === UnitType.Farm && (options.farmDisabled ?? false)),
+    });
+    const farms = (options.farmLevels ?? []).map((level) => ({
+      level: () => level,
+    }));
+    const player = makePlayer(farms, []) as any;
+    player.units = (type: UnitType) => (type === UnitType.Farm ? farms : []);
+    player.unitsOwned = (type: UnitType) =>
+      type === UnitType.City ? 0 : farms.length;
+    player.troops = () => options.troops;
+    player.resourceAmount = (resource: ProcessedResource) =>
+      resource === ProcessedResource.Food ? options.food : 0;
+
+    const behavior = makeBehavior(game, player);
+    const spawn = vi
+      .spyOn(behavior as any, "maybeSpawnStructure")
+      .mockReturnValue(true);
+    return { behavior, spawn };
+  }
+
+  it.each([
+    [5_000, 5, []],
+    [25_000, 29, []],
+    [100_000, 119, [2]],
+  ])(
+    "builds production for a low, medium, or high troop economy (%i troops)",
+    (troops, food, farmLevels) => {
+      const { behavior, spawn } = foodBehavior({
+        troops,
+        food,
+        farmLevels,
+      });
+
+      expect(behavior.handleStructures()).toBe(true);
+      expect(spawn).toHaveBeenCalledWith(UnitType.Farm);
+    },
+  );
+
+  it("waits while stored food covers the reserve", () => {
+    const { behavior, spawn } = foodBehavior({
+      troops: 50_000,
+      food: 60,
+    });
+
+    expect((behavior as any).tryBuildFoodFarm()).toBe(false);
+    expect(spawn).not.toHaveBeenCalled();
+  });
+
+  it("does not add farms once their levels cover demand", () => {
+    const { behavior, spawn } = foodBehavior({
+      troops: 50_000,
+      food: 0,
+      farmLevels: [2],
+    });
+
+    expect((behavior as any).tryBuildFoodFarm()).toBe(false);
+    expect(spawn).not.toHaveBeenCalled();
+  });
+
+  it("does not delay a needed farm behind high-gold structure cooldowns", () => {
+    const { behavior, spawn } = foodBehavior({
+      troops: 100_000,
+      food: 0,
+    });
+    (behavior as any).placementsCount = 3;
+    (behavior as any).lastStructureTick = 0;
+    (behavior as any)._hasHighStartingGold = true;
+
+    expect(behavior.handleStructures()).toBe(true);
+    expect(spawn).toHaveBeenCalledWith(UnitType.Farm);
+  });
+
+  it("keeps the old build order when strategic economy is disabled", () => {
+    const { behavior, spawn } = foodBehavior({
+      strategicEconomy: false,
+      troops: 100_000,
+      food: 0,
+    });
+
+    expect((behavior as any).tryBuildFoodFarm()).toBe(false);
+    expect(spawn).not.toHaveBeenCalled();
+  });
+
+  it("respects a disabled farm unit", () => {
+    const { behavior, spawn } = foodBehavior({
+      troops: 100_000,
+      food: 0,
+      farmDisabled: true,
+    });
+
+    expect((behavior as any).tryBuildFoodFarm()).toBe(false);
+    expect(spawn).not.toHaveBeenCalled();
   });
 });
