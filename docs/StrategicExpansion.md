@@ -2,6 +2,8 @@
 
 Escopo: pedido original de 30 seções e issues #1–#11 de Nicolas25vlad/OpenFrontIO.
 Este documento acompanha a implementação completa; uma etapa verde não encerra o escopo.
+Antes de ativar ou alterar cada sistema, use o gate em
+[`StrategicCompatibilityChecklist.md`](StrategicCompatibilityChecklist.md).
 
 ## Plano e arquitetura
 
