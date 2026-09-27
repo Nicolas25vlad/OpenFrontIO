@@ -597,20 +597,21 @@
     "consumed": "Consum.",
     "details": "Produção e consumo",
     "exhausted": "Depósito esgotado",
-    "missing": "Faltam recursos",
-    "naval_supply": "Supply naval",
-    "naval_status": "Setores e rotas marítimas",
-    "naval_sectors": "Presença naval por setor (aliados / outros)",
-    "trade_routes": "Comboios em rota",
     "in_transit": "em viagem",
+    "missing": "Faltam recursos",
+    "naval_sectors": "Presença naval por setor (aliados / outros)",
+    "naval_status": "Setores e rotas marítimas",
+    "naval_supply": "Supply naval",
+    "trade_routes": "Comboios em rota",
     "period": "Último período de produção concluído (1 segundo)",
     "produced": "Produz.",
     "resource": "Recurso",
     "shortage": "Falta de insumo",
     "stock": "Estoque",
     "supply": "Supply terrestre",
+    "supply_hint": "Supply consome comida, combustível e aço. Escassez reduz crescimento, combate e velocidade; infraestrutura conectada reduz a manutenção.",
     "tanks": "Tanques",
-    "supply_hint": "Supply consome comida, combustível e aço. Escassez reduz crescimento, combate e velocidade; infraestrutura conectada reduz a manutenção."
+    "trade_routes": "Comboios em rota"
   },
   "effects": {
     "nukeType": {

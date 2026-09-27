@@ -676,12 +676,11 @@
     "consumed": "Used",
     "details": "Production and consumption",
     "exhausted": "Deposit exhausted",
-    "missing": "Missing resources",
-    "naval_supply": "Naval supply",
-    "naval_status": "Sea sectors and trade routes",
-    "naval_sectors": "Naval presence by sector (friendly / other)",
-    "trade_routes": "Trade ships underway",
     "in_transit": "underway",
+    "missing": "Missing resources",
+    "naval_sectors": "Naval presence by sector (friendly / other)",
+    "naval_status": "Sea sectors and trade routes",
+    "naval_supply": "Naval supply",
     "period": "Last completed production period (1 second)",
     "produced": "Produced",
     "resource": "Resource",
@@ -689,7 +688,8 @@
     "stock": "Stock",
     "supply": "Army supply",
     "supply_hint": "Supply consumes food, fuel and steel. Shortages reduce growth, combat and speed; connected infrastructure lowers maintenance.",
-    "tanks": "Tanks"
+    "tanks": "Tanks",
+    "trade_routes": "Trade ships underway"
   },
   "effects": {
     "nukeType": {
