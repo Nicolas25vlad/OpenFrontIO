@@ -1,3 +1,4 @@
+import { NUCLEAR_AI } from "../../configuration/StrategyConfig";
 import {
   Difficulty,
   Game,
@@ -488,11 +489,11 @@ export class NationNukeBehavior {
   }
 
   private removeOldNukeEvents() {
-    const maxAge = 600; // 600 ticks = 1 minute
     const tick = this.game.ticks();
     while (
       this.recentlySentNukes.length > 0 &&
-      this.recentlySentNukes[0][0] + maxAge < tick
+      this.recentlySentNukes[0][0] + NUCLEAR_AI.repeatedTargetAvoidanceTicks <
+        tick
     ) {
       this.recentlySentNukes.shift();
     }
@@ -757,13 +758,17 @@ export class NationNukeBehavior {
     this.recentlySentNukes.push([tick, tile, nukeType]);
     if (nukeType === UnitType.AtomBomb) {
       this.atomBombsLaunched++;
-      // Increase perceived cost by 50% each time to simulate saving up for a MIRV (higher than hydro to make atom bombs less attractive for the lategame)
-      this.atomBombPerceivedCost = (this.atomBombPerceivedCost * 150n) / 100n;
+      // Make repeated atomic launches less attractive than saving for a MIRV.
+      this.atomBombPerceivedCost =
+        (this.atomBombPerceivedCost *
+          BigInt(100 + NUCLEAR_AI.atomBombPerceivedCostIncreasePercent)) /
+        100n;
     } else if (nukeType === UnitType.HydrogenBomb) {
       this.hydrogenBombsLaunched++;
-      // Increase perceived cost by 25% each time to simulate saving up for a MIRV
       this.hydrogenBombPerceivedCost =
-        (this.hydrogenBombPerceivedCost * 125n) / 100n;
+        (this.hydrogenBombPerceivedCost *
+          BigInt(100 + NUCLEAR_AI.hydrogenBombPerceivedCostIncreasePercent)) /
+        100n;
     }
     this.game.addExecution(
       new NukeExecution(nukeType, this.player, tile, null, -1, waitTicks),

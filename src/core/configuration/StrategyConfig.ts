@@ -92,6 +92,13 @@ export const STRATEGIC_COMBAT = {
   defensePostSlowdown: 4,
 } as const;
 
+/** Nation AI nuclear launch pacing and repeated-target avoidance. */
+export const NUCLEAR_AI = {
+  atomBombPerceivedCostIncreasePercent: 50,
+  hydrogenBombPerceivedCostIncreasePercent: 25,
+  repeatedTargetAvoidanceTicks: 600,
+} as const;
+
 export const NUCLEAR_PRODUCTION_TICKS: Partial<Record<UnitType, number>> = {
   [UnitType.AtomBomb]: 300,
   [UnitType.HydrogenBomb]: 600,
