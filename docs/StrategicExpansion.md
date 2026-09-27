@@ -80,20 +80,16 @@ posições de fronteira, determinismo, limiar de tropas e limite global;
 cobrem produção, updates e replay dos tanques; `tests/Attack.test.ts`,
 `tests/GameUpdateUtils.test.ts` e `tests/client/view/GameView.test.ts` cobrem
 envio, força de combate, baixas em combate entre jogadores e sincronização da
-contagem nas investidas. Build e lint passaram; os testes focados da integração
-de ataques passaram (154 testes), além
-dos 89 testes focados na etapa de produção. A suíte completa também passou na
-etapa anterior (469 arquivos/5.576 testes e 63 arquivos/656 testes de servidor).
-Na execução completa mais recente, 466/469 arquivos passaram. As duas falhas
-reproduzíveis eram a ordenação de `en.json` e um mock incompleto do painel de
-recursos; ambas foram corrigidas e os três arquivos afetados passaram juntos
-(50 testes, incluindo a falha intermitente de armazenamento). Os 63 arquivos de
-servidor passaram após as correções. A suíte completa ainda precisa ser repetida
-para confirmar o resultado consolidado.
-No Node 26 do homelab, o comando completo requer Web Storage habilitado:
+contagem nas investidas. Build, lint e `tsc --noEmit` passaram; os testes focados
+da integração de ataques passaram (154 testes), além dos 89 testes focados na
+etapa de produção. A suíte completa passou em modo serial: 469 arquivos e 5.582
+testes. Os testes de servidor também passaram: 63 arquivos e 656 testes. No
+Node 26 do homelab, habilite Web Storage e limite o Vitest a um worker para
+evitar concorrência entre os arquivos de armazenamento compartilhado:
 
 ```sh
-NODE_OPTIONS="--experimental-webstorage --localstorage-file=/tmp/openfront-vitest-$$" npm test
+NODE_OPTIONS="--experimental-webstorage --localstorage-file=/tmp/openfront-vitest-$$" npx vitest run --maxWorkers=1
+NODE_OPTIONS="--experimental-webstorage --localstorage-file=/tmp/openfront-vitest-server-$$" npx vitest run tests/server
 ```
 
 ### Validação manual pendente no PC principal
