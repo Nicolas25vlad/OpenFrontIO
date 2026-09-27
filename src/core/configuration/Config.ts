@@ -20,13 +20,14 @@ import {
   UnitInfo,
   UnitType,
 } from "../game/Game";
-import { UserSettings } from "../game/UserSettings";
 import { ProcessedResource } from "../game/Resources";
+import { UserSettings } from "../game/UserSettings";
 import { GameConfig, TeamCountConfig } from "../Schemas";
 import { NukeType } from "../StatsSchemas";
 import { assertNever, sigmoid, toInt, within } from "../Util";
 import {
   ECONOMY,
+  NAVAL_SUPREMACY,
   NUCLEAR_PRODUCTION_TICKS,
   RESOURCE_COSTS,
   ResourceAmounts,
@@ -571,6 +572,14 @@ export class Config {
     return this.strategicEconomy() ? STRATEGIC_COMBAT.trenchMaxLevel : 0;
   }
 
+  navalSectorSize(): number {
+    return NAVAL_SUPREMACY.sectorSize;
+  }
+
+  navalBlockadeAdvantage(): number {
+    return NAVAL_SUPREMACY.blockadeAdvantage;
+  }
+
   nuclearProductionTicks(type: UnitType): number {
     return this.strategicEconomy() ? (NUCLEAR_PRODUCTION_TICKS[type] ?? 0) : 0;
   }
@@ -940,8 +949,7 @@ export class Config {
     const trenchLevel = input.defenderTrenchLevel ?? 0;
     if (this.strategicEconomy() && defender !== null && trenchLevel > 0) {
       mag *= 1 + trenchLevel * STRATEGIC_COMBAT.trenchDefensePerLevel;
-      tileCost *=
-        1 + trenchLevel * STRATEGIC_COMBAT.trenchAttackSpeedPerLevel;
+      tileCost *= 1 + trenchLevel * STRATEGIC_COMBAT.trenchAttackSpeedPerLevel;
     }
     if (input.falloutRatio !== null) {
       const fallout = this.falloutDefenseModifier(input.falloutRatio);

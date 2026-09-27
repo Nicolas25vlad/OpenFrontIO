@@ -6,6 +6,7 @@ import {
   PlayerType,
   UnitType,
 } from "../src/core/game/Game";
+import { ProcessedResource } from "../src/core/game/Resources";
 import { setup } from "./util/Setup";
 
 let game: Game;
@@ -93,6 +94,62 @@ describe("PortExecution", () => {
     const ports = execution.tradingPorts();
 
     expect(ports.length).toBe(1);
+  });
+
+  test("naval sector supremacy blocks routes, can be countered, and changes after losses", async () => {
+    const navalGame = await setup(
+      "half_land_half_ocean",
+      { instantBuild: true, strategicEconomy: true },
+      [
+        new PlayerInfo("player", PlayerType.Human, null, "player_id"),
+        new PlayerInfo("other", PlayerType.Human, null, "other_id"),
+      ],
+    );
+    const routeOwner = navalGame.player("player_id");
+    const portOwner = navalGame.player("other_id");
+    const navalAttacker = navalGame.addPlayer(
+      new PlayerInfo("naval attacker", PlayerType.Human, null, "naval_id"),
+    );
+    routeOwner.addGold(1_000_000n);
+    portOwner.addGold(1_000_000n);
+    navalAttacker.addGold(1_000_000n);
+    routeOwner.addResource(ProcessedResource.Steel, 200);
+    portOwner.addResource(ProcessedResource.Steel, 100);
+    navalAttacker.addResource(ProcessedResource.Steel, 100);
+    const sourceTile = navalGame.ref(7, 10);
+    const targetTile = navalGame.ref(0, 0);
+    routeOwner.conquer(sourceTile);
+    portOwner.conquer(targetTile);
+    const sourceSpawn = routeOwner.canBuild(UnitType.Port, sourceTile);
+    if (sourceSpawn === false) {
+      throw new Error("Unable to build ports for naval-sector test");
+    }
+    const sourcePort = routeOwner.buildUnit(UnitType.Port, sourceSpawn, {});
+    const targetPort = portOwner.buildUnit(UnitType.Port, targetTile, {});
+    const waterTiles = [...navalGame.circleSearch(targetPort.tile(), 8)].filter(
+      (tile) => navalGame.isWater(tile),
+    );
+    expect(waterTiles.length).toBeGreaterThan(0);
+    const execution = new PortExecution(sourcePort);
+    execution.init(navalGame, 0);
+    expect(execution.tradingPorts()).toContain(targetPort);
+    const navalTile = waterTiles[0];
+    const hostileShips = [0, 1].map(() =>
+      navalAttacker.buildUnit(UnitType.Warship, navalTile, {
+        patrolTile: navalTile,
+      }),
+    );
+    expect(execution.tradingPorts()).not.toContain(targetPort);
+    const escort = portOwner.buildUnit(UnitType.Warship, navalTile, {
+      patrolTile: navalTile,
+    });
+    expect(execution.tradingPorts()).toContain(targetPort);
+    escort.delete(false);
+    navalGame.executeNextTick();
+    expect(execution.tradingPorts()).not.toContain(targetPort);
+    hostileShips[0].delete(false);
+    navalGame.executeNextTick();
+    expect(execution.tradingPorts()).toContain(targetPort);
   });
 
   test("shouldSpawnTradeShip recomputes spawn rate per level with updated rejection count", () => {

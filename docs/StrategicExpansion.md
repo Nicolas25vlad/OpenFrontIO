@@ -196,3 +196,39 @@ envie o intent manualmente; clientes e replay recebem o mesmo nível via update
 compacto. Permanecem para esta issue os counters de tanque/supply e a revisão
 visual em replay/multiplayer; não foram alteradas regras de seleção de alvos
 navais ou nucleares. A validação manual acima continua pendente.
+
+## Supremacia local por setor marítimo — issue #7 (parcial)
+
+Na economia estratégica, cada setor costeiro de 64 tiles deriva sua supremacia
+dos navios de guerra ativos, nível e fração de saúde. Uma rota comercial nova
+não escolhe um porto cujo setor tenha vantagem hostil líquida de pelo menos
+dois navios. Navios aliados no setor reduzem a vantagem; navios destruídos,
+retirados ou em reparo deixam de contar. O cálculo consulta somente a vizinhança
+espacial do porto e o componente de água conectado; não mantém estado por tile.
+Rotas já em curso continuam seguindo as regras de interceptação existentes.
+
+Arquivos desta etapa: `src/core/configuration/StrategyConfig.ts`,
+`src/core/configuration/Config.ts`, `src/core/game/NavalSupremacy.ts`,
+`src/core/execution/PortExecution.ts` e `tests/PortExecution.test.ts`.
+
+Validação automatizada: o teste de `PortExecution` cobre bloqueio por presença,
+contrapressão de escolta e retomada após perda de navio. Os cenários de comércio
+passaram: 4 arquivos/34 testes. `tsc --noEmit`, lint, `npm run build-dev` e
+Prettier também passaram após esta etapa.
+
+### Validação manual pendente no PC principal
+
+1. Rode `npm run dev:host`, inicie uma partida com `strategicEconomy` ligado e
+   construa dois portos com acesso ao mesmo mar.
+2. Mantenha dois navios de guerra inimigos no setor marítimo do porto de destino.
+   Novas rotas para esse porto devem parar; navios que já saíram continuam a
+   viagem e podem ser interceptados pelas regras atuais.
+3. Posicione um navio do dono do porto ou de um aliado no setor. Quando a
+   vantagem hostil ficar abaixo de dois, novas rotas devem voltar a ocorrer.
+   Afunde ou retire um navio hostil e confirme que a rota também é retomada.
+4. Repita com `strategicEconomy` desligado e confirme que a seleção antiga de
+   portos continua igual.
+
+Esperado: o resultado muda deterministicamente com presença, escolta e perdas;
+nenhum update por tile ou mapa inteiro é criado. Faltam setores visíveis no HUD,
+rotas escolhidas/definidas pelo jogador e comboios com carga de recursos real.

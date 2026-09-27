@@ -116,6 +116,12 @@ export const STRATEGIC_COMBAT = {
   tankCasualtyMultiplier: 100,
 } as const;
 
+/** Coastal naval sectors are derived from active units; they add no map state. */
+export const NAVAL_SUPREMACY = {
+  sectorSize: 64,
+  blockadeAdvantage: 2,
+} as const;
+
 /** Nation AI nuclear launch pacing and repeated-target avoidance. */
 export const NUCLEAR_AI = {
   atomBombPerceivedCostIncreasePercent: 50,

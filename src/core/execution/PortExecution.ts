@@ -1,4 +1,5 @@
 import { Execution, Game, Unit, UnitType } from "../game/Game";
+import { isNavalSectorBlockaded } from "../game/NavalSupremacy";
 import { PseudoRandom } from "../PseudoRandom";
 import { TradeShipExecution } from "./TradeShipExecution";
 import { TrainStationExecution } from "./TrainStationExecution";
@@ -120,6 +121,11 @@ export class PortExecution implements Execution {
         }
         return false;
       })
+      .filter(
+        (port) =>
+          !this.mg.config().strategicEconomy() ||
+          !isNavalSectorBlockaded(this.mg, port),
+      )
       .sort((p1, p2) => {
         return (
           this.mg.manhattanDist(this.port!.tile(), p1.tile()) -
