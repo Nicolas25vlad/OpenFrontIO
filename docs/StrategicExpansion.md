@@ -223,7 +223,9 @@ perdidos. Valores, reservas, alvos e ordem ficam centralizados em
 Arquivos desta etapa: `src/core/configuration/StrategyConfig.ts`,
 `src/core/configuration/Config.ts`, `src/core/game/NavalSupremacy.ts`,
 `src/core/execution/PortExecution.ts`, `src/core/execution/TradeShipExecution.ts`,
-`tests/PortExecution.test.ts` e `tests/core/executions/TradeShipExecution.test.ts`.
+`src/client/hud/layers/ResourcePanel.ts`, traduções em `resources/lang/`,
+`tests/PortExecution.test.ts`, `tests/core/executions/TradeShipExecution.test.ts`
+e `tests/client/ResourcePanel.test.ts`.
 
 O painel econômico também lista os setores que contêm portos próprios, com suas
 coordenadas na grade, quantidade de portos e presença de navios de guerra
@@ -237,6 +239,11 @@ de escolta, retomada após perda de navio, carga/pagamento na chegada, respeito 
 reserva e devolução após captura do porto. A regressão naval/econômica passou:
 5 arquivos/38 testes. `tsc --noEmit`, lint, `npm run build-dev` e Prettier
 também passaram após esta etapa.
+
+A UI do painel passou em `tests/client/ResourcePanel.test.ts` (2 testes),
+incluindo contagens setoriais e destino de comboio. Após a inclusão do painel,
+`npx tsc --noEmit`, `npm run lint`, `npm run build-dev` e `git diff --check`
+passaram no homelab.
 
 ### Validação manual pendente no PC principal
 
@@ -258,6 +265,10 @@ também passaram após esta etapa.
    do captor, que recebe a carga; o comprador original recupera o depósito.
    Afunde um comboio carregado: carga e depósito devem ser perdidos. Repita com
    `strategicEconomy` desligado e confirme que não há carga automática.
+6. Com portos próprios e navios de guerra em setores diferentes, abra “Setores e
+   rotas marítimas” no painel econômico. Mova ou retire navios aliados/inimigos
+   e confira as contagens. Observe um comboio próprio ou aliado e confira o dono
+   do porto de destino e as coordenadas do setor. Repita em replay e multiplayer.
 
 Esperado: o resultado muda deterministicamente com presença, escolta e perdas;
 nenhum update por tile ou mapa inteiro é criado. O painel econômico mostra a
