@@ -386,7 +386,8 @@ ganhou um teste focado.
 
 Arquivos desta etapa: `src/core/execution/nation/NationStructureBehavior.ts` e
 `tests/economy/NationVehicleFactoryPriority.test.ts`,
-`tests/economy/NationFarmPriority.test.ts`.
+`tests/economy/NationFarmPriority.test.ts` e
+`tests/AiAttackBehavior.test.ts`.
 
 Validação automatizada: 76 testes passaram nos cenários de fazenda, fábrica de
 veículos e `NationStructureBehavior`. Os casos incluem exércitos pequeno, médio
@@ -397,8 +398,13 @@ reais e confirma que a fazenda é construída após o pedido. A regressão de
 economia da IA passou em mais 7 arquivos/24 testes,
 cobrindo prioridades de mina, infraestrutura, expansão de recursos, usinas
 nucleares, produção e replay determinístico. `tsc --noEmit`, lint,
-`npm run build-dev` e Prettier passaram. A suíte principal passou com 473
-arquivos/5.601 testes e a de servidor com 63 arquivos/656 testes.
+`npm run build-dev` e Prettier passaram. A última suíte completa, antes do teste
+de ataque da nação abaixo, passou com 473 arquivos/5.607 testes e a de servidor
+com 63 arquivos/656 testes. O teste novo
+de `AiAttackBehavior.test.ts` confirma que uma nação em partida estratégica
+desconta tanques da reserva e os embarca em um ataque terrestre; a regressão
+focada em `AiAttackBehavior`, `Attack` e `NationVehicleFactoryPriority` passou
+com 49 testes.
 
 ### Validação manual pendente no PC principal
 

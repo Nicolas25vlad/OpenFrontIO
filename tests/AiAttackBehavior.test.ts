@@ -119,6 +119,44 @@ describe("Ai Attack Behavior", () => {
     expect(bot.outgoingAttacks()).toHaveLength(attacksBefore);
   });
 
+  test("nation commits available tanks to strategic land attacks", async () => {
+    const strategicGame = await setup("big_plains", {
+      strategicEconomy: true,
+      infiniteGold: true,
+      infiniteTroops: true,
+    });
+    strategicGame.addPlayer(
+      new PlayerInfo("tank nation", PlayerType.Nation, null, "tank_nation"),
+    );
+    strategicGame.addPlayer(
+      new PlayerInfo("target", PlayerType.Human, null, "tank_target"),
+    );
+    const nation = strategicGame.player("tank_nation");
+    const target = strategicGame.player("tank_target");
+    assignAlternatingLandTiles(strategicGame, [nation, target], 21);
+    nation.addTroops(25_000);
+    nation.addTanks(3);
+    const behavior = new AiAttackBehavior(
+      new PseudoRandom(0),
+      strategicGame,
+      nation,
+      0,
+      0,
+      0,
+      undefined,
+      new NationEmojiBehavior(new PseudoRandom(0), strategicGame, nation),
+    );
+
+    expect(behavior.sendAttack(target, true)).toBe(true);
+    executeTicks(strategicGame, 2);
+
+    expect(nation.outgoingAttacks()).toHaveLength(1);
+    const attack = nation.outgoingAttacks()[0];
+    expect(attack.tanks()).toBeGreaterThan(0);
+    expect(attack.tanks()).toBeLessThanOrEqual(3);
+    expect(nation.tanks()).toBe(3 - attack.tanks());
+  });
+
   test("nation cannot attack allied player", () => {
     // Create nation
     const nationInfo = new PlayerInfo(
