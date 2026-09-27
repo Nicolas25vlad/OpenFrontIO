@@ -64,7 +64,8 @@ export class AllianceRequestExecution implements Execution {
   tick(ticks: number): void {
     if (
       this.req?.status() === "accepted" ||
-      this.req?.status() === "rejected"
+      this.req?.status() === "rejected" ||
+      this.req?.status() === "canceled"
     ) {
       this.active = false;
       return;

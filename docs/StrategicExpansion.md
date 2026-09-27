@@ -255,3 +255,40 @@ Esperado: o resultado muda deterministicamente com presença, escolta e perdas;
 nenhum update por tile ou mapa inteiro é criado. Faltam setores visíveis no HUD,
 rotas escolhidas/definidas pelo jogador e validação visual de multiplayer/replay.
 Os passos manuais continuam pendentes no PC principal.
+
+## Cancelamento de proposta de aliança — issue #8 (parcial)
+
+O jogador que enviou uma proposta pendente pode cancelá-la pelo painel ou menu
+radial. O servidor procura a proposta na lista de saídas do remetente autenticado;
+cancelamentos feitos pelo destinatário, para outro jogador, ou depois de resolvida
+a proposta não alteram o estado. O update de resposta distingue cancelamento de
+recusa: o remetente recebe o resultado no histórico e o destinatário remove o
+card acionável. A aliança só é criada pelo fluxo de aceite já existente.
+
+Arquivos desta etapa: `src/core/Schemas.ts`,
+`src/core/execution/alliance/AllianceCancelExecution.ts`,
+`src/core/execution/ExecutionManager.ts`, `src/core/game/AllianceRequestImpl.ts`,
+`src/core/game/GameImpl.ts`, `src/core/game/GameUpdates.ts`,
+`src/core/GameRunner.ts`, `src/client/Transport.ts`,
+`src/client/hud/layers/PlayerPanel.ts`,
+`src/client/hud/layers/RadialMenuElements.ts`, `src/client/hud/layers/EventsDisplay.ts`,
+`src/client/hud/layers/PlayerActionHandler.ts`, traduções em `resources/lang/` e
+testes de execução/wire.
+
+### Validação manual pendente no PC principal
+
+1. Rode `npm run dev:host` e inicie uma partida local com dois jogadores.
+2. Envie uma proposta de aliança pelo painel ou menu radial. No jogador remetente,
+   deve aparecer “Cancelar pedido de aliança”; no destinatário, o card normal de
+   aceitar/recusar deve continuar disponível.
+3. Cancele no remetente. A proposta deve desaparecer do destinatário e o histórico
+   do remetente deve dizer que o pedido foi cancelado, sem criar uma aliança.
+4. Envie uma nova proposta e aceite ou recuse no destinatário. O botão de cancelar
+   deve desaparecer; uma tentativa tardia não pode alterar a decisão nem criar uma
+   aliança parcialmente aplicada.
+
+A validação automatizada passou em 5 arquivos/60 testes e cobre autorização,
+cancelamento, estado terminal de propostas resolvidas, atualização sincronizada
+e codificação do intent. `tsc --noEmit`, lint e `npm run build-dev` passaram. Faltam
+os demais termos de paz, trégua/capitulação e sua validação visual em replay e
+multiplayer; a issue permanece aberta.

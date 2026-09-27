@@ -219,7 +219,8 @@ const allyRequestElement: MenuElement = {
   disabled: (params: MenuElementParams) =>
     !params.playerActions?.interaction?.canSendAllianceRequest,
   displayed: (params: MenuElementParams) =>
-    !params.playerActions?.interaction?.canBreakAlliance,
+    !params.playerActions?.interaction?.canBreakAlliance &&
+    !params.playerActions?.interaction?.canCancelAllianceRequest,
   color: COLORS.ally,
   icon: allianceIcon,
   action: (params: MenuElementParams) => {
@@ -227,6 +228,21 @@ const allyRequestElement: MenuElement = {
       params.myPlayer,
       params.selected!,
     );
+    params.closeMenu();
+  },
+};
+
+const allyCancelRequestElement: MenuElement = {
+  id: "ally_cancel_request",
+  name: "cancel request",
+  disabled: (params: MenuElementParams) =>
+    !params.playerActions?.interaction?.canCancelAllianceRequest,
+  displayed: (params: MenuElementParams) =>
+    !!params.playerActions?.interaction?.canCancelAllianceRequest,
+  color: COLORS.embargo,
+  icon: allianceIcon,
+  action: (params: MenuElementParams) => {
+    params.playerActionHandler.handleCancelAllianceRequest(params.selected!);
     params.closeMenu();
   },
 };
@@ -807,7 +823,11 @@ export const rootMenuElement: MenuElement = {
         ? [deleteUnitElement, allyRequestElement, buildMenuElement]
         : [
             isAllied && !isDisconnected ? allyBreakElement : boatMenuElement,
-            inExtensionWindow ? allyExtendElement : allyRequestElement,
+            inExtensionWindow
+              ? allyExtendElement
+              : params.playerActions.interaction?.canCancelAllianceRequest
+                ? allyCancelRequestElement
+                : allyRequestElement,
             showDonateInsteadOfAttack
               ? donateGoldRadialElement
               : attackMenuElement,

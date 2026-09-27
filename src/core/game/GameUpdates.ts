@@ -302,6 +302,7 @@ export interface AllianceRequestReplyUpdate {
   type: GameUpdateType.AllianceRequestReply;
   request: AllianceRequestUpdate;
   accepted: boolean;
+  canceled?: boolean;
 }
 
 export interface BrokeAllianceUpdate {

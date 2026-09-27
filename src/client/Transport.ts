@@ -60,6 +60,10 @@ export class SendAllianceRequestIntentEvent implements GameEvent {
   ) {}
 }
 
+export class CancelAllianceRequestIntentEvent implements GameEvent {
+  constructor(public readonly recipient: PlayerView) {}
+}
+
 export class SendBreakAllianceIntentEvent implements GameEvent {
   constructor(
     public readonly requestor: PlayerView,
@@ -279,6 +283,9 @@ export class Transport {
 
     this.eventBus.on(SendAllianceRequestIntentEvent, (e) =>
       this.onSendAllianceRequest(e),
+    );
+    this.eventBus.on(CancelAllianceRequestIntentEvent, (e) =>
+      this.onCancelAllianceRequest(e),
     );
     this.eventBus.on(SendAllianceRejectIntentEvent, (e) =>
       this.onAllianceRejectUIEvent(e),
@@ -679,6 +686,13 @@ export class Transport {
   private onSendAllianceRequest(event: SendAllianceRequestIntentEvent) {
     this.sendIntent({
       type: "allianceRequest",
+      recipient: event.recipient.id(),
+    });
+  }
+
+  private onCancelAllianceRequest(event: CancelAllianceRequestIntentEvent) {
+    this.sendIntent({
+      type: "allianceCancel",
       recipient: event.recipient.id(),
     });
   }

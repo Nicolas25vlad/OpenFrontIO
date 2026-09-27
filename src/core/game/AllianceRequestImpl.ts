@@ -3,7 +3,7 @@ import { GameImpl } from "./GameImpl";
 import { AllianceRequestUpdate, GameUpdateType } from "./GameUpdates";
 
 export class AllianceRequestImpl implements AllianceRequest {
-  private status_: "pending" | "accepted" | "rejected" = "pending";
+  private status_: "pending" | "accepted" | "rejected" | "canceled" = "pending";
 
   constructor(
     private requestor_: Player,
@@ -12,7 +12,7 @@ export class AllianceRequestImpl implements AllianceRequest {
     private game: GameImpl,
   ) {}
 
-  status(): "pending" | "accepted" | "rejected" {
+  status(): "pending" | "accepted" | "rejected" | "canceled" {
     return this.status_;
   }
 
@@ -35,6 +35,11 @@ export class AllianceRequestImpl implements AllianceRequest {
   reject(): void {
     this.status_ = "rejected";
     this.game.rejectAllianceRequest(this);
+  }
+  cancel(): void {
+    if (this.status_ !== "pending") return;
+    this.status_ = "canceled";
+    this.game.cancelAllianceRequest(this);
   }
 
   toUpdate(): AllianceRequestUpdate {

@@ -23,6 +23,7 @@ import {
   SwapRocketDirectionEvent,
 } from "../../InputHandler";
 import {
+  CancelAllianceRequestIntentEvent,
   PlayerReportedEvent,
   SendAllianceRequestIntentEvent,
   SendBreakAllianceIntentEvent,
@@ -821,6 +822,8 @@ export class PlayerPanel extends LitElement implements Controller {
     const canDonateTroops = this.actions?.interaction?.canDonateTroops;
     const canSendAllianceRequest =
       this.actions?.interaction?.canSendAllianceRequest;
+    const canCancelAllianceRequest =
+      this.actions?.interaction?.canCancelAllianceRequest;
     const canSendEmoji =
       other === myPlayer
         ? this.actions?.canSendEmojiAllPlayers
@@ -926,6 +929,25 @@ export class PlayerPanel extends LitElement implements Controller {
                       title: translateText("player_panel.send_alliance"),
                       label: translateText("player_panel.send_alliance"),
                       type: "indigo",
+                    })
+                  : ""}
+                ${canCancelAllianceRequest
+                  ? actionButton({
+                      onClick: (e: MouseEvent) => {
+                        e.stopPropagation();
+                        this.eventBus.emit(
+                          new CancelAllianceRequestIntentEvent(other),
+                        );
+                      },
+                      icon: allianceIcon,
+                      iconAlt: "Cancel Alliance Request",
+                      title: translateText(
+                        "player_panel.cancel_alliance_request",
+                      ),
+                      label: translateText(
+                        "player_panel.cancel_alliance_request",
+                      ),
+                      type: "yellow",
                     })
                   : ""}
               </div>

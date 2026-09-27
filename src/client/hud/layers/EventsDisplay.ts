@@ -365,7 +365,11 @@ export class EventsDisplay extends LitElement implements Controller {
         name: recipient.displayName(),
         status: update.accepted
           ? translateText("events_display.alliance_accepted")
-          : translateText("events_display.alliance_rejected"),
+          : translateText(
+              update.canceled
+                ? "events_display.alliance_canceled"
+                : "events_display.alliance_rejected",
+            ),
       }),
       type: update.accepted
         ? MessageType.ALLIANCE_ACCEPTED

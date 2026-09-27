@@ -502,6 +502,21 @@ export class GameImpl implements Game {
     });
   }
 
+  cancelAllianceRequest(request: AllianceRequestImpl) {
+    this.allianceRequests = this.allianceRequests.filter(
+      (ar) => ar !== request,
+    );
+    (request.requestor() as PlayerImpl).pastOutgoingAllianceRequests.push(
+      request,
+    );
+    this.addUpdate({
+      type: GameUpdateType.AllianceRequestReply,
+      request: request.toUpdate(),
+      accepted: false,
+      canceled: true,
+    });
+  }
+
   hasPlayer(id: PlayerID): boolean {
     return this._players.has(id);
   }

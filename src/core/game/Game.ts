@@ -435,10 +435,11 @@ export interface Attack {
 export interface AllianceRequest {
   accept(): void;
   reject(): void;
+  cancel(): void;
   requestor(): Player;
   recipient(): Player;
   createdAt(): Tick;
-  status(): "pending" | "accepted" | "rejected";
+  status(): "pending" | "accepted" | "rejected" | "canceled";
 }
 
 export interface Alliance {
@@ -1077,6 +1078,7 @@ export interface PlayerInteraction {
   sharedBorder: boolean;
   canSendEmoji: boolean;
   canSendAllianceRequest: boolean;
+  canCancelAllianceRequest?: boolean;
   canBreakAlliance: boolean;
   canTarget: boolean;
   canDonateGold: boolean;

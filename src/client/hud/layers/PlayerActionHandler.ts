@@ -1,6 +1,7 @@
 import { EventBus } from "../../../core/EventBus";
 import { TileRef } from "../../../core/game/GameMap";
 import {
+  CancelAllianceRequestIntentEvent,
   SendAllianceExtensionIntentEvent,
   SendAllianceRequestIntentEvent,
   SendAttackIntentEvent,
@@ -54,6 +55,10 @@ export class PlayerActionHandler {
 
   handleAllianceRequest(player: PlayerView, recipient: PlayerView) {
     this.eventBus.emit(new SendAllianceRequestIntentEvent(player, recipient));
+  }
+
+  handleCancelAllianceRequest(recipient: PlayerView) {
+    this.eventBus.emit(new CancelAllianceRequestIntentEvent(recipient));
   }
 
   handleExtendAlliance(recipient: PlayerView) {

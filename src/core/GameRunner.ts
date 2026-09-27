@@ -263,6 +263,9 @@ export class GameRunner {
         canSendEmoji: player.canSendEmoji(other),
         canTarget: player.canTarget(other),
         canSendAllianceRequest: player.canSendAllianceRequest(other),
+        canCancelAllianceRequest: player
+          .outgoingAllianceRequests()
+          .some((request) => request.recipient() === other),
         canBreakAlliance: player.isAlliedWith(other),
         canDonateGold: player.canDonateGold(other),
         canDonateTroops: player.canDonateTroops(other),

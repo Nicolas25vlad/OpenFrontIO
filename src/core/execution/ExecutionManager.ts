@@ -2,13 +2,14 @@ import { Execution, Game } from "../game/Game";
 import { PseudoRandom } from "../PseudoRandom";
 import { ClientID, GameID, StampedIntent, Turn } from "../Schemas";
 import { simpleHash } from "../Util";
+import { AllianceCancelExecution } from "./alliance/AllianceCancelExecution";
 import { AllianceExtensionExecution } from "./alliance/AllianceExtensionExecution";
 import { AllianceRejectExecution } from "./alliance/AllianceRejectExecution";
 import { AllianceRequestExecution } from "./alliance/AllianceRequestExecution";
 import { BreakAllianceExecution } from "./alliance/BreakAllianceExecution";
 import { AttackExecution } from "./AttackExecution";
-import { BuildTrenchExecution } from "./BuildTrenchExecution";
 import { BoatRetreatExecution } from "./BoatRetreatExecution";
+import { BuildTrenchExecution } from "./BuildTrenchExecution";
 import { ConstructionExecution } from "./ConstructionExecution";
 import { DeleteUnitExecution } from "./DeleteUnitExecution";
 import { DonateGoldExecution } from "./DonateGoldExecution";
@@ -87,6 +88,8 @@ export class Executor {
         return new AllianceRequestExecution(player, intent.recipient);
       case "allianceReject":
         return new AllianceRejectExecution(intent.requestor, player);
+      case "allianceCancel":
+        return new AllianceCancelExecution(player, intent.recipient);
       case "breakAlliance":
         return new BreakAllianceExecution(player, intent.recipient);
       case "targetPlayer":
