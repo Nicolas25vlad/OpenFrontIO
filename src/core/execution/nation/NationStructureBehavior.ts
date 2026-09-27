@@ -26,6 +26,7 @@ import {
 import { Cluster } from "../../game/TrainStation";
 import { PseudoRandom } from "../../PseudoRandom";
 import { assertNever } from "../../Util";
+import { BuildTrenchExecution } from "../BuildTrenchExecution";
 import { ConstructionExecution } from "../ConstructionExecution";
 import { UpgradeStructureExecution } from "../UpgradeStructureExecution";
 import { nearestTileDist, nearestTileDistCapped } from "../Util";
@@ -141,6 +142,9 @@ const UNDER_ATTACK_THREAT_RATIO = 0.35;
  */
 const DEFENSE_POST_RATIO_PER_POST = 0.4;
 
+/** Maximum distinct front tiles a nation fortifies during one attack. */
+const MAX_TRENCHED_FRONT_TILES = 8;
+
 const PRODUCTION_UNIT_TYPES = [
   UnitType.Farm,
   UnitType.Factory,
@@ -200,6 +204,7 @@ export class NationStructureBehavior {
   private pendingInfrastructureOrderTick: number | null = null;
   private pendingNuclearPlantOrderTick: number | null = null;
   private pendingVehicleFactoryOrderTick: number | null = null;
+  private lastTrenchBuildTick: number | null = null;
 
   constructor(
     private random: PseudoRandom,
@@ -230,6 +235,13 @@ export class NationStructureBehavior {
     if (this.tryBuildFoodFarm()) {
       this.lastStructureTick = this.game.ticks();
       this.placementsCount++;
+      return true;
+    }
+
+    // Trenches consume strategic materials rather than gold and are built
+    // outside normal structure pacing, like defense posts. Food remains the
+    // first priority because it protects the army from starvation.
+    if (this.placementsCount > 0 && this.tryBuildDefenseTrench()) {
       return true;
     }
 
@@ -299,6 +311,56 @@ export class NationStructureBehavior {
       return true;
     }
     return false;
+  }
+
+  /** Builds one trench on an exposed border tile during a land attack. */
+  private tryBuildDefenseTrench(): boolean {
+    if (
+      !this.game.config().strategicEconomy() ||
+      this.lastTrenchBuildTick === this.game.ticks()
+    ) {
+      return false;
+    }
+
+    const landAttacks = this.player
+      .incomingAttacks()
+      .filter((attack) => attack.sourceTile() === null);
+    if (landAttacks.length === 0) return false;
+
+    const ourTroops = this.player.troops();
+    if (ourTroops <= 0) return false;
+
+    const incomingTroops = landAttacks.reduce(
+      (sum, attack) => sum + attack.troops(),
+      0,
+    );
+    const threatRatio = incomingTroops / ourTroops;
+    if (threatRatio < UNDER_ATTACK_THREAT_RATIO) return false;
+
+    const maxTrenchedTiles = Math.min(
+      MAX_TRENCHED_FRONT_TILES,
+      Math.ceil(threatRatio / DEFENSE_POST_RATIO_PER_POST),
+    );
+    const frontTiles = this.getAttackFrontTiles(landAttacks);
+    const trenchedTiles = frontTiles.filter(
+      (tile) => this.game.trenchLevel(tile) > 0,
+    );
+    if (trenchedTiles.length >= maxTrenchedTiles) return false;
+
+    const cost = this.game.config().trenchCost();
+    if (!hasResources(this.player, cost)) return false;
+
+    const tile =
+      frontTiles.find((candidate) => this.game.trenchLevel(candidate) === 0) ??
+      frontTiles.find(
+        (candidate) =>
+          this.game.trenchLevel(candidate) < STRATEGIC_COMBAT.trenchMaxLevel,
+      );
+    if (tile === undefined) return false;
+
+    this.game.addExecution(new BuildTrenchExecution(this.player, tile));
+    this.lastTrenchBuildTick = this.game.ticks();
+    return true;
   }
 
   private defensePostNeeded(): boolean {

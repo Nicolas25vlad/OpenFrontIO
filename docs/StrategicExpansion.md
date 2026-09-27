@@ -398,13 +398,23 @@ reais e confirma que a fazenda é construída após o pedido. A regressão de
 economia da IA passou em mais 7 arquivos/24 testes,
 cobrindo prioridades de mina, infraestrutura, expansão de recursos, usinas
 nucleares, produção e replay determinístico. `tsc --noEmit`, lint,
-`npm run build-dev` e Prettier passaram. A última suíte completa, antes do teste
-de ataque da nação abaixo, passou com 473 arquivos/5.607 testes e a de servidor
-com 63 arquivos/656 testes. O teste novo
+`npm run build-dev` e Prettier passaram. A suíte completa atual passou com 474
+arquivos/5.610 testes; a de servidor, com 63 arquivos/656 testes. O teste novo
 de `AiAttackBehavior.test.ts` confirma que uma nação em partida estratégica
 desconta tanques da reserva e os embarca em um ataque terrestre; a regressão
 focada em `AiAttackBehavior`, `Attack` e `NationVehicleFactoryPriority` passou
-com 49 testes.
+com 49 testes. A regressão focada em `NationTrenchPriority`,
+`NationVehicleFactoryPriority`, `NationStructureBehavior` e `BuildTrenchExecution`
+passou com 79 testes.
+
+Na mesma prioridade, nações agora constroem trincheiras em frentes terrestres
+sob ameaça, desde que a economia estratégica esteja ativa e haja aço para o
+custo configurado. Cada decisão envia uma construção por vez; a quantidade de
+tiles fortificados é limitada pela proporção de tropas recebidas, com máximo de
+oito tiles, e os níveis existentes são respeitados. A regra usa os ataques
+ativos já presentes na simulação e não altera partidas legadas. Cobertura nova
+em `tests/economy/NationTrenchPriority.test.ts` verifica construção e consumo
+de aço, além dos casos sem recursos e com economia legada.
 
 ### Validação manual pendente no PC principal
 
@@ -415,7 +425,11 @@ com 49 testes.
 3. Teste com 10.000, 50.000 e 100.000 infantes se a nação solicita uma única
    Vehicle Factory quando faltam tanques e existem aço/combustível. Com estoque
    no alvo ou sem insumos, ela não deve solicitá-la.
-4. Repita com economia estratégica desligada; essas novas prioridades não devem
+4. Sob ataque terrestre, confira se a nação fortifica tiles próprios na linha de
+   contato quando há aço. O total de tiles fortificados deve crescer com a
+   proporção entre tropas recebidas e tropas próprias, até o limite de oito;
+   ataques navais, aço insuficiente e economia legada não devem criar trincheiras.
+5. Repita com economia estratégica desligada; essas novas prioridades não devem
    atuar.
 
 Esperado: a nação tenta no máximo uma construção por vez, respeita o limite de
