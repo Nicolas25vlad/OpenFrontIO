@@ -1,4 +1,8 @@
-import { NUCLEAR_AI } from "../../configuration/StrategyConfig";
+import {
+  NUCLEAR_AI,
+  type ResourceAmounts,
+} from "../../configuration/StrategyConfig";
+import { hasResources } from "../../game/Economy";
 import {
   Difficulty,
   Game,
@@ -13,6 +17,7 @@ import {
   UnitType,
 } from "../../game/Game";
 import { TileRef, euclDistFN } from "../../game/GameMap";
+import type { ResourceType } from "../../game/Resources";
 import { UniversalPathFinding } from "../../pathfinding/PathFinder";
 import { PseudoRandom } from "../../PseudoRandom";
 import { assertNever, boundingBoxTiles } from "../../Util";
@@ -985,7 +990,16 @@ export class NationNukeBehavior {
 
       // Check gold for all fired bombs (including wasted ones)
       const totalCost = atomCost * BigInt(bombsToFire);
-      if (this.player.gold() < totalCost) {
+      const totalResourceCost: ResourceAmounts = {};
+      for (const [resource, amount] of Object.entries(
+        this.game.config().resourceCost(UnitType.AtomBomb),
+      )) {
+        totalResourceCost[resource as ResourceType] = amount * bombsToFire;
+      }
+      if (
+        this.player.gold() < totalCost ||
+        !hasResources(this.player, totalResourceCost)
+      ) {
         continue;
       }
 

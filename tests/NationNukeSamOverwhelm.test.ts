@@ -1,5 +1,6 @@
 import { MissileSiloExecution } from "../src/core/execution/MissileSiloExecution";
 import { NationExecution } from "../src/core/execution/NationExecution";
+import { NukeExecution } from "../src/core/execution/NukeExecution";
 import { SAMLauncherExecution } from "../src/core/execution/SAMLauncherExecution";
 import {
   Cell,
@@ -9,6 +10,7 @@ import {
   PlayerType,
   UnitType,
 } from "../src/core/game/Game";
+import { ProcessedResource, STOCK_RESOURCES } from "../src/core/game/Resources";
 import { setup } from "./util/Setup";
 import { executeTicks } from "./util/utils";
 
@@ -120,5 +122,87 @@ describe("NationNukeBehavior - maybeDestroyEnemySam", () => {
     for (const bomb of atomBombs) {
       expect(bomb.targetTile()).toBe(samTile);
     }
+  });
+
+  test("does not queue an unaffordable strategic salvo", async () => {
+    const game = await setup("big_plains", {
+      difficulty: Difficulty.Impossible,
+      strategicEconomy: true,
+      infiniteGold: true,
+      instantBuild: true,
+    });
+
+    const nationInfo = new PlayerInfo(
+      "nation",
+      PlayerType.Nation,
+      null,
+      "nation_id",
+    );
+    const humanInfo = new PlayerInfo(
+      "human",
+      PlayerType.Human,
+      null,
+      "human_id",
+    );
+    game.addPlayer(nationInfo);
+    game.addPlayer(humanInfo);
+    const nation = game.player("nation_id");
+    const human = game.player("human_id");
+    nation.addGold(1_000_000_000n);
+
+    for (const resource of STOCK_RESOURCES) {
+      nation.addResource(resource, 1_000);
+      human.addResource(resource, 1_000);
+    }
+
+    for (let x = 10; x < 40; x++) {
+      for (let y = 10; y < 40; y++) {
+        const tile = game.ref(x, y);
+        if (game.map().isLand(tile)) nation.conquer(tile);
+      }
+    }
+    for (let x = 60; x < 90; x++) {
+      for (let y = 60; y < 90; y++) {
+        const tile = game.ref(x, y);
+        if (game.map().isLand(tile)) human.conquer(tile);
+      }
+    }
+
+    const samTile = game.ref(75, 75);
+    const sam = human.buildUnit(UnitType.SAMLauncher, samTile, {});
+    game.addExecution(new SAMLauncherExecution(human, null, sam));
+    for (const [x, y] of [
+      [20, 20],
+      [25, 25],
+      [30, 30],
+    ] as const) {
+      const silo = nation.buildUnit(UnitType.MissileSilo, game.ref(x, y), {});
+      game.addExecution(new MissileSiloExecution(silo));
+    }
+
+    nation.addTroops(100_000);
+    human.addTroops(100_000);
+    nation.removeResource(
+      ProcessedResource.EnrichedUranium,
+      nation.resourceAmount(ProcessedResource.EnrichedUranium),
+    );
+
+    const addExecution = vi.spyOn(game, "addExecution");
+    const testNation = new Nation(new Cell(25, 25), nation.info());
+    for (let i = 0; i < 10; i++) {
+      const exec = new NationExecution(`unaffordable_${i}`, testNation);
+      exec.init(game);
+      for (let tick = 0; tick < 150; tick++) {
+        exec.tick(tick);
+        if (tick % 10 === 0) game.executeNextTick();
+      }
+    }
+
+    expect(
+      addExecution.mock.calls.some(
+        ([execution]) => execution instanceof NukeExecution,
+      ),
+    ).toBe(false);
+    expect(nation.units(UnitType.AtomBomb)).toHaveLength(0);
   });
 });
