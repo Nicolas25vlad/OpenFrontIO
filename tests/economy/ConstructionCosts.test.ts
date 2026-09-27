@@ -65,3 +65,39 @@ test("unaffordable direct construction cannot create a unit or spend partial inp
   }
   expect(player.canBuild(UnitType.Farm, -1)).toBe(false);
 });
+
+test("a queued build that loses affordability is canceled without partial cost", async () => {
+  const game = await setup(
+    "big_plains",
+    { strategicEconomy: true, infiniteGold: true, instantBuild: true },
+    [new PlayerInfo("builder", PlayerType.Human, null, "builder")],
+  );
+  const player = game.player("builder");
+  const tile = game.ref(50, 50);
+  player.conquer(tile);
+  player.addGold(1_000_000n);
+  expect(player.canBuild(UnitType.VehicleFactory, tile)).toBe(tile);
+
+  const execution = new ConstructionExecution(
+    player,
+    UnitType.VehicleFactory,
+    tile,
+  );
+  game.addExecution(execution);
+  player.removeResource(
+    Product.Circuits,
+    player.resourceAmount(Product.Circuits) - 4,
+  );
+  expect(player.canBuild(UnitType.VehicleFactory, tile)).toBe(false);
+  const afterShortage = { ...player.resourceStock() };
+  const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+  game.executeNextTick(); // initialize the queued execution
+  game.executeNextTick();
+
+  expect(player.units(UnitType.VehicleFactory)).toHaveLength(0);
+  expect(player.resourceStock()).toEqual(afterShortage);
+  expect(warning).toHaveBeenCalledWith(
+    `cannot build ${UnitType.VehicleFactory}`,
+  );
+});
