@@ -149,6 +149,27 @@ describe("EventsDisplay handlers", () => {
       ed.onAllianceRequestReplyEvent(reply(3, true) as never);
       expect(events()).toHaveLength(0);
     });
+
+    it("records accepted capitulation as a conquest result", () => {
+      ed.onAllianceRequestReplyEvent({
+        type: GameUpdateType.AllianceRequestReply,
+        request: {
+          requestorID: 1,
+          recipientID: 3,
+          createdAt: 0,
+          kind: "capitulation",
+        },
+        accepted: true,
+      } as never);
+
+      expect(events()).toHaveLength(1);
+      expect(events()[0].type).toBe(MessageType.CONQUERED_PLAYER);
+      expect(events()[0].focusID).toBe(3);
+      expect(events()[0].description).toContain(
+        "events_display.capitulation_status",
+      );
+      expect(events()[0].description).toContain("Stranger");
+    });
   });
 
   describe("onBrokeAllianceEvent", () => {

@@ -36,6 +36,7 @@ import { actionButton } from "../../../../src/client/components/ui/ActionButton"
 import { PlayerPanel } from "../../../../src/client/hud/layers/PlayerPanel";
 import {
   SendAllianceRequestIntentEvent,
+  SendCapitulationIntentEvent,
   SendEmbargoIntentEvent,
   SendEmojiIntentEvent,
 } from "../../../../src/client/Transport";
@@ -124,6 +125,25 @@ describe("PlayerPanel - embargo intents", () => {
     expect(events).toHaveLength(1);
     expect(events[0].target).toBe(other);
     expect(events[0].action).toBe("stop");
+    expect(panel.isVisible).toBe(false);
+  });
+});
+
+describe("PlayerPanel - capitulation intents", () => {
+  test("proposes capitulation as an explicit action for the selected player", () => {
+    const panel = new PlayerPanel();
+    (panel as any).requestUpdate = vi.fn();
+    (panel as any).isVisible = true;
+    const eventBus = new EventBus();
+    panel.eventBus = eventBus;
+    const events: SendCapitulationIntentEvent[] = [];
+    eventBus.on(SendCapitulationIntentEvent, (event) => events.push(event));
+
+    (panel as any).handleCapitulationClick({ stopPropagation: vi.fn() }, other);
+
+    expect(events).toHaveLength(1);
+    expect(events[0].action).toBe("propose");
+    expect(events[0].player).toBe(other);
     expect(panel.isVisible).toBe(false);
   });
 });

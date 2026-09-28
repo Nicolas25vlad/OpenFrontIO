@@ -721,6 +721,10 @@ visual em dois clientes e replay ainda depende do PC principal; a issue #12
 permanece aberta até essa etapa.
 O round-trip wire de `capitulation` também está incluído em
 `tests/zbin/wire.test.ts` junto com o novo caso de trincheira.
+Em 2026-09-28, a interface também ganhou cobertura para propor a capitulação,
+distingui-la de um pedido comum, remover o cartão após resolução e registrar o
+aceite como conquista. `ActionableEventsCapitulation`, `EventsDisplayHandlers`
+e `PlayerPanelActions` passaram em 3 arquivos/26 testes.
 
 ## Economia nuclear e Anti-ICBM — issue #9
 
