@@ -76,6 +76,7 @@ export class PlayerPanel extends LitElement implements Controller {
   @state() public isVisible: boolean = false;
   @state() private allianceExpiryText: string | null = null;
   @state() private allianceExpirySeconds: number | null = null;
+  @state() private peaceOfferPercent = 10;
   @state() private otherProfile: PlayerProfile | null = null;
   @state() private suppressNextHide: boolean = false;
   @state() private moderationTarget: PlayerView | null = null;
@@ -234,9 +235,12 @@ export class PlayerPanel extends LitElement implements Controller {
     e: Event,
     myPlayer: PlayerView,
     other: PlayerView,
+    territoryPercent = this.peaceOfferPercent,
   ) {
     e.stopPropagation();
-    this.eventBus.emit(new SendAllianceRequestIntentEvent(myPlayer, other, 10));
+    this.eventBus.emit(
+      new SendAllianceRequestIntentEvent(myPlayer, other, territoryPercent),
+    );
     this.hide();
   }
 
@@ -941,15 +945,36 @@ export class PlayerPanel extends LitElement implements Controller {
                         label: translateText("player_panel.send_alliance"),
                         type: "indigo",
                       })}
-                      ${actionButton({
-                        onClick: (e: MouseEvent) =>
-                          this.handlePeaceOfferClick(e, my, other),
-                        icon: allianceIcon,
-                        iconAlt: "Peace offer",
-                        title: translateText("player_panel.offer_peace_10"),
-                        label: translateText("player_panel.offer_peace_10"),
-                        type: "green",
-                      })}
+                      <div class="flex min-w-0 flex-col gap-1">
+                        <select
+                          aria-label=${translateText(
+                            "player_panel.peace_offer_percent",
+                          )}
+                          class="min-w-0 rounded-sm bg-gray-800 px-1 py-1 text-white"
+                          .value=${String(this.peaceOfferPercent)}
+                          @change=${(e: Event) => {
+                            this.peaceOfferPercent = Number(
+                              (e.target as HTMLSelectElement).value,
+                            );
+                          }}
+                        >
+                          ${[10, 25, 50].map(
+                            (percent) =>
+                              html`<option value=${percent}>
+                                ${percent}%
+                              </option>`,
+                          )}
+                        </select>
+                        ${actionButton({
+                          onClick: (e: MouseEvent) =>
+                            this.handlePeaceOfferClick(e, my, other),
+                          icon: allianceIcon,
+                          iconAlt: "Peace offer",
+                          title: translateText("player_panel.offer_peace"),
+                          label: translateText("player_panel.offer_peace"),
+                          type: "green",
+                        })}
+                      </div>
                     `
                   : ""}
                 ${canCancelAllianceRequest
