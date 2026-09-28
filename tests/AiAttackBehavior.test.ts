@@ -11,6 +11,7 @@ import {
   PlayerType,
   UnitType,
 } from "../src/core/game/Game";
+import { canBuildTransportShip } from "../src/core/game/TransportShipUtils";
 import { PseudoRandom } from "../src/core/PseudoRandom";
 import { setup } from "./util/Setup";
 import { executeTicks } from "./util/utils";
@@ -155,6 +156,73 @@ describe("Ai Attack Behavior", () => {
     expect(attack.tanks()).toBeGreaterThan(0);
     expect(attack.tanks()).toBeLessThanOrEqual(3);
     expect(nation.tanks()).toBe(3 - attack.tanks());
+  });
+
+  test("nation loads available tanks onto strategic naval attacks", async () => {
+    const strategicGame = await setup("ocean_and_land", {
+      strategicEconomy: true,
+      infiniteGold: true,
+      infiniteTroops: true,
+      instantBuild: true,
+    });
+    strategicGame.addPlayer(
+      new PlayerInfo("naval nation", PlayerType.Nation, null, "naval_nation"),
+    );
+    strategicGame.addPlayer(
+      new PlayerInfo("target", PlayerType.Human, null, "naval_target"),
+    );
+    const nation = strategicGame.player("naval_nation");
+    const target = strategicGame.player("naval_target");
+    const shores: number[] = [];
+    strategicGame.map().forEachTile((tile) => {
+      if (strategicGame.isShore(tile) && !strategicGame.isImpassable(tile)) {
+        shores.push(tile);
+      }
+    });
+    let hasNavalRoute = false;
+    for (const nationTile of shores) {
+      nation.conquer(nationTile);
+      for (const targetTile of shores) {
+        if (
+          strategicGame.manhattanDist(nationTile, targetTile) <= 1 ||
+          targetTile === nationTile
+        ) {
+          continue;
+        }
+        target.conquer(targetTile);
+        if (
+          !nation.sharesBorderWith(target) &&
+          canBuildTransportShip(strategicGame, nation, targetTile) !== false
+        ) {
+          hasNavalRoute = true;
+          break;
+        }
+      }
+      if (hasNavalRoute) break;
+    }
+    expect(hasNavalRoute).toBe(true);
+    nation.addTroops(100_000);
+    target.addTroops(100_000);
+    nation.addTanks(3);
+    const behavior = new AiAttackBehavior(
+      new PseudoRandom(0),
+      strategicGame,
+      nation,
+      0,
+      0,
+      0,
+      undefined,
+      new NationEmojiBehavior(new PseudoRandom(0), strategicGame, nation),
+    );
+
+    expect(behavior.sendAttack(target, true)).toBe(true);
+    executeTicks(strategicGame, 2);
+
+    const [ship] = nation.units(UnitType.TransportShip);
+    expect(ship).toBeDefined();
+    expect(ship.transportShipState().tanks).toBeGreaterThan(0);
+    expect(ship.transportShipState().tanks).toBeLessThanOrEqual(3);
+    expect(nation.tanks()).toBe(3 - ship.transportShipState().tanks!);
   });
 
   test("nation cannot attack allied player", () => {

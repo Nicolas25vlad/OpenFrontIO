@@ -714,7 +714,7 @@ nucleares, produção e replay determinístico. `tsc --noEmit`, lint,
 `npm run build-dev` e Prettier passaram. A suíte completa atual passou com 474
 arquivos/5.610 testes; a de servidor, com 63 arquivos/656 testes. O teste novo
 de `AiAttackBehavior.test.ts` confirma que uma nação em partida estratégica
-desconta tanques da reserva e os embarca em um ataque terrestre; a regressão
+desconta tanques da reserva e os embarca em ataques terrestres e navais; a regressão
 focada em `AiAttackBehavior`, `Attack` e `NationVehicleFactoryPriority` passou
 com 49 testes. A regressão focada em `NationTrenchPriority`,
 `NationVehicleFactoryPriority`, `NationStructureBehavior` e `BuildTrenchExecution`
@@ -752,9 +752,11 @@ legado; após limitar a trava à economia estratégica, o benchmark
 `NationGoldPerMinute` e os testes de bots passaram juntos em 3 arquivos/6 testes.
 A suíte de servidor passou em 63 arquivos/656 testes.
 
-Atualização de cobertura em 2026-09-28: `tests/economy/NationVehicleFactoryPriority.test.ts`
-passou com 8 testes, incluindo reservas baixas, no custo mínimo e altas de
-materiais; `tsc --noEmit`, lint, Prettier e `git diff --check` também passaram.
+Atualização de cobertura em 2026-09-28: os testes de IA, fábrica de veículos e
+carga naval passaram em 3 arquivos/29 testes. A IA agora tem cobertura de envio
+naval com tanques, e a prioridade de fábrica cobre reservas baixas, no custo
+mínimo e altas; `tsc --noEmit`, lint, Prettier e `git diff --check` também
+passaram.
 
 ### Validação manual pendente no PC principal
 
