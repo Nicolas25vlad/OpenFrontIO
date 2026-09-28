@@ -79,6 +79,7 @@ const SAMPLE_INTENTS: StampedIntent[] = [
   },
   { type: "allianceReject", clientID: P3, requestor: P1 },
   { type: "allianceCancel", clientID: P1, recipient: P3 },
+  { type: "capitulation", clientID: P1, action: "propose", player: P3 },
   { type: "allianceExtension", clientID: P1, recipient: P3 },
   { type: "breakAlliance", clientID: P1, recipient: P3 },
   { type: "targetPlayer", clientID: P2, target: P1 },
@@ -93,6 +94,7 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     tile: 7,
     amount: 3,
   },
+  { type: "build_trench", clientID: P2, tile: 9 },
   {
     type: "upgrade_structure",
     clientID: P2,

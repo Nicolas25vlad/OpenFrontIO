@@ -363,6 +363,10 @@ completa passou com 471 arquivos e 5.595 testes;
 os testes de servidor são executados separadamente. `tests/core/executions/NukeExecution.test.ts`
 também confirma que a detonação limpa o estado de trincheira dos tiles atingidos
 e sem dono; os 15 testes desse arquivo passaram nesta rodada.
+Em 2026-09-28, acrescentei cobertura do `build_trench` via `Executor` e do
+round-trip wire desse intent; `BuildTrenchExecution` e `zbin/wire` passaram em
+2 arquivos/43 testes, junto com `tsc --noEmit`, ESLint, Prettier e
+`git diff --check`.
 
 ### Validação manual pendente no PC principal
 
@@ -711,6 +715,8 @@ passou com 5 testes, incluindo os ciclos integrados de nação e tribo. Também
 passaram `tsc --noEmit`, ESLint, Prettier e `git diff --check`. A conferência
 visual em dois clientes e replay ainda depende do PC principal; a issue #12
 permanece aberta até essa etapa.
+O round-trip wire de `capitulation` também está incluído em
+`tests/zbin/wire.test.ts` junto com o novo caso de trincheira.
 
 ## Economia nuclear e Anti-ICBM — issue #9
 

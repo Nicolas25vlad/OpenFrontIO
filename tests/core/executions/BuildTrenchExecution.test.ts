@@ -1,4 +1,5 @@
 import { BuildTrenchExecution } from "../../../src/core/execution/BuildTrenchExecution";
+import { Executor } from "../../../src/core/execution/ExecutionManager";
 import {
   Game,
   Player,
@@ -14,11 +15,9 @@ describe("BuildTrenchExecution", () => {
   let player: Player;
 
   beforeEach(async () => {
-    game = await setup(
-      "big_plains",
-      { strategicEconomy: true },
-      [new PlayerInfo("player", PlayerType.Human, "client", "player")],
-    );
+    game = await setup("big_plains", { strategicEconomy: true }, [
+      new PlayerInfo("player", PlayerType.Human, "client", "player"),
+    ]);
     player = game.player("player");
   });
 
@@ -34,7 +33,26 @@ describe("BuildTrenchExecution", () => {
     new BuildTrenchExecution(player, tile).init(game);
 
     expect(game.trenchLevel(tile)).toBe(3);
-    expect(player.resourceAmount(ProcessedResource.Steel)).toBe(steelBefore - 9);
+    expect(player.resourceAmount(ProcessedResource.Steel)).toBe(
+      steelBefore - 9,
+    );
+  });
+
+  test("routes a build_trench intent through the normal executor", () => {
+    const tile = game.ref(50, 50);
+    player.conquer(tile);
+    const executor = new Executor(game, "trench-intent", undefined);
+
+    game.addExecution(
+      executor.createExec({
+        type: "build_trench",
+        clientID: "client",
+        tile,
+      }),
+    );
+    game.executeNextTick();
+
+    expect(game.trenchLevel(tile)).toBe(1);
   });
 
   test("rejects tiles not owned by the requesting player without spending steel", async () => {
@@ -63,19 +81,16 @@ describe("BuildTrenchExecution", () => {
   });
 
   test("includes trench state in the deterministic game hash", async () => {
-    const control = await setup(
-      "big_plains",
-      { strategicEconomy: true },
-      [new PlayerInfo("player", PlayerType.Human, "client", "player")],
-    );
+    const control = await setup("big_plains", { strategicEconomy: true }, [
+      new PlayerInfo("player", PlayerType.Human, "client", "player"),
+    ]);
     const tile = game.ref(50, 50);
     player.conquer(tile);
     control.player("player").conquer(tile);
     game.setTrenchLevel(tile, 2);
 
     const gameHash = game.executeNextTick()[GameUpdateType.Hash][0].hash;
-    const controlHash =
-      control.executeNextTick()[GameUpdateType.Hash][0].hash;
+    const controlHash = control.executeNextTick()[GameUpdateType.Hash][0].hash;
     expect(gameHash).not.toBe(controlHash);
   });
 });
