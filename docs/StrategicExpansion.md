@@ -766,6 +766,12 @@ naval com tanques, e a prioridade de fábrica cobre reservas baixas, no custo
 mínimo e altas; `tsc --noEmit`, lint, Prettier e `git diff --check` também
 passaram.
 
+A suíte completa mais recente executou 485 arquivos/5.666 testes: 484 arquivos
+passaram e `NationAllianceBehavior.test.ts` revelou fixtures sem o novo `kind()`.
+Após atualizar os fixtures e adicionar a cobertura de capitulação, esse arquivo
+passou isoladamente com 11 testes; a suíte completa não foi repetida após essa
+correção de teste.
+
 ### Validação manual pendente no PC principal
 
 1. Rode `npm run dev:host` e inicie partidas com nações usando
