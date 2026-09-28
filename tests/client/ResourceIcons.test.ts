@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import {
+  createResourceMapImage,
   drawResourcePixelIcon,
   RESOURCE_COLORS,
   RESOURCE_ICONS,
@@ -75,5 +76,58 @@ describe("resource visualization icons", () => {
       "  obbbo  ",
       "   obo   ",
     ]);
+  });
+
+  test("renders cached deposits as repeatable irregular contours", async () => {
+    const gradient = { addColorStop: vi.fn() };
+    const quadraticCurveTo = vi.fn();
+    const context = {
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      quadraticCurveTo,
+      closePath: vi.fn(),
+      save: vi.fn(),
+      clip: vi.fn(),
+      createRadialGradient: vi.fn(() => gradient),
+      fillRect: vi.fn(),
+      restore: vi.fn(),
+      imageSmoothingEnabled: false,
+    } as unknown as CanvasRenderingContext2D;
+    vi.stubGlobal("document", {
+      createElement: () => ({
+        width: 0,
+        height: 0,
+        getContext: () => context,
+      }),
+    });
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn(async () => ({}) as ImageBitmap),
+    );
+
+    try {
+      const width = 1024;
+      const map = {
+        width: () => width,
+        height: () => width,
+        ref: (x: number, y: number) => y * width + x,
+        x: (tile: number) => tile % width,
+        y: (tile: number) => Math.floor(tile / width),
+        isLand: () => true,
+        isImpassable: () => false,
+      };
+
+      await createResourceMapImage(map as never, "visual-test-seed");
+      const firstContour = quadraticCurveTo.mock.calls.map((call) => [...call]);
+      quadraticCurveTo.mockClear();
+      await createResourceMapImage(map as never, "visual-test-seed");
+
+      expect(quadraticCurveTo).toHaveBeenCalled();
+      expect(quadraticCurveTo.mock.calls).toEqual(firstContour);
+      expect(context.clip).toHaveBeenCalled();
+      expect(context.createRadialGradient).toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

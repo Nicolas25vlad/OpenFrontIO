@@ -210,6 +210,81 @@ function colorWithAlpha(color: string, alpha: number): string {
     .padStart(2, "0")}`;
 }
 
+function visualNoise(
+  node: { x: number; y: number; resource: NaturalResource },
+  sample: number,
+): number {
+  let value =
+    (Math.imul(node.x + 1, 0x45d9f3b) ^
+      Math.imul(node.y + 1, 0x119de1f3) ^
+      Math.imul(
+        Object.values(NaturalResource).indexOf(node.resource) + 1,
+        0x27d4eb2d,
+      ) ^
+      Math.imul(sample + 1, 0x165667b1)) >>>
+    0;
+  value = Math.imul(value ^ (value >>> 16), 0x45d9f3b) >>> 0;
+  value = Math.imul(value ^ (value >>> 16), 0x45d9f3b) >>> 0;
+  return (value ^ (value >>> 16)) / 0xffffffff;
+}
+
+/** Draws a deterministic, softly edged deposit field with an irregular contour. */
+function drawResourceField(
+  context: CanvasRenderingContext2D,
+  node: { x: number; y: number; resource: NaturalResource; richness: number },
+  cellSize: number,
+): void {
+  const radius = cellSize * (1.05 + node.richness * 0.15);
+  const points = 24;
+  const contour: Array<{ x: number; y: number }> = [];
+  for (let index = 0; index < points; index++) {
+    const angle = (index / points) * Math.PI * 2;
+    // Average adjacent fixed samples to form broad lobes instead of noisy spikes.
+    const variation =
+      (visualNoise(node, index) + visualNoise(node, (index + 1) % points)) / 2;
+    const localRadius = radius * (0.78 + variation * 0.4);
+    contour.push({
+      x: node.x + Math.cos(angle) * localRadius,
+      y: node.y + Math.sin(angle) * localRadius,
+    });
+  }
+
+  context.beginPath();
+  const first = contour[0];
+  const last = contour[contour.length - 1];
+  context.moveTo((first.x + last.x) / 2, (first.y + last.y) / 2);
+  for (let index = 0; index < points; index++) {
+    const current = contour[index];
+    const next = contour[(index + 1) % points];
+    context.quadraticCurveTo(
+      current.x,
+      current.y,
+      (current.x + next.x) / 2,
+      (current.y + next.y) / 2,
+    );
+  }
+  context.closePath();
+  context.save();
+  context.clip();
+
+  const gradient = context.createRadialGradient(
+    node.x,
+    node.y,
+    0,
+    node.x,
+    node.y,
+    radius,
+  );
+  const color = RESOURCE_COLORS[node.resource];
+  gradient.addColorStop(0, colorWithAlpha(color, 0.4));
+  gradient.addColorStop(0.4, colorWithAlpha(color, 0.28));
+  gradient.addColorStop(0.78, colorWithAlpha(color, 0.08));
+  gradient.addColorStop(1, colorWithAlpha(color, 0));
+  context.fillStyle = gradient;
+  context.fillRect(node.x - radius, node.y - radius, radius * 2, radius * 2);
+  context.restore();
+}
+
 /** Build one client-only texture from the deterministic geological catalog. */
 export async function createResourceMapImage(
   map: GameMap,
@@ -225,28 +300,8 @@ export async function createResourceMapImage(
   const cellSize = resourceNodeCellSizeForMap(map);
 
   for (const node of nodes) {
-    const color = RESOURCE_COLORS[node.resource];
-    // The noise catalog stores discrete mine sites, but the map should read as
-    // a geological field. Broad, overlapping halos join neighboring sites
-    // into irregular belts; richness changes the footprint without changing
-    // the deterministic mine locations or reserves.
-    const radius = cellSize * (1.05 + node.richness * 0.15);
-    const gradient = context.createRadialGradient(
-      node.x,
-      node.y,
-      0,
-      node.x,
-      node.y,
-      radius,
-    );
-    gradient.addColorStop(0, colorWithAlpha(color, 0.48));
-    gradient.addColorStop(0.4, colorWithAlpha(color, 0.34));
-    gradient.addColorStop(0.78, colorWithAlpha(color, 0.1));
-    gradient.addColorStop(1, colorWithAlpha(color, 0));
-    context.fillStyle = gradient;
-    context.beginPath();
-    context.arc(node.x, node.y, radius, 0, Math.PI * 2);
-    context.fill();
+    // Overlapping warped contours read as geological belts instead of circles.
+    drawResourceField(context, node, cellSize);
   }
 
   for (const node of nodes) {

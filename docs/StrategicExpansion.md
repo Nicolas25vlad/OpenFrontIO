@@ -65,9 +65,11 @@ noise ultrapassa o limiar. Escala, frequência, limiar e abundância continuam
 configuráveis em `RESOURCE_GENERATION_CONFIG`; a abundância desloca o limiar e a
 riqueza é calculada em faixas sobre o mesmo valor do noise. Cada candidato ainda
 é resolvido para terra passável. A malha de amostragem e a escala do noise se
-adaptam às dimensões do mapa. No overlay, halos largos e semitransparentes se
-sobrepõem para que depósitos vizinhos apareçam como regiões geológicas contínuas;
-a riqueza amplia a área visual do depósito sem alterar posição ou reserva. A
+adaptam às dimensões do mapa. No overlay, manchas de contorno suave e irregular
+se sobrepõem para que depósitos vizinhos apareçam como cinturões geológicos
+contínuos, sem a aparência de círculos isolados. A forma visual é determinística
+por coordenada e recurso; a riqueza amplia a área do depósito sem alterar posição
+ou reserva. A
 menor abundância do ouro foi
 ajustada para formar regiões produtoras conectadas sem tornar o recurso
 uniforme. A distribuição é cacheada por mapa e seed; o cálculo não roda durante
@@ -83,7 +85,9 @@ intransitável. Também foram validados os fluxos de mineração, prioridades da
 produção e replay: 30 testes passaram em 6 arquivos. A suíte completa passou
 com 474 arquivos/5.611 testes; a suíte de servidor, com 63 arquivos/656 testes.
 `tsc --noEmit`, lint, `npm run build-dev`, Prettier e `git diff --check` também
-passaram.
+passaram. Nesta revisão, os testes focados de geração, contorno visual e extração
+passaram em 3 arquivos/22 testes; ESLint, `tsc --noEmit`, build de desenvolvimento,
+Prettier e `git diff --check` também passaram.
 
 ### Validação visual pendente no PC principal
 
@@ -94,6 +98,9 @@ passaram.
    e regiões sem depósitos; verifique também sobreposições ocasionais.
 3. Reabra a mesma partida e confirme que posições e riqueza são idênticas.
    Inicie uma partida com outra seed e confirme que as camadas mudam.
+
+Os contornos de cada depósito devem parecer irregulares e se unir em manchas
+amplas; confirme que não aparecem halos circulares isolados.
 
 Esperado: os depósitos aparecem somente em terra passável, em regiões amplas e
 irregulares compostas por tiles próximos; os níveis de riqueza variam segundo o
