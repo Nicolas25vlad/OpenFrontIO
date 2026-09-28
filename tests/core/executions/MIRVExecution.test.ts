@@ -217,6 +217,10 @@ describe("MIRVExecution", () => {
     expect(callArgs[1]).toContain("MIRV INBOUND");
     expect(callArgs[2]).toBe(MessageType.MIRV_INBOUND);
     expect(callArgs[3]).toBe(otherPlayer.id());
+    expect(callArgs[4]).toEqual({
+      key: "events_display.mirv_inbound",
+      params: { name: player.displayName() },
+    });
   });
 
   test("MIRV should not launch if player cannot build it", async () => {

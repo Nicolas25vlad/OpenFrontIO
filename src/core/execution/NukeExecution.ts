@@ -231,18 +231,24 @@ export class NukeExecution implements Execution {
         } else if (this.nukeType === UnitType.AtomBomb) {
           this.mg.displayIncomingUnit(
             this.nuke.id(),
-            // TODO TranslateText
             `${this.player.displayName()} - atom bomb inbound`,
             MessageType.NUKE_INBOUND,
             target.id(),
+            {
+              key: "events_display.atom_bomb_inbound",
+              params: { name: this.player.displayName() },
+            },
           );
         } else if (this.nukeType === UnitType.HydrogenBomb) {
           this.mg.displayIncomingUnit(
             this.nuke.id(),
-            // TODO TranslateText
             `${this.player.displayName()} - hydrogen bomb inbound`,
             MessageType.HYDROGEN_BOMB_INBOUND,
             target.id(),
+            {
+              key: "events_display.hydrogen_bomb_inbound",
+              params: { name: this.player.displayName() },
+            },
           );
         }
 

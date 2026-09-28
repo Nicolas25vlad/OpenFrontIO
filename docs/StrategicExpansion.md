@@ -1069,3 +1069,20 @@ testes e a suíte do servidor em 63 arquivos/656 testes. `npm run lint`,
 O build manteve os avisos de chunks acima de 500 kB e tempo do plugin de assets;
 os testes emitiram avisos de navegação DOM não implementada e listeners, sem
 falhas.
+
+### Alertas de chegada localizados
+
+Alertas de invasão naval, bomba atômica, bomba de hidrogênio e MIRV agora enviam
+uma chave de tradução e seus parâmetros no update, com traduções em inglês e
+pt-BR. O texto inglês legado permanece no payload para clientes antigos e como
+fallback; clientes atuais traduzem o alerta segundo o idioma local. A mudança
+está em `GameUpdates`, `GameImpl`, `EventsDisplay`, nas três execuções e nos
+arquivos `resources/lang/en.json` e `resources/lang/pt-BR.json`.
+
+Validação no homelab: a suíte principal passou em 492 arquivos/5.755 testes e a
+suíte do servidor em 63 arquivos/656 testes; `npm run build-dev`, `npm run lint`,
+Prettier e `git diff --check` passaram. A conferência manual
+opcional no PC principal é iniciar partidas em inglês e pt-BR e receber cada um
+dos quatro alertas; cada mensagem deve aparecer traduzida e manter o nome do
+atacante e, na invasão naval, a quantidade de tropas. Um cliente sem o campo de
+localização deve continuar exibindo o texto legado em inglês.

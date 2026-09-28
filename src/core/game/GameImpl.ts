@@ -22,6 +22,7 @@ import {
   GameMode,
   GameUpdates,
   HumansVsNations,
+  IncomingMessageLocalization,
   MessageType,
   MutableAlliance,
   Nation,
@@ -1277,6 +1278,7 @@ export class GameImpl implements Game {
     message: string,
     type: MessageType,
     playerID: PlayerID,
+    messageLocalization?: IncomingMessageLocalization,
   ): void {
     const id = this.player(playerID).smallID();
 
@@ -1284,6 +1286,7 @@ export class GameImpl implements Game {
       type: GameUpdateType.UnitIncoming,
       unitID: unitID,
       message: message,
+      ...(messageLocalization === undefined ? {} : { messageLocalization }),
       messageType: type,
       playerID: id,
     });

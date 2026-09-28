@@ -336,6 +336,20 @@ describe("EventsDisplay handlers", () => {
       expect(events()[0].type).toBe(MessageType.NUKE_INBOUND);
     });
 
+    it("localizes structured incoming warnings on the receiving client", () => {
+      ed.onUnitIncomingEvent({
+        ...incoming(1),
+        messageLocalization: {
+          key: "events_display.naval_invasion_inbound",
+          params: { name: "Player", troops: "10K" },
+        },
+      } as never);
+
+      expect(events()[0].description).toBe(
+        'events_display.naval_invasion_inbound {"name":"Player","troops":"10K"}',
+      );
+    });
+
     it("ignores warnings addressed to other players", () => {
       ed.onUnitIncomingEvent(incoming(2) as never);
       expect(events()).toHaveLength(0);

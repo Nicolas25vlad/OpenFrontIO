@@ -1,5 +1,6 @@
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import type { ProductionStatus, ResourceRates, SupplyStatus } from "./Economy";
+import type { IncomingMessageLocalization } from "./Game";
 import {
   EmojiMessage,
   GameUpdates,
@@ -375,6 +376,7 @@ export interface UnitIncomingUpdate {
   type: GameUpdateType.UnitIncoming;
   unitID: number;
   message: string;
+  messageLocalization?: IncomingMessageLocalization;
   messageType: MessageType;
   playerID: number;
 }

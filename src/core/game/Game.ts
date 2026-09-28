@@ -34,6 +34,11 @@ export type PlayerID = string;
 export type Tick = number;
 export type Gold = bigint;
 
+export interface IncomingMessageLocalization {
+  key: string;
+  params: Record<string, string | number>;
+}
+
 export type WarshipState = {
   state: "patrolling" | "retreating" | "docked";
   patrolTile?: TileRef;
@@ -969,6 +974,7 @@ export interface Game extends GameMap {
     message: string,
     type: MessageType,
     playerID: PlayerID | null,
+    localization?: IncomingMessageLocalization,
   ): void;
 
   displayChat(
