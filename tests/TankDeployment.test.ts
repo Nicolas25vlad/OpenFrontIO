@@ -182,6 +182,51 @@ describe("independent tank deployment", () => {
     expect(execution.isActive()).toBe(false);
   });
 
+  test("bounds tank path scratch memory by the configured movement range", async () => {
+    const game = await tankGame();
+    const player = game.player("army");
+    const width = 2000;
+    const height = 1000;
+    const map = {
+      width: () => width,
+      height: () => height,
+      ref: (x: number, y: number) => y * width + x,
+      x: (tile: number) => tile % width,
+      y: (tile: number) => Math.floor(tile / width),
+      owner: () => player,
+      isLand: () => true,
+      isImpassable: () => false,
+      neighbors4: (tile: number, out: number[]) => {
+        const x = tile % width;
+        const y = Math.floor(tile / width);
+        let count = 0;
+        if (x > 0) out[count++] = tile - 1;
+        if (x + 1 < width) out[count++] = tile + 1;
+        if (y > 0) out[count++] = tile - width;
+        if (y + 1 < height) out[count++] = tile + width;
+        return count;
+      },
+    } as unknown as Game;
+    const destination = map.ref(1000, 500);
+    const execution = new MoveTankExecution(player, [], destination);
+    const tree = (execution as any).findPathsTo(map, destination, false) as {
+      nextTile: Int32Array;
+    };
+    const source = map.ref(995, 500);
+    const path = (execution as any).pathFromSource(
+      map,
+      tree,
+      source,
+    ) as number[];
+
+    expect(tree.nextTile.length).toBe(
+      (2 * STRATEGIC_COMBAT.tankMaxMovementRange + 1) ** 2,
+    );
+    expect(tree.nextTile.length).toBeLessThan(width * height);
+    expect(path).toHaveLength(6);
+    expect(path[path.length - 1]).toBe(destination);
+  });
+
   test("moves only the selected tank through the normal move_tank intent", async () => {
     const game = await tankGame();
     const player = game.player("army");

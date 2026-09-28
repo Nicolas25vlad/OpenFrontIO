@@ -10,6 +10,14 @@ interface TankOrder {
   allowHostileTraversal: boolean;
 }
 
+interface TankPathTree {
+  nextTile: Int32Array;
+  minX: number;
+  minY: number;
+  width: number;
+  height: number;
+}
+
 const ACTIVE_TANK_ORDERS = new WeakMap<Unit, MoveTankExecution>();
 
 /** Moves independent tanks over passable land and resolves each assault tile. */
@@ -39,7 +47,7 @@ export class MoveTankExecution implements Execution {
       const tank = tanks.get(unitID);
       if (!tank?.isActive()) continue;
 
-      const path = this.pathFromSource(paths, tank.tile());
+      const path = this.pathFromSource(mg, paths, tank.tile());
       if (path === null) continue;
 
       const currentOrder = ACTIVE_TANK_ORDERS.get(tank);
@@ -163,22 +171,47 @@ export class MoveTankExecution implements Execution {
     mg: Game,
     destination: TileRef,
     allowHostileTraversal: boolean,
-  ): Int32Array {
-    const tileCount = mg.width() * mg.height();
+  ): TankPathTree {
     const maxRange = STRATEGIC_COMBAT.tankMaxMovementRange;
-    const nextTile = new Int32Array(tileCount);
+    const destinationX = mg.x(destination);
+    const destinationY = mg.y(destination);
+    const minX = Math.max(0, destinationX - maxRange);
+    const maxX = Math.min(mg.width() - 1, destinationX + maxRange);
+    const minY = Math.max(0, destinationY - maxRange);
+    const maxY = Math.min(mg.height() - 1, destinationY + maxRange);
+    const boundsWidth = maxX - minX + 1;
+    const boundsHeight = maxY - minY + 1;
+    const nextTile = new Int32Array(boundsWidth * boundsHeight);
     nextTile.fill(-2);
+    const indexOf = (tile: TileRef): number => {
+      const x = mg.x(tile);
+      const y = mg.y(tile);
+      if (x < minX || x > maxX || y < minY || y > maxY) return -1;
+      return (y - minY) * boundsWidth + (x - minX);
+    };
+    const destinationIndex = indexOf(destination);
+    if (destinationIndex < 0) {
+      return {
+        nextTile,
+        minX,
+        minY,
+        width: boundsWidth,
+        height: boundsHeight,
+      };
+    }
     // A cardinal BFS can visit at most this many tiles within maxRange. Keep
-    // the queue proportional to the order's reach instead of the whole map.
+    // the queue and predecessor table proportional to the order's reach.
     const maxReachableTiles = 2 * maxRange * (maxRange + 1) + 1;
-    const queue = new Int32Array(Math.min(tileCount, maxReachableTiles));
+    const queue = new Int32Array(
+      Math.min(boundsWidth * boundsHeight, maxReachableTiles),
+    );
     const neighborBuffer: TileRef[] = [0, 0, 0, 0];
     let head = 0;
     let tail = 1;
     let layerEnd = 1;
     let distance = 0;
     queue[0] = destination;
-    nextTile[destination] = -1;
+    nextTile[destinationIndex] = -1;
 
     while (head < tail && distance < maxRange) {
       while (head < layerEnd) {
@@ -186,37 +219,61 @@ export class MoveTankExecution implements Execution {
         const neighborCount = mg.neighbors4(current, neighborBuffer);
         for (let index = 0; index < neighborCount; index++) {
           const neighbor = neighborBuffer[index];
+          const neighborIndex = indexOf(neighbor);
           if (
-            nextTile[neighbor] !== -2 ||
+            neighborIndex < 0 ||
+            nextTile[neighborIndex] !== -2 ||
             !this.isPassableLand(mg, neighbor, allowHostileTraversal)
           ) {
             continue;
           }
-          nextTile[neighbor] = current;
+          nextTile[neighborIndex] = current;
           queue[tail++] = neighbor;
         }
       }
       layerEnd = tail;
       distance++;
     }
-    return nextTile;
+    return {
+      nextTile,
+      minX,
+      minY,
+      width: boundsWidth,
+      height: boundsHeight,
+    };
   }
 
   private pathFromSource(
-    nextTile: Int32Array,
+    mg: Game,
+    tree: TankPathTree,
     source: TileRef,
   ): TileRef[] | null {
-    if (source < 0 || source >= nextTile.length || nextTile[source] === -2) {
-      return null;
-    }
+    const indexOf = (tile: TileRef): number => {
+      const x = mg.x(tile);
+      const y = mg.y(tile);
+      if (
+        x < tree.minX ||
+        x >= tree.minX + tree.width ||
+        y < tree.minY ||
+        y >= tree.minY + tree.height
+      ) {
+        return -1;
+      }
+      return (y - tree.minY) * tree.width + (x - tree.minX);
+    };
+    const next = (tile: TileRef): TileRef => {
+      const index = indexOf(tile);
+      return index < 0 ? (-2 as TileRef) : (tree.nextTile[index] as TileRef);
+    };
+    if (next(source) === -2) return null;
     const path: TileRef[] = [];
     for (
       let tile = source;
       tile >= 0 && path.length <= STRATEGIC_COMBAT.tankMaxMovementRange + 1;
-      tile = nextTile[tile]
+      tile = next(tile)
     ) {
       path.push(tile);
-      if (nextTile[tile] === -1) break;
+      if (next(tile) === -1) break;
     }
     if (
       path[path.length - 1] !== this.destination ||

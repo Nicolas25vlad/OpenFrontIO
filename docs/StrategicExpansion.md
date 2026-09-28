@@ -149,8 +149,11 @@ trincheiras, dano determinístico aos tanques envolvidos e capturam cada tile
 alcançado. Tanques implantados também se enfrentam quando disputam o mesmo tile;
 tiles bloqueados por tanques aliados encerram a ordem sem sobreposição. O
 caminho é determinístico, limitado a 250 tiles e calculado uma vez por ordem.
-A busca usa o iterador cardinal com buffer reutilizado e limita a fila ao maior
-losango que cabe nesse alcance, em vez de reservar uma fila do tamanho do mapa.
+A busca usa o iterador cardinal com buffer reutilizado e limita tanto a fila
+quanto a tabela de predecessores à área alcançável. A tabela ocupa no máximo o
+retângulo de 501×501 tiles para o alcance atual, em vez de alocar um inteiro por
+tile do mapa. `tests/TankDeployment.test.ts` simula um mapa de 2 milhões de tiles
+e confirma o limite de memória temporária, além de validar o caminho calculado.
 Updates de unidade sincronizam movimento e saúde entre clientes e replay. A IA
 de nações e tribos pode implantar e ordenar até dois tanques quando há estoque,
 mantendo uma unidade de reserva para os ataques legados. Unidades móveis recebem
@@ -173,7 +176,8 @@ também passa pelo intent `move_tank` no `Executor`, com ticks reais confirmando
 que a ordem move o tanque selecionado sem alterar a infantaria; testes na
 fronteira de 250/251 tiles validam o limite de alcance do core.
 Revalidação focada de implantação, alcance, movimento, seleção e wire passou em
-3 arquivos/51 testes; `tsc --noEmit`, ESLint, Prettier e `git diff --check`
+3 arquivos/51 testes; o teste adicional da busca espacial passou junto com os
+11 testes de `TankDeployment.test.ts`. `tsc --noEmit`, ESLint, Prettier e `git diff --check`
 também passaram.
 `tests/AiTankBehavior.test.ts` também exercita as execuções completas de nação e
 tribo: ambas implantam uma unidade móvel a partir da reserva e preservam um
