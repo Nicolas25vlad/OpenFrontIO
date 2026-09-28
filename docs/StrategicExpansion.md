@@ -803,7 +803,8 @@ repetição sem duplicar pedido e posicionamento da fazenda até enfileirar sua
 construção. A decisão de fábrica agora também tem cenários de estoque baixo,
 médio (custo da fábrica mais os insumos do primeiro tanque) e alto; nos cenários
 médio e alto, o teste executa a construção real sem simular
-`maybeSpawnStructure`. Agora a cobertura de
+`maybeSpawnStructure` e confirma a produção do primeiro tanque com o estoque
+restante. Agora a cobertura de
 5.000, 25.000 e 100.000 tropas usa partidas
 reais e confirma que a fazenda é construída após o pedido. A regressão de
 economia da IA passou em mais 7 arquivos/24 testes,
@@ -869,7 +870,8 @@ enfileirar, o estoque combinado para construir a fábrica e financiar o primeiro
 lote de tanques. A regra anterior conferia apenas o lote; o teste integrado
 mostrou que `canBuild` recusava a fábrica sem os 30 de aço e 5 circuitos da
 construção. Os cenários baixo, médio e alto agora executam a construção real
-quando há materiais suficientes. Testes também recusam aço abaixo do custo ou
+quando há materiais suficientes; médio e alto também produzem o primeiro tanque
+com o estoque restante. Testes também recusam aço abaixo do custo ou
 circuitos insuficientes. A regressão relacionada passou em 5 arquivos/92 testes;
 `tsc --noEmit`, Oxlint, ESLint, Prettier, `git diff --check` e
 `npm run build-dev` também passaram. O build mantém os avisos conhecidos de

@@ -1,3 +1,4 @@
+import { ECONOMY } from "../../src/core/configuration/StrategyConfig";
 import { NationStructureBehavior } from "../../src/core/execution/nation/NationStructureBehavior";
 import {
   Game,
@@ -77,7 +78,7 @@ describe("nation strategic vehicle factory priority", () => {
     { economy: "medium", steel: 35, circuits: 5, fuel: 2, shouldBuild: true },
     { economy: "high", steel: 50, circuits: 10, fuel: 20, shouldBuild: true },
   ])(
-    "only produces an executable factory order for $economy reserves",
+    "builds a factory and produces its first tank with $economy reserves",
     async ({ steel, circuits, fuel, shouldBuild }) => {
       for (let x = 25; x <= 75; x++) {
         for (let y = 25; y <= 75; y++) player.conquer(game.ref(x, y));
@@ -105,7 +106,10 @@ describe("nation strategic vehicle factory priority", () => {
 
       for (
         let tick = 0;
-        tick < game.unitInfo(UnitType.VehicleFactory).constructionDuration! + 3;
+        tick <
+        game.unitInfo(UnitType.VehicleFactory).constructionDuration! +
+          ECONOMY.periodTicks +
+          3;
         tick++
       ) {
         game.executeNextTick();
@@ -114,6 +118,7 @@ describe("nation strategic vehicle factory priority", () => {
       expect(player.units(UnitType.VehicleFactory)).toHaveLength(
         Number(shouldBuild),
       );
+      expect(player.tanks()).toBe(Number(shouldBuild));
     },
   );
 
