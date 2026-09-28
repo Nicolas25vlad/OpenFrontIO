@@ -57,6 +57,7 @@ export class SendAllianceRequestIntentEvent implements GameEvent {
   constructor(
     public readonly requestor: PlayerView,
     public readonly recipient: PlayerView,
+    public readonly territoryPercent = 0,
   ) {}
 }
 
@@ -687,6 +688,9 @@ export class Transport {
     this.sendIntent({
       type: "allianceRequest",
       recipient: event.recipient.id(),
+      ...(event.territoryPercent > 0
+        ? { territoryPercent: event.territoryPercent }
+        : {}),
     });
   }
 

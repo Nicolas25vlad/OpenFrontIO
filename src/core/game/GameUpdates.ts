@@ -296,6 +296,7 @@ export interface AllianceRequestUpdate {
   requestorID: number;
   recipientID: number;
   createdAt: Tick;
+  territoryPercent?: number;
 }
 
 export interface AllianceRequestReplyUpdate {

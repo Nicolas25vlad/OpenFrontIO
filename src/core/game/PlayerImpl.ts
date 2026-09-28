@@ -942,11 +942,18 @@ export class PlayerImpl implements Player {
     return this._betrayalCount;
   }
 
-  createAllianceRequest(recipient: Player): AllianceRequest | null {
+  createAllianceRequest(
+    recipient: Player,
+    territoryPercent = 0,
+  ): AllianceRequest | null {
     if (this.isAlliedWith(recipient)) {
       throw new Error(`cannot create alliance request, already allies`);
     }
-    return this.mg.createAllianceRequest(this, recipient satisfies Player);
+    return this.mg.createAllianceRequest(
+      this,
+      recipient satisfies Player,
+      territoryPercent,
+    );
   }
 
   relation(other: Player): Relation {
@@ -2076,6 +2083,18 @@ export class PlayerImpl implements Player {
           hash + (index + 1) * this._resources[resource],
         0,
       ) +
+      this._alliances.reduce((hash, alliance) => {
+        const other = alliance.other(this);
+        return (
+          hash +
+          alliance.id() * 31 +
+          other.smallID() * 37 +
+          alliance.createdAt() * 41 +
+          alliance.expiresAt() * 43 +
+          (alliance.agreedToExtend(this) ? 47 : 0) +
+          (alliance.agreedToExtend(other) ? 53 : 0)
+        );
+      }, 0) +
       this._units.reduce((acc, unit) => acc + unit.hash(), 0)
     );
   }

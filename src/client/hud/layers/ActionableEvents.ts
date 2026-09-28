@@ -218,14 +218,21 @@ export class ActionableEvents extends LitElement implements Controller {
     const recipient = this.game.playerBySmallID(
       update.recipientID,
     ) as PlayerView;
+    const territoryPercent = update.territoryPercent ?? 0;
 
     if (!requestor.isAlliedWith(recipient)) {
       this.eventBus.emit(new PlaySoundEffectEvent("alliance-suggested"));
     }
     this.addEvent({
-      description: translateText("events_display.request_alliance", {
-        name: requestor.displayName(),
-      }),
+      description:
+        territoryPercent > 0
+          ? translateText("events_display.request_peace_offer", {
+              name: requestor.displayName(),
+              percent: territoryPercent,
+            })
+          : translateText("events_display.request_alliance", {
+              name: requestor.displayName(),
+            }),
       buttons: [
         {
           text: translateText("events_display.focus"),
@@ -234,7 +241,11 @@ export class ActionableEvents extends LitElement implements Controller {
           preventClose: true,
         },
         {
-          text: translateText("events_display.accept_alliance"),
+          text: translateText(
+            territoryPercent > 0
+              ? "events_display.accept_peace_offer"
+              : "events_display.accept_alliance",
+          ),
           className: "btn",
           action: () =>
             this.eventBus.emit(

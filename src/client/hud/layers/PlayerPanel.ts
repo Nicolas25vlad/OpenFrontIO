@@ -230,6 +230,16 @@ export class PlayerPanel extends LitElement implements Controller {
     this.hide();
   }
 
+  private handlePeaceOfferClick(
+    e: Event,
+    myPlayer: PlayerView,
+    other: PlayerView,
+  ) {
+    e.stopPropagation();
+    this.eventBus.emit(new SendAllianceRequestIntentEvent(myPlayer, other, 10));
+    this.hide();
+  }
+
   private handleBreakAllianceClick(
     e: Event,
     myPlayer: PlayerView,
@@ -921,15 +931,26 @@ export class PlayerPanel extends LitElement implements Controller {
                     })
                   : ""}
                 ${canSendAllianceRequest
-                  ? actionButton({
-                      onClick: (e: MouseEvent) =>
-                        this.handleAllianceClick(e, my, other),
-                      icon: allianceIcon,
-                      iconAlt: "Alliance",
-                      title: translateText("player_panel.send_alliance"),
-                      label: translateText("player_panel.send_alliance"),
-                      type: "indigo",
-                    })
+                  ? html`
+                      ${actionButton({
+                        onClick: (e: MouseEvent) =>
+                          this.handleAllianceClick(e, my, other),
+                        icon: allianceIcon,
+                        iconAlt: "Alliance",
+                        title: translateText("player_panel.send_alliance"),
+                        label: translateText("player_panel.send_alliance"),
+                        type: "indigo",
+                      })}
+                      ${actionButton({
+                        onClick: (e: MouseEvent) =>
+                          this.handlePeaceOfferClick(e, my, other),
+                        icon: allianceIcon,
+                        iconAlt: "Peace offer",
+                        title: translateText("player_panel.offer_peace_10"),
+                        label: translateText("player_panel.offer_peace_10"),
+                        type: "green",
+                      })}
+                    `
                   : ""}
                 ${canCancelAllianceRequest
                   ? actionButton({

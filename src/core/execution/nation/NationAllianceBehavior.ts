@@ -37,6 +37,12 @@ export class NationAllianceBehavior {
         req.reject();
         continue;
       }
+      // Bots use the existing relation/threat heuristic for ordinary
+      // alliances, but do not cede territory until they have a term evaluator.
+      if (req.territoryPercent() > 0) {
+        req.reject();
+        continue;
+      }
       if (this.getAllianceDecision(req.requestor(), true)) {
         req.accept();
       } else {

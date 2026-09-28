@@ -1,11 +1,14 @@
 import { Game, MutableAlliance, Player, Tick } from "./Game";
 import { GameUpdateType } from "./GameUpdates";
 
+export const PEACE_TRUCE_DURATION_TICKS = 180 * 10;
+
 export class AllianceImpl implements MutableAlliance {
   private extensionRequestedRequestor_: boolean = false;
   private extensionRequestedRecipient_: boolean = false;
 
   private expiresAt_: Tick;
+  private readonly duration_: Tick;
 
   constructor(
     private readonly mg: Game,
@@ -13,8 +16,10 @@ export class AllianceImpl implements MutableAlliance {
     readonly recipient_: Player,
     private readonly createdAt_: Tick,
     private readonly id_: number,
+    duration = mg.config().allianceDuration(),
   ) {
-    this.expiresAt_ = createdAt_ + mg.config().allianceDuration();
+    this.duration_ = duration;
+    this.expiresAt_ = createdAt_ + duration;
   }
 
   other(player: Player): Player {
@@ -82,7 +87,7 @@ export class AllianceImpl implements MutableAlliance {
   extend(): void {
     this.extensionRequestedRequestor_ = false;
     this.extensionRequestedRecipient_ = false;
-    this.expiresAt_ = this.mg.ticks() + this.mg.config().allianceDuration();
+    this.expiresAt_ = this.mg.ticks() + this.duration_;
   }
 
   expiresAt(): Tick {

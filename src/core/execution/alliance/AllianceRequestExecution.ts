@@ -17,6 +17,7 @@ export class AllianceRequestExecution implements Execution {
   constructor(
     private requestor: Player,
     private recipientID: PlayerID,
+    private territoryPercent = 0,
   ) {}
 
   init(mg: Game, ticks: number): void {
@@ -42,6 +43,7 @@ export class AllianceRequestExecution implements Execution {
         // then accept it instead of creating a new one.
         this.active = false;
         incoming.accept();
+        if (incoming.status() !== "accepted") return;
 
         // Update player relations
         this.requestor.updateRelation(recipient, 100);
@@ -56,7 +58,10 @@ export class AllianceRequestExecution implements Execution {
         // Cancel incoming nukes between players
         this.cancelNukesBetweenAlliedPlayers(recipient);
       } else {
-        this.req = this.requestor.createAllianceRequest(recipient);
+        this.req = this.requestor.createAllianceRequest(
+          recipient,
+          this.territoryPercent,
+        );
       }
     }
   }

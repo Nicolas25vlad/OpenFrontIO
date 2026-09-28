@@ -3,6 +3,7 @@ import { AttackExecution } from "../../../src/core/execution/AttackExecution";
 import { SpawnExecution } from "../../../src/core/execution/SpawnExecution";
 //import { TransportShipExecution } from "../../../src/core/execution/TransportShipExecution";
 import { AllianceRequestExecution } from "../../../src/core/execution/alliance/AllianceRequestExecution";
+import { PEACE_TRUCE_DURATION_TICKS } from "../../../src/core/game/AllianceImpl";
 import {
   Game,
   GameType,
@@ -61,6 +62,87 @@ describe("GameImpl", () => {
 
     attacker = game.player(attackerInfo.id);
     defender = game.player(defenderInfo.id);
+  });
+
+  test("accepts a connected territory peace offer and starts a timed truce", async () => {
+    const peaceGame = await setup(
+      "plains",
+      { infiniteGold: true, instantBuild: true },
+      [],
+      undefined,
+      undefined,
+      false,
+    );
+    const requestor = peaceGame.addPlayer(
+      new PlayerInfo("requestor", PlayerType.Human, null, "requestor_id"),
+    );
+    const cedingPlayer = peaceGame.addPlayer(
+      new PlayerInfo("ceding", PlayerType.Human, null, "ceding_id"),
+    );
+    const requestorTiles = [20, 21, 22].map((x) => peaceGame.ref(x, 20));
+    const cedingTiles = [23, 24, 25, 26].map((x) => peaceGame.ref(x, 20));
+    for (const tile of requestorTiles) requestor.conquer(tile);
+    for (const tile of cedingTiles) cedingPlayer.conquer(tile);
+    cedingPlayer.setSpawnTile(cedingTiles[3]);
+    peaceGame.endSpawnPhase();
+
+    const request = requestor.createAllianceRequest(cedingPlayer, 25);
+    const hashBeforePeace = (peaceGame as any).hash();
+
+    expect(request?.territoryPercent()).toBe(25);
+    request?.accept();
+
+    expect(request?.status()).toBe("accepted");
+    expect(requestor.numTilesOwned()).toBe(4);
+    expect(cedingPlayer.numTilesOwned()).toBe(3);
+    expect(cedingPlayer.tiles().has(cedingTiles[3])).toBe(true);
+    const truce = requestor.allianceWith(cedingPlayer)!;
+    expect(truce.expiresAt()).toBe(
+      peaceGame.ticks() + PEACE_TRUCE_DURATION_TICKS,
+    );
+    expect(requestor.canAttackPlayer(cedingPlayer)).toBe(false);
+    expect(cedingPlayer.canAttackPlayer(requestor)).toBe(false);
+    expect((peaceGame as any).hash()).not.toBe(hashBeforePeace);
+
+    truce.expire();
+    expect(requestor.allianceWith(cedingPlayer)).toBeNull();
+    expect(requestor.canAttackPlayer(cedingPlayer)).toBe(true);
+  });
+
+  test("rejects stale peace terms without changing land or creating an alliance", async () => {
+    const peaceGame = await setup(
+      "plains",
+      { infiniteGold: true, instantBuild: true },
+      [],
+      undefined,
+      undefined,
+      false,
+    );
+    const requestor = peaceGame.addPlayer(
+      new PlayerInfo("requestor", PlayerType.Human, null, "requestor_id"),
+    );
+    const cedingPlayer = peaceGame.addPlayer(
+      new PlayerInfo("ceding", PlayerType.Human, null, "ceding_id"),
+    );
+    for (const x of [20, 21, 22, 23]) {
+      requestor.conquer(peaceGame.ref(x, 20));
+      cedingPlayer.conquer(peaceGame.ref(x + 30, 20));
+    }
+    cedingPlayer.setSpawnTile(peaceGame.ref(53, 20));
+    peaceGame.endSpawnPhase();
+    const request = requestor.createAllianceRequest(cedingPlayer, 25);
+    const requestorRelation = requestor.relation(cedingPlayer);
+
+    peaceGame.addExecution(
+      new AllianceRequestExecution(cedingPlayer, requestor.id()),
+    );
+    peaceGame.executeNextTick();
+
+    expect(request?.status()).toBe("rejected");
+    expect(requestor.numTilesOwned()).toBe(4);
+    expect(cedingPlayer.numTilesOwned()).toBe(4);
+    expect(requestor.allianceWith(cedingPlayer)).toBeNull();
+    expect(requestor.relation(cedingPlayer)).toBe(requestorRelation);
   });
 
   test("Don't become traitor when betraying inactive player", async () => {

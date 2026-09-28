@@ -165,9 +165,15 @@ export class EventsDisplay extends LitElement implements Controller {
       return;
     }
     this.addEvent({
-      description: translateText("events_display.alliance_request_sent", {
-        name: e.recipient.name(),
-      }),
+      description:
+        e.territoryPercent > 0
+          ? translateText("events_display.peace_offer_sent", {
+              name: e.recipient.name(),
+              percent: e.territoryPercent,
+            })
+          : translateText("events_display.alliance_request_sent", {
+              name: e.recipient.name(),
+            }),
       type: MessageType.ALLIANCE_REQUEST,
       createdAt: this.game.ticks(),
     });
@@ -360,17 +366,31 @@ export class EventsDisplay extends LitElement implements Controller {
     const recipient = this.game.playerBySmallID(
       update.request.recipientID,
     ) as PlayerView;
+    const territoryPercent = update.request.territoryPercent ?? 0;
     this.addEvent({
-      description: translateText("events_display.alliance_request_status", {
-        name: recipient.displayName(),
-        status: update.accepted
-          ? translateText("events_display.alliance_accepted")
-          : translateText(
-              update.canceled
-                ? "events_display.alliance_canceled"
-                : "events_display.alliance_rejected",
-            ),
-      }),
+      description:
+        territoryPercent > 0
+          ? translateText("events_display.peace_offer_status", {
+              name: recipient.displayName(),
+              percent: territoryPercent,
+              status: update.accepted
+                ? translateText("events_display.alliance_accepted")
+                : translateText(
+                    update.canceled
+                      ? "events_display.alliance_canceled"
+                      : "events_display.alliance_rejected",
+                  ),
+            })
+          : translateText("events_display.alliance_request_status", {
+              name: recipient.displayName(),
+              status: update.accepted
+                ? translateText("events_display.alliance_accepted")
+                : translateText(
+                    update.canceled
+                      ? "events_display.alliance_canceled"
+                      : "events_display.alliance_rejected",
+                  ),
+            }),
       type: update.accepted
         ? MessageType.ALLIANCE_ACCEPTED
         : MessageType.ALLIANCE_REJECTED,

@@ -71,6 +71,12 @@ const SAMPLE_INTENTS: StampedIntent[] = [
   { type: "boat", clientID: P2, troops: 100.5, dst: 998877 },
   { type: "cancel_boat", clientID: P2, unitID: 42 },
   { type: "allianceRequest", clientID: P1, recipient: P3 },
+  {
+    type: "allianceRequest",
+    clientID: P1,
+    recipient: P3,
+    territoryPercent: 10,
+  },
   { type: "allianceReject", clientID: P3, requestor: P1 },
   { type: "allianceCancel", clientID: P1, recipient: P3 },
   { type: "allianceExtension", clientID: P1, recipient: P3 },

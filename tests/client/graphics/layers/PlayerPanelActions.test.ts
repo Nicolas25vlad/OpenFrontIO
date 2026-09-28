@@ -35,6 +35,7 @@ vi.mock("../../../../src/client/InGameModal", () => ({
 import { actionButton } from "../../../../src/client/components/ui/ActionButton";
 import { PlayerPanel } from "../../../../src/client/hud/layers/PlayerPanel";
 import {
+  SendAllianceRequestIntentEvent,
   SendEmbargoIntentEvent,
   SendEmojiIntentEvent,
 } from "../../../../src/client/Transport";
@@ -179,12 +180,15 @@ describe("PlayerPanel - emoji intents", () => {
 
 describe("PlayerPanel - action buttons follow PlayerActions capability flags", () => {
   let panel: PlayerPanel;
+  let eventBus: EventBus;
 
   beforeEach(() => {
     panel = new PlayerPanel();
     (panel as any).requestUpdate = vi.fn();
     (panel as any).isVisible = true;
     (panel as any).g = makeGame();
+    eventBus = new EventBus();
+    panel.eventBus = eventBus;
   });
 
   afterEach(() => {
@@ -218,6 +222,24 @@ describe("PlayerPanel - action buttons follow PlayerActions capability flags", (
     expect(labels).not.toContain("player_panel.start_trade");
     expect(labels).toContain("player_panel.break_alliance");
     expect(labels).toContain("player_panel.send_alliance");
+    expect(labels).toContain("player_panel.offer_peace_10");
+  });
+
+  test("peace action sends the configured territory percentage", () => {
+    const events: SendAllianceRequestIntentEvent[] = [];
+    eventBus.on(SendAllianceRequestIntentEvent, (event) => events.push(event));
+
+    (panel as any).handlePeaceOfferClick(
+      { stopPropagation: vi.fn() },
+      my,
+      other,
+    );
+
+    expect(events).toHaveLength(1);
+    expect(events[0].requestor).toBe(my);
+    expect(events[0].recipient).toBe(other);
+    expect(events[0].territoryPercent).toBe(10);
+    expect(panel.isVisible).toBe(false);
   });
 
   test("no capability flags renders only chat and the start-trade toggle", () => {

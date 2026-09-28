@@ -397,11 +397,69 @@ testes de execução/wire.
    deve desaparecer; uma tentativa tardia não pode alterar a decisão nem criar uma
    aliança parcialmente aplicada.
 
-A validação automatizada passou em 5 arquivos/60 testes e cobre autorização,
-cancelamento, estado terminal de propostas resolvidas, atualização sincronizada
-e codificação do intent. `tsc --noEmit`, lint e `npm run build-dev` passaram. Faltam
-os demais termos de paz, trégua/capitulação e sua validação visual em replay e
-multiplayer; a issue permanece aberta.
+A validação automatizada desta etapa passou em 13 arquivos/120 testes e cobre
+autorização, cancelamento, estado terminal de propostas resolvidas, transferência
+territorial, duração da trégua, atualização sincronizada e codificação do intent.
+`tsc --noEmit`, lint e `npm run build-dev` passaram. Faltam a escolha de outros
+percentuais/termos, capitulação e validação visual em replay e multiplayer; a
+issue permanece aberta.
+
+### Oferta de paz com cessão territorial (parcial)
+
+O painel do jogador agora permite solicitar uma trégua em troca da cessão de
+10% do território do destinatário. O intent mantém `territoryPercent` opcional,
+portanto pedidos antigos continuam sendo alianças sem transferência. Ao
+aceitar, o servidor planeja toda a cessão antes de alterar o mapa e escolhe uma
+região contígua que toque o território do solicitante. O tile de surgimento do
+cedente fica protegido. Se o mapa mudou e não existe uma região conectada grande
+o bastante, a proposta é recusada sem transferir tiles, criar aliança ou aplicar
+os efeitos de aceite.
+O core aceita termos inteiros de 1% a 50%; a interface atual oferece 10% como
+primeiro valor negociável.
+
+Uma cessão válida cria uma trégua de 180 segundos usando o estado temporário de
+aliança existente: ataques ficam bloqueados, a quebra mantém a penalidade de
+traição e a expiração é sincronizada pelo fluxo de updates/replay já existente.
+As mensagens de proposta e resultado mostram a porcentagem. O planejador ordena
+tiles por referência e resolve empates de regiões da mesma forma em todos os
+clientes. Bots continuam usando a heurística existente para alianças comuns e
+recusam ofertas que exigem território, pois ainda não avaliam termos de cessão.
+
+Arquivos desta etapa: `src/core/game/TerritoryTransfer.ts`,
+`src/core/game/GameImpl.ts`, `src/core/game/AllianceImpl.ts`,
+`src/core/game/AllianceRequestImpl.ts`, `src/core/game/Game.ts`,
+`src/core/game/GameUpdates.ts`, `src/core/Schemas.ts`,
+`src/core/execution/ExecutionManager.ts`,
+`src/core/execution/alliance/AllianceRequestExecution.ts`,
+`src/client/Transport.ts`, `src/client/hud/layers/PlayerPanel.ts`,
+`src/client/hud/layers/ActionableEvents.ts`, `src/client/hud/layers/EventsDisplay.ts`,
+`src/core/execution/nation/NationAllianceBehavior.ts`, traduções em inglês e
+português do Brasil e testes de transferência/execução/IA.
+
+Validação no homelab cobre seleção conectada determinística, proteção do spawn,
+recusa de termos obsoletos sem estado parcial, duração da trégua e compatibilidade
+do intent wire antigo/novo. A validação visual em multiplayer e replay permanece
+pendente.
+
+### Validação manual pendente no PC principal
+
+1. Rode `npm run dev:host`, inicie uma partida com dois jogadores em terra
+   conectada e abra o painel do destinatário.
+2. Envie “Solicitar cessão de 10%”. O destinatário deve ver a porcentagem e
+   aceitar ou recusar; o remetente deve poder cancelar enquanto estiver pendente.
+3. Ao aceitar, confira que o destinatário cede uma região contígua junto à
+   fronteira do solicitante, preserva seu tile de surgimento e ambos ficam em
+   trégua por 180 segundos. Durante a trégua, ataques entre eles devem ser
+   bloqueados; quebrá-la deve aplicar a penalidade normal de traição.
+4. Repita após uma terceira conquista separar os territórios ou deixar menos
+   área conectada que a porcentagem solicitada. A proposta deve ser recusada sem
+   alterar tiles, relações ou aliança.
+5. Repita em replay/multiplayer e compare o resultado entre clientes.
+
+Esperado: os mesmos tiles são transferidos em todos os clientes; uma oferta
+inválida não produz transferência nem trégua; pedidos comuns de aliança seguem
+com o comportamento anterior. A issue #8 continua aberta para exigências
+territoriais configuráveis, capitulação e demais termos de paz.
 
 ## Economia nuclear e Anti-ICBM — issue #9
 

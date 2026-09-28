@@ -9,6 +9,7 @@ export class AllianceRequestImpl implements AllianceRequest {
     private requestor_: Player,
     private recipient_: Player,
     private tickCreated: number,
+    private territoryPercent_: number,
     private game: GameImpl,
   ) {}
 
@@ -28,11 +29,18 @@ export class AllianceRequestImpl implements AllianceRequest {
     return this.tickCreated;
   }
 
+  territoryPercent(): number {
+    return this.territoryPercent_;
+  }
+
   accept(): void {
-    this.status_ = "accepted";
-    this.game.acceptAllianceRequest(this);
+    if (this.status_ !== "pending") return;
+    this.status_ = this.game.acceptAllianceRequest(this)
+      ? "accepted"
+      : "rejected";
   }
   reject(): void {
+    if (this.status_ !== "pending") return;
     this.status_ = "rejected";
     this.game.rejectAllianceRequest(this);
   }
@@ -48,6 +56,7 @@ export class AllianceRequestImpl implements AllianceRequest {
       requestorID: this.requestor_.smallID(),
       recipientID: this.recipient_.smallID(),
       createdAt: this.tickCreated,
+      territoryPercent: this.territoryPercent_,
     };
   }
 }

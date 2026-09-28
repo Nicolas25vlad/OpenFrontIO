@@ -8,7 +8,7 @@ import { PathFinder } from "../pathfinding/types";
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import { ATTACK_INDEX_SENT } from "../StatsSchemas";
 import { simpleHash } from "../Util";
-import { AllianceImpl } from "./AllianceImpl";
+import { AllianceImpl, PEACE_TRUCE_DURATION_TICKS } from "./AllianceImpl";
 import { AllianceRequestImpl } from "./AllianceRequestImpl";
 import {
   Alliance,
@@ -51,6 +51,10 @@ import { Stats } from "./Stats";
 import { StatsImpl } from "./StatsImpl";
 import { assignTeams, resolveTeamsList } from "./TeamAssignment";
 import { TerraNulliusImpl } from "./TerraNulliusImpl";
+import {
+  MAX_PEACE_TERRITORY_PERCENT,
+  planPeaceTerritoryTransfer,
+} from "./TerritoryTransfer";
 import { UnitGrid, UnitPredicate } from "./UnitGrid";
 import { WaterManager } from "./WaterManager";
 
@@ -425,7 +429,16 @@ export class GameImpl implements Game {
   createAllianceRequest(
     requestor: Player,
     recipient: Player,
+    territoryPercent = 0,
   ): AllianceRequest | null {
+    if (
+      !Number.isInteger(territoryPercent) ||
+      territoryPercent < 0 ||
+      territoryPercent > MAX_PEACE_TERRITORY_PERCENT
+    ) {
+      console.warn("cannot request peace with invalid territory percentage");
+      return null;
+    }
     if (requestor.isAlliedWith(recipient)) {
       console.log("cannot request alliance, already allied");
       return null;
@@ -446,26 +459,48 @@ export class GameImpl implements Game {
       correspondingReq.accept();
       return null;
     }
-    const ar = new AllianceRequestImpl(requestor, recipient, this._ticks, this);
+    const ar = new AllianceRequestImpl(
+      requestor,
+      recipient,
+      this._ticks,
+      territoryPercent,
+      this,
+    );
     this.allianceRequests.push(ar);
     this.addUpdate(ar.toUpdate());
     return ar;
   }
 
-  acceptAllianceRequest(request: AllianceRequestImpl) {
-    this.allianceRequests = this.allianceRequests.filter(
-      (ar) => ar !== request,
-    );
-
+  acceptAllianceRequest(request: AllianceRequestImpl): boolean {
     const requestor = request.requestor();
     const recipient = request.recipient();
 
-    const existing = requestor.allianceWith(recipient);
-    if (existing) {
-      throw new Error(
-        `cannot accept alliance request, already allied with ${recipient.name()}`,
-      );
+    if (!this.allianceRequests.includes(request)) return false;
+    if (requestor.allianceWith(recipient)) {
+      this.rejectAllianceRequest(request);
+      return false;
     }
+
+    const transfer =
+      request.territoryPercent() === 0
+        ? []
+        : planPeaceTerritoryTransfer(
+            this,
+            recipient,
+            requestor,
+            request.territoryPercent(),
+          );
+    if (transfer === null) {
+      this.rejectAllianceRequest(request);
+      return false;
+    }
+
+    // Validate the complete transfer before changing ownership or registering
+    // the truce, so stale offers cannot leave a partially applied agreement.
+    for (const tile of transfer) requestor.conquer(tile);
+    this.allianceRequests = this.allianceRequests.filter(
+      (ar) => ar !== request,
+    );
 
     // Create and register the new alliance
     const alliance = new AllianceImpl(
@@ -474,6 +509,7 @@ export class GameImpl implements Game {
       recipient as PlayerImpl,
       this._ticks,
       this.nextAllianceID++,
+      request.territoryPercent() > 0 ? PEACE_TRUCE_DURATION_TICKS : undefined,
     );
     (alliance.requestor() as PlayerImpl)._alliances.push(alliance);
     (alliance.recipient() as PlayerImpl)._alliances.push(alliance);
@@ -486,6 +522,7 @@ export class GameImpl implements Game {
       request: request.toUpdate(),
       accepted: true,
     });
+    return true;
   }
 
   rejectAllianceRequest(request: AllianceRequestImpl) {
@@ -679,7 +716,19 @@ export class GameImpl implements Game {
   }
 
   private hash(): number {
-    let hash = 1 + this.resourceCatalog.hash() + this.trenchHash;
+    let hash =
+      1 +
+      this.resourceCatalog.hash() +
+      this.trenchHash +
+      this.allianceRequests.reduce(
+        (total, request) =>
+          total +
+          request.requestor().smallID() * 31 +
+          request.recipient().smallID() * 37 +
+          request.createdAt() * 41 +
+          request.territoryPercent() * 43,
+        0,
+      );
     this._players.forEach((p) => {
       hash += p.hash();
     });

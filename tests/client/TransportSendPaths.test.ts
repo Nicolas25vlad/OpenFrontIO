@@ -50,6 +50,7 @@ vi.mock("../../src/client/Utils", () => ({
 import type { LobbyConfig } from "../../src/client/ClientGameRunner";
 import {
   CancelAttackIntentEvent,
+  SendAllianceRequestIntentEvent,
   SendAttackIntentEvent,
   SendDonateGoldIntentEvent,
   SendHashEvent,
@@ -175,6 +176,19 @@ describe("Transport send paths", () => {
       eventBus.emit(new SendSpawnIntentEvent(123));
       eventBus.emit(new SendAttackIntentEvent("player01", 50));
       eventBus.emit(
+        new SendAllianceRequestIntentEvent(
+          { id: () => "player01" } as unknown as PlayerView,
+          { id: () => "player02" } as unknown as PlayerView,
+          10,
+        ),
+      );
+      eventBus.emit(
+        new SendAllianceRequestIntentEvent(
+          { id: () => "player01" } as unknown as PlayerView,
+          { id: () => "player02" } as unknown as PlayerView,
+        ),
+      );
+      eventBus.emit(
         new SendDonateGoldIntentEvent(
           { id: () => "player02" } as unknown as PlayerView,
           25n,
@@ -187,6 +201,18 @@ describe("Transport send paths", () => {
         {
           type: "intent",
           intent: { type: "attack", targetID: "player01", troops: 50 },
+        },
+        {
+          type: "intent",
+          intent: {
+            type: "allianceRequest",
+            recipient: "player02",
+            territoryPercent: 10,
+          },
+        },
+        {
+          type: "intent",
+          intent: { type: "allianceRequest", recipient: "player02" },
         },
         {
           type: "intent",

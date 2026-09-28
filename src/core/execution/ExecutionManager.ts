@@ -85,7 +85,11 @@ export class Executor {
       case "boat":
         return new TransportShipExecution(player, intent.dst, intent.troops);
       case "allianceRequest":
-        return new AllianceRequestExecution(player, intent.recipient);
+        return new AllianceRequestExecution(
+          player,
+          intent.recipient,
+          intent.territoryPercent ?? 0,
+        );
       case "allianceReject":
         return new AllianceRejectExecution(intent.requestor, player);
       case "allianceCancel":

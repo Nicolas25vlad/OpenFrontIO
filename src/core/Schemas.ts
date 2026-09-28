@@ -644,6 +644,9 @@ export const BoatAttackIntentSchema = z.object({
 export const AllianceRequestIntentSchema = z.object({
   type: z.literal("allianceRequest"),
   recipient: MappedID,
+  // Positive values ask the recipient to cede this share of connected land
+  // as part of the peace agreement. Omitted/zero remains an ordinary alliance.
+  territoryPercent: zb.uint({ max: 50 }).optional(),
 });
 
 export const AllianceRejectIntentSchema = z.object({

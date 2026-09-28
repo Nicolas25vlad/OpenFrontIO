@@ -59,6 +59,7 @@ describe("AllianceBehavior.handleAllianceRequests", () => {
     numTilesPlayer = 10,
     numTilesRequestor = 10,
     alliancesCount = 0,
+    territoryPercent = 0,
     createdAtTick = game.config().numSpawnPhaseTurns() + 2,
   } = {}) {
     if (isTraitor) requestor.markTraitor();
@@ -84,6 +85,7 @@ describe("AllianceBehavior.handleAllianceRequests", () => {
       requestor: () => requestor,
       recipient: () => player,
       createdAt: () => createdAtTick as unknown as Tick,
+      territoryPercent: () => territoryPercent,
       accept: vi.fn(),
       reject: vi.fn(),
     } as unknown as AllianceRequest;
@@ -143,6 +145,15 @@ describe("AllianceBehavior.handleAllianceRequests", () => {
 
   test("should reject alliance if player has too many alliances", () => {
     const request = setupAllianceRequest({ alliancesCount: 10 });
+
+    allianceBehavior.handleAllianceRequests();
+
+    expect(request.accept).not.toHaveBeenCalled();
+    expect(request.reject).toHaveBeenCalled();
+  });
+
+  test("should reject territorial peace offers instead of ceding land without a term evaluator", () => {
+    const request = setupAllianceRequest({ territoryPercent: 10 });
 
     allianceBehavior.handleAllianceRequests();
 

@@ -439,6 +439,7 @@ export interface AllianceRequest {
   requestor(): Player;
   recipient(): Player;
   createdAt(): Tick;
+  territoryPercent(): number;
   status(): "pending" | "accepted" | "rejected" | "canceled";
 }
 
@@ -761,7 +762,10 @@ export interface Player {
   canSendAllianceRequest(other: Player): boolean;
   breakAlliance(alliance: Alliance): void;
   removeAllAlliances(): void;
-  createAllianceRequest(recipient: Player): AllianceRequest | null;
+  createAllianceRequest(
+    recipient: Player,
+    territoryPercent?: number,
+  ): AllianceRequest | null;
   betrayals(): number;
 
   // Targeting
