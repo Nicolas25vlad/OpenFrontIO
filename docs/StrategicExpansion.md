@@ -1127,6 +1127,10 @@ suíte principal passaram; os quatro timeouts de `InventoryModal.test.ts`
 passaram ao repetir o arquivo isoladamente (28/28). A suíte de servidor passou
 em 63 arquivos/656 testes. Lint, `tsc --noEmit`, `npm run build-dev`, Prettier e
 `git diff --check` passaram.
+Revalidação em 2026-09-28 após a cobertura integrada de áreas sobrepostas:
+`NODE_OPTIONS="--experimental-webstorage --localstorage-file=/tmp/openfront-vitest-active-goal" npx vitest run --maxWorkers=1` passou em 490 arquivos/5.775 testes.
+`npm run lint`, `npm run build-dev`, TypeScript, Prettier e `git diff --check`
+também passaram. `NODE_OPTIONS="--experimental-webstorage --localstorage-file=/tmp/openfront-vitest-active-server" npx vitest run tests/server --maxWorkers=1` passou em 63 arquivos/656 testes.
 
 Validação manual pendente no PC principal:
 
