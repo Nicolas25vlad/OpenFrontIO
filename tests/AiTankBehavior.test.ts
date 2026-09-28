@@ -1,4 +1,6 @@
+import { ConstructionExecution } from "../src/core/execution/ConstructionExecution";
 import { AiTankBehavior } from "../src/core/execution/nation/AiTankBehavior";
+import { TribeExecution } from "../src/core/execution/TribeExecution";
 import { Game, PlayerInfo, PlayerType, UnitType } from "../src/core/game/Game";
 import { setup } from "./util/Setup";
 
@@ -56,5 +58,32 @@ describe("AI tank behavior", () => {
 
     expect(bot.units(UnitType.Tank)).toHaveLength(0);
     expect(bot.tanks()).toBe(strategicEconomy ? 1 : 3);
+  });
+
+  test("tribe execution deploys reserve tanks in strategic economy", async () => {
+    const game = await botGame();
+    const tribe = game.player("bot");
+    tribe.conquer(game.ref(50, 50));
+    game.player("rival").conquer(game.ref(51, 50));
+    tribe.addTanks(2);
+
+    const addExecution = vi.spyOn(game, "addExecution");
+    const execution = new TribeExecution(tribe);
+    execution.init(game);
+
+    for (let tick = 0; tick < 200; tick++) {
+      execution.tick(tick);
+      if (
+        addExecution.mock.calls.some(
+          ([queued]) => queued instanceof ConstructionExecution,
+        )
+      ) {
+        break;
+      }
+    }
+
+    expect(addExecution).toHaveBeenCalledWith(
+      expect.any(ConstructionExecution),
+    );
   });
 });
