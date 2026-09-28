@@ -67,6 +67,7 @@ test("shows actual stocks and all production balances; map toggle changes no sto
   expect(panel.textContent).toContain("resource.coal: +2");
   expect(panel.textContent).toContain("resource.iron: 72%");
   expect(panel.textContent).toContain("resource.coal: 48%");
+  expect(panel.textContent).toMatch(/economy\.tank_supply:\s+100%/);
   expect(panel.querySelectorAll("tbody tr")).toHaveLength(
     STOCK_RESOURCES.length,
   );

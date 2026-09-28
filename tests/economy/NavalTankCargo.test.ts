@@ -11,6 +11,7 @@ import {
   UnitType,
 } from "../../src/core/game/Game";
 import { GameUpdateType, UnitUpdate } from "../../src/core/game/GameUpdates";
+import { ProcessedResource } from "../../src/core/game/Resources";
 import { GameID } from "../../src/core/Schemas";
 import { setup } from "../util/Setup";
 import { TestConfig } from "../util/TestConfig";
@@ -88,6 +89,29 @@ describe("strategic tank cargo on naval attacks", () => {
     expect(ship.isActive()).toBe(false);
     expect(observedAttackTanks).toBe(2);
     expect(defender.tanks()).toBeLessThanOrEqual(4);
+  });
+
+  it("charges supply for tanks currently loaded on a transport", async () => {
+    const { game, defender } = await startNavalGame();
+    defender.addTroops(125_000);
+    defender.addTanks(10);
+
+    game.addExecution(
+      new TransportShipExecution(defender, game.ref(15, 8), 100_000, 10),
+    );
+    game.executeNextTick();
+
+    const [ship] = defender.units(UnitType.TransportShip);
+    expect(ship?.transportShipState().tanks).toBe(10);
+    expect(defender.tanks()).toBe(0);
+    const fuelBefore = defender.resourceAmount(ProcessedResource.Fuel);
+
+    defender.updateEconomy(10);
+
+    expect(defender.supplyStatus().fuelDemand).toBe(1);
+    expect(defender.resourceAmount(ProcessedResource.Fuel)).toBe(
+      fuelBefore - 1,
+    );
   });
 
   it("keeps legacy intents without a tank request infantry-only", async () => {

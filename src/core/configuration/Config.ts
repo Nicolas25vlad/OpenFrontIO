@@ -92,6 +92,8 @@ export interface AttackLogicInput {
     type: PlayerType;
     numTiles: number;
     supply?: number;
+    /** Fuel and steel supply for the attack's tanks. */
+    tankSupply?: number;
     logistics?: number;
     /** Tanks assigned to this land or naval attack. */
     tanks?: number;
@@ -958,9 +960,16 @@ export class Config {
     const attackerSupply = this.strategicEconomy()
       ? supplyMultiplier(attacker.supply)
       : 1;
+    const tankSupply = this.strategicEconomy()
+      ? supplyMultiplier(attacker.tankSupply)
+      : 1;
     const defenderSupply = this.strategicEconomy()
       ? supplyMultiplier(defender?.supply)
       : 1;
+    const fullTankStrength =
+      (attacker.tanks ?? 0) * STRATEGIC_COMBAT.tankCombatPower;
+    const effectiveAttackStrength =
+      attackTroops - fullTankStrength + fullTankStrength * tankSupply;
     mag *= defenderSupply / attackerSupply;
     tileCost *= defenderSupply / attackerSupply;
     if (this.strategicEconomy())
@@ -968,7 +977,9 @@ export class Config {
     if (this.strategicEconomy() && (attacker.tanks ?? 0) > 0) {
       const tankSpeedBonus = Math.min(
         STRATEGIC_COMBAT.tankAdvanceSpeedMaxPercent,
-        (attacker.tanks ?? 0) * STRATEGIC_COMBAT.tankAdvanceSpeedPerTankPercent,
+        (attacker.tanks ?? 0) *
+          STRATEGIC_COMBAT.tankAdvanceSpeedPerTankPercent *
+          tankSupply,
       );
       tileCost /= 1 + tankSpeedBonus / 100;
     }
@@ -980,7 +991,7 @@ export class Config {
         STRATEGIC_COMBAT.trenchTankCounterMax,
         (attacker.tanks ?? 0) *
           STRATEGIC_COMBAT.trenchTankCounterPerTank *
-          attackerSupply,
+          tankSupply,
       );
       const effectiveTrenchLevel = attackerTrenchLevel * (1 - tankBreakthrough);
       offensiveTrenchLossModifier +=
@@ -1002,7 +1013,7 @@ export class Config {
         STRATEGIC_COMBAT.trenchTankCounterMax,
         (attacker.tanks ?? 0) *
           STRATEGIC_COMBAT.trenchTankCounterPerTank *
-          attackerSupply,
+          tankSupply,
       );
       const effectiveTrenchLevel = trenchLevel * (1 - trenchCounter);
       mag *= 1 + effectiveTrenchLevel * STRATEGIC_COMBAT.trenchDefensePerLevel;
@@ -1024,7 +1035,7 @@ export class Config {
         defenderTroopLoss: 0,
         tickFraction:
           within(
-            (TERRA_NULLIUS_COST_SCALE * tileCost) / attackTroops,
+            (TERRA_NULLIUS_COST_SCALE * tileCost) / effectiveAttackStrength,
             TERRA_NULLIUS_MIN_COST,
             TERRA_NULLIUS_MAX_COST,
           ) / tickBudget,
@@ -1065,7 +1076,7 @@ export class Config {
     // (defender army / attack stack, clamped: bigger pushes pay less per
     // tile) scales a cost made of a base plus the defender's troop density
     // (packed land is expensive, spread-thin land is cheap).
-    const troopRatio = defender.troops / attackTroops;
+    const troopRatio = defender.troops / effectiveAttackStrength;
     const attackerTroopLoss =
       mag *
       offensiveTrenchLossModifier *

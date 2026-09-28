@@ -108,6 +108,26 @@ describe("diffPlayerUpdate", () => {
     expect(diff.nationFlag).toBe("pk");
   });
 
+  it("sends changes to tank supply in the player diff", () => {
+    const previousSupply = {
+      infantry: 100,
+      navy: 100,
+      tanks: 100,
+      foodDemand: 0,
+      fuelDemand: 0,
+      steelDemand: 0,
+      logistics: 0,
+    };
+    const nextSupply = { ...previousSupply, tanks: 35 };
+
+    expect(
+      diffPlayerUpdate(
+        makePlayerUpdate({ supply: previousSupply }),
+        makePlayerUpdate({ supply: nextSupply }),
+      )?.supply,
+    ).toEqual(nextSupply);
+  });
+
   it("emits killedBy + deathPosition when a player is eliminated", () => {
     const prev = makePlayerUpdate({ killedBy: null, deathPosition: null });
     const next = makePlayerUpdate({ killedBy: "client-b", deathPosition: 3 });
@@ -366,6 +386,27 @@ describe("packAttackTroopDeltas", () => {
 });
 
 describe("applyStateUpdate", () => {
+  it("defaults tank supply when applying a legacy supply update", () => {
+    const target = makePlayerState();
+    const oldSupply = {
+      infantry: 80,
+      navy: 90,
+      foodDemand: 2,
+      fuelDemand: 1,
+      steelDemand: 1,
+      logistics: 5,
+    };
+
+    applyStateUpdate(
+      target,
+      makePlayerUpdate({ supply: oldSupply as PlayerUpdate["supply"] }),
+    );
+
+    expect(target.supply?.infantry).toBe(80);
+    expect(target.supply?.navy).toBe(90);
+    expect(target.supply?.tanks).toBe(100);
+  });
+
   it("applies killedBy + deathPosition on elimination", () => {
     const target = makePlayerState();
     applyStateUpdate(

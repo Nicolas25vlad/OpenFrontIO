@@ -397,20 +397,20 @@ export class AttackExecution implements Execution {
     defenderPost: Unit | undefined,
   ): AttackLogicInput {
     const defender = this.target.isPlayer() ? this.target : null;
-    const attackStrength =
-      attackTroops +
-      (this.attack?.tanks() ?? 0) * STRATEGIC_COMBAT.tankCombatPower;
     // Same test as scanning nearbyUnits() for a post owned by the defender
     // (active, not under construction, within range), without building a
     // result array per conquered tile — this runs for every tile of every
     // attack on the map.
     return {
       terrain: this.map.terrainType(tile),
-      attackTroops: attackStrength,
+      attackTroops:
+        attackTroops +
+        (this.attack?.tanks() ?? 0) * STRATEGIC_COMBAT.tankCombatPower,
       attacker: {
         type: this._owner.type(),
         numTiles: this._owner.numTilesOwned(),
         supply: this._owner.supplyStatus().infantry,
+        tankSupply: this._owner.supplyStatus().tanks,
         logistics: this._owner.supplyStatus().logistics,
         tanks: this.attack?.tanks() ?? 0,
         trenchLevel: this.attackerStagingTrenchLevel(tile),

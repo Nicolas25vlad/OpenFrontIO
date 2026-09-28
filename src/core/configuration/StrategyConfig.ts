@@ -37,6 +37,10 @@ export const ECONOMY = {
   foodReservePeriods: 6,
   navalFuelPerLevel: 2,
   shipsPerSteel: 5,
+  /** Tank reserves consume one unit of fuel per period per ten tanks. */
+  tanksPerFuel: 10,
+  /** Tank reserves consume one unit of steel per period per twenty tanks. */
+  tanksPerSteel: 20,
   supplyFloor: 35,
   growthFloor: 0.2,
   logisticsPerLevel: 5,

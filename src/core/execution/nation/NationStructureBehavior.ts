@@ -860,7 +860,8 @@ export class NationStructureBehavior {
     );
     const hasSupplyShortage =
       this.player.supplyStatus().infantry < 100 ||
-      this.player.supplyStatus().navy < 100;
+      this.player.supplyStatus().navy < 100 ||
+      this.player.supplyStatus().tanks < 100;
     const canImproveLogistics =
       hasSupplyShortage &&
       connectedInfrastructureLevels < MAX_LOGISTICS_INFRASTRUCTURE_LEVELS;
@@ -1467,7 +1468,8 @@ export class NationStructureBehavior {
       : null;
     const stationRangeSquared = game.config().trainStationMaxRange() ** 2;
     const supply = player.supplyStatus();
-    const needsLogistics = supply.infantry < 100 || supply.navy < 100;
+    const needsLogistics =
+      supply.infantry < 100 || supply.navy < 100 || supply.tanks < 100;
 
     return (tile) => {
       let score = 0;

@@ -17,6 +17,7 @@ export interface ResourceRates {
 export interface SupplyStatus {
   infantry: number;
   navy: number;
+  tanks: number;
   foodDemand: number;
   fuelDemand: number;
   steelDemand: number;
@@ -26,6 +27,7 @@ export interface SupplyStatus {
 export const FULL_SUPPLY: Readonly<SupplyStatus> = {
   infantry: 100,
   navy: 100,
+  tanks: 100,
   foodDemand: 0,
   fuelDemand: 0,
   steelDemand: 0,
@@ -42,6 +44,7 @@ export function supplyEqual(
       !!b &&
       a.infantry === b.infantry &&
       a.navy === b.navy &&
+      a.tanks === b.tanks &&
       a.foodDemand === b.foodDemand &&
       a.fuelDemand === b.fuelDemand &&
       a.steelDemand === b.steelDemand &&

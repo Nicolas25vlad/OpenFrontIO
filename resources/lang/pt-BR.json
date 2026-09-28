@@ -615,7 +615,8 @@
     "shortage": "Falta de insumo",
     "stock": "Estoque",
     "supply": "Supply terrestre",
-    "supply_hint": "Supply consome comida, combustível e aço. Escassez reduz crescimento, combate e velocidade; infraestrutura conectada reduz a manutenção.",
+    "supply_hint": "Supply consome comida, combustível e aço do exército, da marinha e dos tanques. Escassez reduz crescimento, combate e velocidade; infraestrutura conectada reduz a manutenção.",
+    "tank_supply": "Supply de tanques",
     "tanks": "Tanques",
     "trade_routes": "Comboios em rota"
   },

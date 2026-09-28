@@ -357,14 +357,36 @@ test("a supply center contributes logistics only through the capital rail networ
   const city = player.units(UnitType.City)[0];
   const supplyCenter = player.units(UnitType.SupplyCenter)[0];
 
+  player.addTanks(20);
+  const initialFuel = player.resourceAmount(ProcessedResource.Fuel);
+  const initialSteel = player.resourceAmount(ProcessedResource.Steel);
   player.updateEconomy(10);
   expect(player.supplyStatus().logistics).toBe(0);
+  expect(player.supplyStatus().fuelDemand).toBe(2);
+  expect(player.supplyStatus().steelDemand).toBe(1);
+  expect(player.resourceAmount(ProcessedResource.Fuel)).toBe(initialFuel - 2);
+  expect(player.resourceAmount(ProcessedResource.Steel)).toBe(initialSteel - 1);
+
   game.addExecution(
     new InfrastructureRouteExecution(player, [city.id(), supplyCenter.id()]),
   );
   for (let i = 0; i < 2; i++) game.executeNextTick();
+  const fuelAfterUnconnectedMaintenance = player.resourceAmount(
+    ProcessedResource.Fuel,
+  );
+  const steelAfterUnconnectedMaintenance = player.resourceAmount(
+    ProcessedResource.Steel,
+  );
   player.updateEconomy(20);
   expect(player.supplyStatus().logistics).toBe(15);
+  expect(player.supplyStatus().fuelDemand).toBe(1);
+  expect(player.supplyStatus().steelDemand).toBe(0);
+  expect(player.resourceAmount(ProcessedResource.Fuel)).toBe(
+    fuelAfterUnconnectedMaintenance - 1,
+  );
+  expect(player.resourceAmount(ProcessedResource.Steel)).toBe(
+    steelAfterUnconnectedMaintenance,
+  );
 });
 
 test("strategic infrastructure is a route action, not a placed structure", async () => {

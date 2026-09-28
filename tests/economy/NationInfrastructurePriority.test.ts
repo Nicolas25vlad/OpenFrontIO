@@ -80,7 +80,7 @@ describe("nation strategic infrastructure priority", () => {
     expect(player.supplyStatus().logistics).toBeGreaterThan(0);
   });
 
-  it.each(["infantry", "navy"] as const)(
+  it.each(["infantry", "navy", "tanks"] as const)(
     "builds logistics infrastructure for a %s supply shortage only",
     (service) => {
       game.addExecution(

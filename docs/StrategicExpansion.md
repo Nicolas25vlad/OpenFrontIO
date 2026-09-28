@@ -158,6 +158,33 @@ painel econômico. Ataques terrestres e navais ainda podem comprometer esse
 estoque; produção, custos, força de combate, baixas, velocidade e penalidades de
 suprimento continuam no fluxo estratégico existente.
 
+A manutenção estratégica também inclui tanques em reserva, em ataques ativos e
+como carga de transportes: a cada dez tanques, o custo-base é um combustível
+por período; a cada vinte, um aço. Frações se acumulam entre períodos, e a
+logística conectada reduz os dois custos. `supply.tanks` é enviado aos clientes
+e incluído no hash; a escassez reduz força e velocidade dos tanques e sua
+capacidade de romper trincheiras. O painel mostra esse percentual, e as nações
+buscam logística quando a escassez vem dos tanques.
+
+`tests/economy/Supply.test.ts` cobre consumo em ataques ativos, acúmulo
+fracionário, escassez, penalidade de combate e compatibilidade legada.
+`tests/economy/Infrastructure.test.ts` confirma que um Supply Center conectado
+reduz a manutenção. `GameUpdateUtils` cobre o novo campo e o padrão ao ler
+updates antigos. `tests/economy/NavalTankCargo.test.ts` confirma que tanques
+embarcados continuam consumindo supply durante a travessia. Os arquivos
+principais desta etapa são
+`src/core/configuration/StrategyConfig.ts`, `src/core/game/Economy.ts`,
+`src/core/game/PlayerImpl.ts`, `src/core/game/GameUpdateUtils.ts`,
+`src/core/configuration/Config.ts`, `src/core/execution/AttackExecution.ts`,
+`src/core/execution/nation/NationStructureBehavior.ts`,
+`src/client/hud/layers/ResourcePanel.ts` e as traduções em `resources/lang/`.
+
+Validação em 2026-09-28: 10 arquivos/134 testes focados passaram; a suíte
+principal passou em 490 arquivos/5.773 testes com um worker e a suíte do
+servidor em 63 arquivos/656 testes. `npm run lint`, `npm run build-dev`,
+`tsc --noEmit`, Prettier e `git diff --check` também passaram. A validação
+visual no PC principal permanece pendente conforme o roteiro abaixo.
+
 Tanques não são unidades de mapa. A revisão removeu o tipo de unidade, a
 construção individual, o intent de movimento, a seleção, o comportamento de IA
 de implantação, os limites de implantação e os sprites exclusivos. O campo
@@ -234,20 +261,27 @@ arquivos e 5.607 testes, e a suíte de servidor com 63 arquivos e 656 testes.
    compromisso em 50% ou 100%. O transporte deve mostrar os tanques no detalhe;
    após o desembarque, o ataque deve carregar a mesma quantidade. Se a rota for
    cancelada, o estoque deve recuperar apenas os tanques sobreviventes.
-5. Em uma nação com pelo menos 25.000 tropas, aproxime a câmera da fronteira
+5. Com 20 tanques em reserva, observe o consumo de combustível e aço por período.
+   Zere esses estoques e confira que o abastecimento cai, os próximos ataques
+   têm menos força e velocidade e as trincheiras resistem melhor. Conecte um
+   Supply Center à capital: a manutenção deve cair. Com a economia estratégica
+   desligada, tanques não devem consumir esses recursos.
+6. Em uma nação com pelo menos 25.000 tropas, aproxime a câmera da fronteira
    até os ícones aparecerem. Confira uma região interior e uma fronteira entre
    dois jogadores.
-6. Afaste a câmera até os ícones desaparecerem e aproxime novamente.
-7. Faça uma conquista na fronteira e confira se os grupos acompanham o novo
+7. Afaste a câmera até os ícones desaparecerem e aproxime novamente.
+8. Faça uma conquista na fronteira e confira se os grupos acompanham o novo
    território em até 50 ticks. Repita avançando e voltando em um replay.
 
 Esperado: pequenos grupos de duas silhuetas em pixel art, coloridos pelo dono
 do território e restritos às fronteiras; nenhum grupo no interior. O ataque
 deve exibir a quantidade de tanques, consumir reserva ao sair, avançar mais
-rápido com os tanques e devolver apenas os sobreviventes ao cancelar. A
+rápido com tanques abastecidos e devolver apenas os sobreviventes ao cancelar. A
 quantidade cresce em degraus com as tropas, respeita o limite visual, some
 abaixo do zoom mínimo e os ícones de guarnição não mudam o combate. O contador de
 tanques deve aumentar em lotes conforme a fábrica consome aço e combustível.
+O abastecimento deve cair com a falta de combustível/aço e recuperar quando os
+estoques e a logística forem restabelecidos.
 O controle de compromisso aparece apenas na economia estratégica e limita os
 tanques embarcados sem ultrapassar o limite das tropas ou o estoque disponível.
 Registre navegador,

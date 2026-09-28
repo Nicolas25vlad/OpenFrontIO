@@ -1,5 +1,5 @@
 import type { PlayerState } from "../../client/render/types";
-import { resourceRatesEqual, supplyEqual } from "./Economy";
+import { FULL_SUPPLY, resourceRatesEqual, supplyEqual } from "./Economy";
 import type { EmojiMessage } from "./Game";
 import {
   AllianceView,
@@ -208,7 +208,7 @@ export function applyStateUpdate(target: PlayerState, pu: PlayerUpdate): void {
     };
   if (pu.troops !== undefined) target.troops = pu.troops;
   if (pu.tanks !== undefined) target.tanks = pu.tanks;
-  if (pu.supply !== undefined) target.supply = { ...pu.supply };
+  if (pu.supply !== undefined) target.supply = { ...FULL_SUPPLY, ...pu.supply };
   if (pu.isTraitor !== undefined) target.isTraitor = pu.isTraitor;
   if (pu.traitorRemainingTicks !== undefined) {
     target.traitorRemainingTicks = Math.max(0, pu.traitorRemainingTicks);

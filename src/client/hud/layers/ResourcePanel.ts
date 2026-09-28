@@ -303,7 +303,7 @@ export class ResourcePanel extends LitElement implements Controller {
         <strong class="tabular-nums">${renderNumber(player.tanks())}</strong>
       </div>
       <div
-        class="flex justify-between gap-2 text-[11px]"
+        class="grid grid-cols-3 gap-1 text-[11px]"
         title=${translateText("economy.supply_hint")}
       >
         <span
@@ -313,6 +313,10 @@ export class ResourcePanel extends LitElement implements Controller {
         <span
           >${translateText("economy.naval_supply")}:
           ${player.supplyStatus().navy}%</span
+        >
+        <span
+          >${translateText("economy.tank_supply")}:
+          ${player.supplyStatus().tanks}%</span
         >
       </div>
       ${routeSources.length > 0

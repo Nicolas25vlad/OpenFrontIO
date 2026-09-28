@@ -88,6 +88,7 @@ test("Anti-ICBM range and throughput bonuses preserve all legacy levels", () => 
 
   const tankBreakthroughBase = {
     ...attack,
+    attackTroops: 550_000,
     defenderHasDefensePost: false,
     defenderDefensePostLevel: 0,
     attacker: { ...attack.attacker, tanks: 100 },
@@ -116,17 +117,24 @@ test("Anti-ICBM range and throughput bonuses preserve all legacy levels", () => 
     attacker: {
       ...attack.attacker,
       supply: 100,
+      tankSupply: 100,
       tanks: 1,
     },
   };
-  const suppliedTankNoTrench = strategic.attackLogic(suppliedTankAttack);
-  const suppliedTankTrench = strategic.attackLogic({
+  const suppliedTankAttackWithArmor: AttackLogicInput = {
     ...suppliedTankAttack,
+    attackTroops: 55_000,
+  };
+  const suppliedTankNoTrench = strategic.attackLogic(
+    suppliedTankAttackWithArmor,
+  );
+  const suppliedTankTrench = strategic.attackLogic({
+    ...suppliedTankAttackWithArmor,
     defenderTrenchLevel: 3,
   });
   const starvedTankTrench = strategic.attackLogic({
-    ...suppliedTankAttack,
-    attacker: { ...suppliedTankAttack.attacker, supply: 0 },
+    ...suppliedTankAttackWithArmor,
+    attacker: { ...suppliedTankAttack.attacker, tankSupply: 0 },
     defenderTrenchLevel: 3,
   });
   expect(
@@ -175,14 +183,23 @@ test("strategic tanks improve land-attack advance speed up to the configured cap
   const infantryOnly = strategic.attackLogic(attack);
   const oneTank = strategic.attackLogic({
     ...attack,
+    attackTroops: 55_000,
     attacker: { ...attack.attacker, tanks: 1 },
   });
   const cappedTanks = strategic.attackLogic({
     ...attack,
+    attackTroops: 550_000,
     attacker: { ...attack.attacker, tanks: 100 },
   });
   const atCap = strategic.attackLogic({
     ...attack,
+    attackTroops:
+      50_000 +
+      Math.ceil(
+        STRATEGIC_COMBAT.tankAdvanceSpeedMaxPercent /
+          STRATEGIC_COMBAT.tankAdvanceSpeedPerTankPercent,
+      ) *
+        STRATEGIC_COMBAT.tankCombatPower,
     attacker: {
       ...attack.attacker,
       tanks: Math.ceil(
