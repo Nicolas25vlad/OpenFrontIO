@@ -665,6 +665,9 @@ capitulação (acompanhada separadamente na
 visual em replay e multiplayer; a issue #8 permanece aberta.
 Na revisão de paz branca, `AllianceCancelExecution.test.ts` passou com 3 testes,
 incluindo cancelamento autorizado de uma proposta explícita de 0%.
+Pedidos comuns também são recusados se qualquer participante for eliminado
+antes do aceite. A conquista normal resolve os pedidos pendentes do jogador
+eliminado, removendo-os das listas de entrada e saída sem criar alianças tardias.
 
 ### Oferta de paz com cessão territorial (parcial)
 

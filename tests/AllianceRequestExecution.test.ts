@@ -89,6 +89,21 @@ describe("AllianceRequestExecution", () => {
     expect(player1.isAlliedWith(player2)).toBe(false);
   });
 
+  test("normal conquest rejects pending alliance requests involving the eliminated player", () => {
+    const request = player1.createAllianceRequest(player2);
+    expect(request).not.toBeNull();
+
+    player1.conquer(game.ref(0, 1));
+    game.conquerPlayer(player1, player2);
+
+    expect(player2.isAlive()).toBe(false);
+    expect(request?.status()).toBe("rejected");
+    request?.accept();
+    expect(player1.isAlliedWith(player2)).toBe(false);
+    expect(player1.outgoingAllianceRequests()).toHaveLength(0);
+    expect(player2.incomingAllianceRequests()).toHaveLength(0);
+  });
+
   test("Alliance request expires", () => {
     game.config().allianceRequestDuration = () => 5;
     game.addExecution(new AllianceRequestExecution(player1, player2.id()));

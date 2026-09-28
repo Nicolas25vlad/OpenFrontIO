@@ -579,7 +579,6 @@ export class GameImpl implements Game {
     for (const unit of [...recipient.units()]) unit.delete(false);
 
     recipient.removeAllAlliances();
-    this.resolveRequestsForEliminatedPlayer(recipient, request);
     this.conquerPlayer(requestor, recipient);
     recipient.removeGold(recipient.gold());
     for (const resource of STOCK_RESOURCES) {
@@ -609,14 +608,10 @@ export class GameImpl implements Game {
     return true;
   }
 
-  private resolveRequestsForEliminatedPlayer(
-    player: Player,
-    acceptedRequest: AllianceRequestImpl,
-  ): void {
+  private resolveRequestsForEliminatedPlayer(player: Player): void {
     const pending = this.allianceRequests.filter(
       (candidate) =>
-        candidate !== acceptedRequest &&
-        (candidate.requestor() === player || candidate.recipient() === player),
+        candidate.requestor() === player || candidate.recipient() === player,
     );
     for (const request of pending) {
       request.reject();
@@ -1568,6 +1563,10 @@ export class GameImpl implements Game {
     return this._sharedWaterCache.get(player);
   }
   conquerPlayer(conqueror: Player, conquered: Player) {
+    if (!conquered.isAlive()) {
+      this.resolveRequestsForEliminatedPlayer(conquered);
+    }
+
     if (conquered.isDisconnected() && conqueror.isOnSameTeam(conquered)) {
       const ships = conquered
         .units()
