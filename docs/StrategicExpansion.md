@@ -720,6 +720,10 @@ de plugins; terminou com código 0. Esta etapa alterou `src/core/Schemas.ts`,
 `src/client/hud/layers/ActionableEvents.ts`,
 `src/client/hud/layers/EventsDisplay.ts`, traduções EN/PT-BR e testes de
 core, transporte e HUD.
+O histórico do remetente também preserva a distinção de ofertas percentuais
+vindas de clientes legados sem o campo `peaceOffer`; os três casos de rótulo
+(aliança comum, paz percentual antiga e paz branca explícita) passaram em
+`EventsDisplayHandlers.test.ts` (17 testes no arquivo).
 
 Arquivos desta etapa: `src/core/game/TerritoryTransfer.ts`,
 `src/core/game/GameImpl.ts`, `src/core/game/AllianceImpl.ts`,

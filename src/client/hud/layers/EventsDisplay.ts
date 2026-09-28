@@ -179,19 +179,20 @@ export class EventsDisplay extends LitElement implements Controller {
     if (e.recipient.isRequestingAllianceWith(e.requestor)) {
       return;
     }
+    const isWhitePeace = e.peaceOffer && e.territoryPercent === 0;
     this.addEvent({
-      description: e.peaceOffer
-        ? e.territoryPercent === 0
-          ? translateText("events_display.white_peace_sent", {
-              name: e.recipient.name(),
-            })
-          : translateText("events_display.peace_offer_sent", {
+      description: isWhitePeace
+        ? translateText("events_display.white_peace_sent", {
+            name: e.recipient.name(),
+          })
+        : e.territoryPercent > 0
+          ? translateText("events_display.peace_offer_sent", {
               name: e.recipient.name(),
               percent: e.territoryPercent,
             })
-        : translateText("events_display.alliance_request_sent", {
-            name: e.recipient.name(),
-          }),
+          : translateText("events_display.alliance_request_sent", {
+              name: e.recipient.name(),
+            }),
       type: MessageType.ALLIANCE_REQUEST,
       createdAt: this.game.ticks(),
     });

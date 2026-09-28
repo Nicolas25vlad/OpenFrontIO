@@ -38,6 +38,7 @@ vi.mock("../../../../src/client/Utils", () => ({
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EventsDisplay } from "../../../../src/client/hud/layers/EventsDisplay";
 import { PlaySoundEffectEvent } from "../../../../src/client/sound/Sounds";
+import { SendAllianceRequestIntentEvent } from "../../../../src/client/Transport";
 import { MessageType } from "../../../../src/core/game/Game";
 import { GameUpdateType } from "../../../../src/core/game/GameUpdates";
 
@@ -128,6 +129,54 @@ describe("EventsDisplay handlers", () => {
       ed.tick();
       expect(events()).toHaveLength(0);
     });
+  });
+
+  describe("outgoing alliance request confirmation", () => {
+    const requestor = { id: () => "me" };
+    const recipient = {
+      name: () => "Stranger",
+      isRequestingAllianceWith: () => false,
+    };
+
+    beforeEach(() => {
+      game.myPlayer = () => requestor;
+    });
+
+    it.each([
+      {
+        label: "an ordinary alliance",
+        territoryPercent: 0,
+        peaceOffer: false,
+        expectedKey: "events_display.alliance_request_sent",
+      },
+      {
+        label: "a legacy territorial peace offer",
+        territoryPercent: 10,
+        peaceOffer: false,
+        expectedKey: "events_display.peace_offer_sent",
+      },
+      {
+        label: "an explicit white peace offer",
+        territoryPercent: 0,
+        peaceOffer: true,
+        expectedKey: "events_display.white_peace_sent",
+      },
+    ])(
+      "labels $label correctly",
+      ({ territoryPercent, peaceOffer, expectedKey }) => {
+        const event = new SendAllianceRequestIntentEvent(
+          requestor as never,
+          recipient as never,
+          territoryPercent,
+          peaceOffer,
+        );
+
+        (ed as any).onAllianceRequestSentConfirmation(event);
+
+        expect(events()).toHaveLength(1);
+        expect(events()[0].description).toContain(expectedKey);
+      },
+    );
   });
 
   describe("onAllianceRequestReplyEvent", () => {
