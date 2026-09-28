@@ -91,6 +91,30 @@ describe("independent tank deployment", () => {
     expect(player.canBuild(UnitType.Tank, tile)).toBe(false);
   });
 
+  test("deploys a tank through the normal build_unit intent", async () => {
+    const game = await tankGame();
+    const player = game.player("army");
+    const tile = game.ref(50, 50);
+    player.conquer(tile);
+    player.addTanks(2);
+    const executor = new Executor(game, "tank-build-intent", undefined);
+
+    game.addExecution(
+      executor.createExec({
+        type: "build_unit",
+        unit: UnitType.Tank,
+        tile,
+        clientID: "army-client",
+      }),
+    );
+    game.executeNextTick(); // initialize the queued intent execution
+    game.executeNextTick(); // deploy the tank
+
+    expect(player.units(UnitType.Tank)).toHaveLength(1);
+    expect(player.units(UnitType.Tank)[0].tile()).toBe(tile);
+    expect(player.tanks()).toBe(1);
+  });
+
   test("rejects deployment without reserve, outside owned land, or above cap", async () => {
     const game = await tankGame();
     const player = game.player("army");

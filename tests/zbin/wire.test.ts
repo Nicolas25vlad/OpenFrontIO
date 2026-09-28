@@ -94,6 +94,12 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     tile: 7,
     amount: 3,
   },
+  {
+    type: "build_unit",
+    clientID: P2,
+    unit: UnitType.Tank,
+    tile: 8,
+  },
   { type: "build_trench", clientID: P2, tile: 9 },
   {
     type: "upgrade_structure",
