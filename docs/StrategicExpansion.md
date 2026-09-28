@@ -917,7 +917,8 @@ com a economia legada e a ausência de intent sem os insumos.
 Em ofertas de paz, o bot agora só cede até 10% do território quando o emissor é
 uma ameaça pela heurística de dificuldade e não é traidor; pedidos maiores ou de
 atores que não são ameaça são recusados. `tests/NationAllianceBehavior.test.ts`
-cobre esses limites.
+cobre esses limites e confirma que a paz branca explícita segue a decisão
+normal de aliança da nação.
 Em pedidos explícitos de capitulação, a IA de nações e tribos rejeita a proposta
 por padrão e só aceita quando o solicitante passa pela heurística de ameaça da
 dificuldade, tem mais de quatro vezes as tropas e mais que o dobro do território.

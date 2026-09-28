@@ -60,7 +60,7 @@ describe("AllianceBehavior.handleAllianceRequests", () => {
     numTilesRequestor = 10,
     alliancesCount = 0,
     territoryPercent = 0,
-    kind = "alliance" as "alliance" | "capitulation",
+    kind = "alliance" as "alliance" | "peace" | "capitulation",
     createdAtTick = game.config().numSpawnPhaseTurns() + 2,
   } = {}) {
     if (isTraitor) requestor.markTraitor();
@@ -113,6 +113,15 @@ describe("AllianceBehavior.handleAllianceRequests", () => {
     allianceBehavior.handleAllianceRequests();
 
     expect(request.accept).toHaveBeenCalled();
+    expect(request.reject).not.toHaveBeenCalled();
+  });
+
+  test("should accept white peace using the regular alliance decision", () => {
+    const request = setupAllianceRequest({ kind: "peace" });
+
+    allianceBehavior.handleAllianceRequests();
+
+    expect(request.accept).toHaveBeenCalledOnce();
     expect(request.reject).not.toHaveBeenCalled();
   });
 
