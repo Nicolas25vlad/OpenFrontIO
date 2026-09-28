@@ -55,6 +55,34 @@ describe("BuildTrenchExecution", () => {
     expect(game.trenchLevel(tile)).toBe(1);
   });
 
+  test("serializes simultaneous trench intents against the shared steel stock", () => {
+    const firstTile = game.ref(50, 50);
+    const secondTile = game.ref(52, 50);
+    player.conquer(firstTile);
+    player.conquer(secondTile);
+    player.removeResource(
+      ProcessedResource.Steel,
+      player.resourceAmount(ProcessedResource.Steel),
+    );
+    player.addResource(ProcessedResource.Steel, 5);
+    const executor = new Executor(game, "trench-stock-race", undefined);
+
+    for (const tile of [firstTile, secondTile]) {
+      game.addExecution(
+        executor.createExec({
+          type: "build_trench",
+          clientID: "client",
+          tile,
+        }),
+      );
+    }
+    game.executeNextTick();
+
+    expect(game.trenchLevel(firstTile)).toBe(1);
+    expect(game.trenchLevel(secondTile)).toBe(0);
+    expect(player.resourceAmount(ProcessedResource.Steel)).toBe(2);
+  });
+
   test("rejects tiles not owned by the requesting player without spending steel", async () => {
     const tile = game.ref(50, 50);
     const steelBefore = player.resourceAmount(ProcessedResource.Steel);

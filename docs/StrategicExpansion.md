@@ -386,6 +386,10 @@ Também acrescentei `tests/client/graphics/layers/BuildMenuTrench.test.ts` para
 validar nível visível, emissão do intent, fronteira, aço, teto e economia legada.
 A regressão conjunta do menu, execução e wire passou em 3 arquivos/48 testes;
 TypeScript, ESLint, Prettier e `git diff --check` passaram.
+Também foi adicionada uma regressão de concorrência: dois intents válidos com
+apenas cinco unidades de aço constroem uma trincheira, preservam o saldo restante
+e não deixam o segundo tile parcialmente alterado. A revalidação de execução,
+menu e combate passou em 3 arquivos/40 testes.
 
 ### Validação manual pendente no PC principal
 
