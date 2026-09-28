@@ -60,6 +60,7 @@ describe("AllianceBehavior.handleAllianceRequests", () => {
     numTilesRequestor = 10,
     alliancesCount = 0,
     territoryPercent = 0,
+    kind = "alliance" as "alliance" | "capitulation",
     createdAtTick = game.config().numSpawnPhaseTurns() + 2,
   } = {}) {
     if (isTraitor) requestor.markTraitor();
@@ -82,6 +83,7 @@ describe("AllianceBehavior.handleAllianceRequests", () => {
     vi.spyOn(player, "alliances").mockReturnValue(new Array(alliancesCount));
 
     const mockRequest = {
+      kind: () => kind,
       requestor: () => requestor,
       recipient: () => player,
       createdAt: () => createdAtTick as unknown as Tick,
@@ -111,6 +113,15 @@ describe("AllianceBehavior.handleAllianceRequests", () => {
     allianceBehavior.handleAllianceRequests();
 
     expect(request.accept).toHaveBeenCalled();
+    expect(request.reject).not.toHaveBeenCalled();
+  });
+
+  test("does not process capitulation as an ordinary alliance request", () => {
+    const request = setupAllianceRequest({ kind: "capitulation" });
+
+    allianceBehavior.handleAllianceRequests();
+
+    expect(request.accept).not.toHaveBeenCalled();
     expect(request.reject).not.toHaveBeenCalled();
   });
 
