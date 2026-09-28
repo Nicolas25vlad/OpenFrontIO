@@ -291,50 +291,6 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-function findLandTile(
-  map: ResourceMapLike,
-  minX: number,
-  maxX: number,
-  minY: number,
-  maxY: number,
-  preferredX: number,
-  preferredY: number,
-  isAllowed: (tile: TileRef) => boolean = () => true,
-): TileRef | null {
-  const width = maxX - minX + 1;
-  const height = maxY - minY + 1;
-  const columns = Math.ceil(width / 4);
-  const rows = Math.ceil(height / 4);
-  const startColumn = Math.floor((preferredX - minX) / 4) % columns;
-  const startRow = Math.floor((preferredY - minY) / 4) % rows;
-
-  const validLandTile = (x: number, y: number): TileRef | null => {
-    const tile = map.ref(x, y);
-    return map.isLand(tile) && !map.isImpassable?.(tile) ? tile : null;
-  };
-
-  for (let rowOffset = 0; rowOffset < rows; rowOffset++) {
-    const y = Math.min(maxY, minY + ((startRow + rowOffset) % rows) * 4);
-    for (let columnOffset = 0; columnOffset < columns; columnOffset++) {
-      const x = Math.min(
-        maxX,
-        minX + ((startColumn + columnOffset) % columns) * 4,
-      );
-      const tile = validLandTile(x, y);
-      if (tile !== null && isAllowed(tile)) return tile;
-    }
-  }
-
-  // ponytail: sampled lookup plus exact fallback; replace with a land mask if map sizes make this hot.
-  for (let y = minY; y <= maxY; y++) {
-    for (let x = minX; x <= maxX; x++) {
-      const tile = validLandTile(x, y);
-      if (tile !== null && isAllowed(tile)) return tile;
-    }
-  }
-  return null;
-}
-
 interface ResourceOwnerMapLike extends ResourceMapLike {
   ownerID(tile: TileRef): number;
 }
@@ -385,6 +341,33 @@ export function resourceNodesForMap(
   );
   const cellsWide = Math.ceil(map.width() / cellSize);
   const cellsHigh = Math.ceil(map.height() / cellSize);
+  // Several resource layers can select the same lattice cell. Cache its
+  // passable land candidates so ocean cells are scanned once, not once per
+  // resource layer (and never repeatedly by the sampled lookup plus fallback).
+  const landTilesByCell = new Map<number, readonly TileRef[]>();
+
+  const landTilesInCell = (
+    cellX: number,
+    cellY: number,
+    minX: number,
+    maxX: number,
+    minY: number,
+    maxY: number,
+  ): readonly TileRef[] => {
+    const cellIndex = cellY * cellsWide + cellX;
+    const cachedTiles = landTilesByCell.get(cellIndex);
+    if (cachedTiles) return cachedTiles;
+
+    const tiles: TileRef[] = [];
+    for (let y = minY; y <= maxY; y++) {
+      for (let x = minX; x <= maxX; x++) {
+        const tile = map.ref(x, y);
+        if (map.isLand(tile) && !map.isImpassable?.(tile)) tiles.push(tile);
+      }
+    }
+    landTilesByCell.set(cellIndex, tiles);
+    return tiles;
+  };
 
   RESOURCE_VALUES.forEach((resource, resourceIndex) => {
     const config = {
@@ -426,22 +409,18 @@ export function resourceNodesForMap(
         const maxX = endX - margin;
         const minY = originY + margin;
         const maxY = endY - margin;
-        const preferredX =
-          minX +
-          (hash(resourceSeed, cellX, cellY, 0x243f6a88) % (maxX - minX + 1));
-        const preferredY =
-          minY +
-          (hash(resourceSeed, cellX, cellY, 0x85a308d3) % (maxY - minY + 1));
-        const tile = findLandTile(
-          map,
+        const landTiles = landTilesInCell(
+          cellX,
+          cellY,
           minX,
           maxX,
           minY,
           maxY,
-          preferredX,
-          preferredY,
         );
-        if (tile === null) continue;
+        if (landTiles.length === 0) continue;
+        const tile = landTiles[
+          hash(resourceSeed, cellX, cellY, 0x243f6a88) % landTiles.length
+        ];
 
         const x = map.x(tile);
         const y = map.y(tile);

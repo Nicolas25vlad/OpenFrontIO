@@ -243,6 +243,27 @@ describe("deterministic resource deposits", () => {
     ).toEqual([]);
   });
 
+  test("checks candidate land tiles at most once per lattice cell", () => {
+    const width = 256;
+    const height = 256;
+    const map = landMap(width, height);
+    let landChecks = 0;
+
+    resourceNodesForMap(
+      {
+        ...map,
+        isLand: () => {
+          landChecks++;
+          return false;
+        },
+      },
+      "ocean-performance-match",
+    );
+
+    expect(landChecks).toBeGreaterThan(0);
+    expect(landChecks).toBeLessThanOrEqual(width * height);
+  });
+
   test("keeps every deposit on passable land in a mixed terrain map", () => {
     const map = landMap(1024, 1024);
     const nodes = resourceNodesForMap(
