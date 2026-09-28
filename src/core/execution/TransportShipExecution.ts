@@ -1,5 +1,8 @@
 import { renderTroops } from "../../client/Utils";
-import { STRATEGIC_COMBAT } from "../configuration/StrategyConfig";
+import {
+  NAVAL_TRANSPORT,
+  STRATEGIC_COMBAT,
+} from "../configuration/StrategyConfig";
 import {
   Execution,
   Game,
@@ -25,8 +28,7 @@ const malusForRetreat = 25;
 export class TransportShipExecution implements Execution {
   private active = true;
 
-  // TODO: make this configurable
-  private ticksPerMove = 1;
+  private readonly ticksPerMove = NAVAL_TRANSPORT.ticksPerTile;
   private lastMove: number;
 
   private mg: Game;

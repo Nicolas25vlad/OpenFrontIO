@@ -135,6 +135,11 @@ export const NAVAL_SUPREMACY = {
   blockadeAdvantage: 2,
 } as const;
 
+/** Movement pacing for naval transports, measured in simulation ticks per tile. */
+export const NAVAL_TRANSPORT = {
+  ticksPerTile: 1,
+} as const;
+
 /** One-time resource cargo carried by strategic port-to-port trade ships. */
 export const NAVAL_TRADE = {
   cargoUnits: 5,

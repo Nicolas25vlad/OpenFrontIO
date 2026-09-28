@@ -1,3 +1,5 @@
+import { vi } from "vitest";
+import { NAVAL_TRANSPORT } from "../../src/core/configuration/StrategyConfig";
 import { AttackExecution } from "../../src/core/execution/AttackExecution";
 import { SpawnExecution } from "../../src/core/execution/SpawnExecution";
 import { TransportShipExecution } from "../../src/core/execution/TransportShipExecution";
@@ -51,6 +53,7 @@ describe("strategic tank cargo on naval attacks", () => {
     const { game, defender } = await startNavalGame();
     defender.addTroops(25_000);
     defender.addTanks(4);
+    const recordMotionPlan = vi.spyOn(game, "recordMotionPlan");
     let observedAttackTanks = 0;
     (game.config() as TestConfig).attackLogic = (input) => {
       observedAttackTanks = input.attacker.tanks ?? 0;
@@ -62,6 +65,12 @@ describe("strategic tank cargo on naval attacks", () => {
     );
     const departureUpdates = game.executeNextTick();
 
+    const [motionPlan] = recordMotionPlan.mock.calls[0];
+    expect(motionPlan.kind).toBe("grid");
+    if (motionPlan.kind !== "grid") {
+      throw new Error("Expected the transport ship to use a grid motion plan");
+    }
+    expect(motionPlan.ticksPerStep).toBe(NAVAL_TRANSPORT.ticksPerTile);
     const [ship] = defender.units(UnitType.TransportShip);
     expect(ship).toBeDefined();
     expect(defender.tanks()).toBe(2);

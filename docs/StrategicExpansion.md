@@ -453,6 +453,13 @@ dois navios. Navios aliados no setor reduzem a vantagem; navios destruídos,
 retirados ou em reparo deixam de contar. O cálculo consulta somente a vizinhança
 espacial do porto e o componente de água conectado; não mantém estado por tile.
 Rotas já em curso continuam seguindo as regras de interceptação existentes.
+A cadência de movimento dos transportes agora fica centralizada em
+`NAVAL_TRANSPORT.ticksPerTile`; o valor padrão de 1 tick por tile mantém a
+velocidade atual e alimenta tanto o movimento autoritativo quanto o motion plan
+replicado.
+Revalidação desta etapa: `NavalTankCargo`, `Attack` e `Disconnected` passaram
+em 3 arquivos/53 testes; `npm run build-dev`, ESLint, Oxlint, Prettier e
+`git diff --check` também passaram.
 
 Navios comerciais estratégicos também transportam até cinco unidades de um
 recurso por viagem, na ordem comida, combustível e aço. A rota carrega apenas
