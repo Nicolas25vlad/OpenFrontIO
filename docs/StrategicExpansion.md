@@ -397,7 +397,7 @@ testes de execução/wire.
    deve desaparecer; uma tentativa tardia não pode alterar a decisão nem criar uma
    aliança parcialmente aplicada.
 
-A validação automatizada desta etapa passou em 13 arquivos/120 testes e cobre
+A validação automatizada desta etapa passou em 13 arquivos/122 testes e cobre
 autorização, cancelamento, estado terminal de propostas resolvidas, transferência
 territorial, duração da trégua, atualização sincronizada e codificação do intent.
 `tsc --noEmit`, lint e `npm run build-dev` passaram. Faltam a escolha de outros
@@ -422,8 +422,9 @@ aliança existente: ataques ficam bloqueados, a quebra mantém a penalidade de
 traição e a expiração é sincronizada pelo fluxo de updates/replay já existente.
 As mensagens de proposta e resultado mostram a porcentagem. O planejador ordena
 tiles por referência e resolve empates de regiões da mesma forma em todos os
-clientes. Bots continuam usando a heurística existente para alianças comuns e
-recusam ofertas que exigem território, pois ainda não avaliam termos de cessão.
+clientes. Para bots, uma oferta de cessão só é aceita se o solicitante for uma
+ameaça segundo a heurística atual, não for traidor, não tiver alianças em excesso
+e pedir no máximo 10%; termos maiores ou sem ameaça são recusados.
 
 Arquivos desta etapa: `src/core/game/TerritoryTransfer.ts`,
 `src/core/game/GameImpl.ts`, `src/core/game/AllianceImpl.ts`,
@@ -553,6 +554,10 @@ Na economia estratégica, o bot limita a uma ordem naval por tick para não
 duplicar um navio ainda pendente; partidas legadas preservam a cadência anterior.
 `tests/economy/NationBlockadeResponse.test.ts` cobre a resposta, a compatibilidade
 com a economia legada e a ausência de intent sem os insumos.
+Em ofertas de paz, o bot agora só cede até 10% do território quando o emissor é
+uma ameaça pela heurística de dificuldade e não é traidor; pedidos maiores ou de
+atores que não são ameaça são recusados. `tests/NationAllianceBehavior.test.ts`
+cobre esses limites.
 Os testes focados de resposta a bloqueio e infestação naval passaram em 2
 arquivos/5 testes; `npm run build-dev`, `tsc --noEmit`, Oxlint, ESLint,
 Prettier e `git diff --check` também passaram no homelab.
@@ -581,8 +586,12 @@ A suíte de servidor passou em 63 arquivos/656 testes.
    com navios inimigos. Com ouro, aço e combustível disponíveis, ela deve enviar
    um navio de resposta ao setor; sem qualquer insumo, não deve enfileirar a
    construção nem interromper a partida.
+7. Envie ofertas de cessão de 10% e 11% para uma nação Medium. Ela só deve
+   aceitar 10% se o solicitante tiver mais de 2,5 vezes suas tropas; em condições
+   iguais, ou com pedido acima de 10%, deve recusar.
 
 Esperado: a nação tenta no máximo uma construção por vez, respeita o limite de
 reserva e continua a usar as regras de construção existentes. A issue permanece
-aberta para decisões de tanques, fortificações, marinha, bloqueios e negociação
-de bots, além da cobertura adicional dos critérios de economia baixa/média/alta.
+aberta para decisões adicionais de tanques, fortificações, marinha, bloqueios e
+negociação de bots, além da cobertura adicional dos critérios de economia
+baixa/média/alta.

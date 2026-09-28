@@ -152,8 +152,30 @@ describe("AllianceBehavior.handleAllianceRequests", () => {
     expect(request.reject).toHaveBeenCalled();
   });
 
-  test("should reject territorial peace offers instead of ceding land without a term evaluator", () => {
+  test("should accept a small territorial peace offer from a stronger threat", () => {
     const request = setupAllianceRequest({ territoryPercent: 10 });
+    vi.spyOn(player, "troops").mockReturnValue(100);
+    vi.spyOn(requestor, "troops").mockReturnValue(300);
+
+    allianceBehavior.handleAllianceRequests();
+
+    expect(request.accept).toHaveBeenCalled();
+    expect(request.reject).not.toHaveBeenCalled();
+  });
+
+  test("should reject territorial peace offers from non-threats", () => {
+    const request = setupAllianceRequest({ territoryPercent: 10 });
+
+    allianceBehavior.handleAllianceRequests();
+
+    expect(request.accept).not.toHaveBeenCalled();
+    expect(request.reject).toHaveBeenCalled();
+  });
+
+  test("should reject territorial peace offers above the bot's land-loss limit", () => {
+    const request = setupAllianceRequest({ territoryPercent: 11 });
+    vi.spyOn(player, "troops").mockReturnValue(100);
+    vi.spyOn(requestor, "troops").mockReturnValue(300);
 
     allianceBehavior.handleAllianceRequests();
 

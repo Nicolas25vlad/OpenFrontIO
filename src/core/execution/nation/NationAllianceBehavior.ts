@@ -37,10 +37,17 @@ export class NationAllianceBehavior {
         req.reject();
         continue;
       }
-      // Bots use the existing relation/threat heuristic for ordinary
-      // alliances, but do not cede territory until they have a term evaluator.
       if (req.territoryPercent() > 0) {
-        req.reject();
+        if (
+          this.shouldAcceptTerritorialOffer(
+            req.requestor(),
+            req.territoryPercent(),
+          )
+        ) {
+          req.accept();
+        } else {
+          req.reject();
+        }
         continue;
       }
       if (this.getAllianceDecision(req.requestor(), true)) {
@@ -151,6 +158,20 @@ export class NationAllianceBehavior {
     }
     // Accept if we are similarly strong
     return this.isAlliancePartnerSimilarlyStrong(otherPlayer);
+  }
+
+  /**
+   * A bot only trades land for peace when the sender is already a threat and
+   * the requested share is small. The normal alliance heuristic deliberately
+   * accepts threats, but applying it directly here could cede half a nation.
+   */
+  private shouldAcceptTerritorialOffer(
+    requestor: Player,
+    territoryPercent: number,
+  ): boolean {
+    if (territoryPercent > 10 || requestor.isTraitor()) return false;
+    if (this.hasTooManyAlliances(requestor)) return false;
+    return this.isAlliancePartnerThreat(requestor);
   }
 
   private hasTooManyAlliances(otherPlayer: Player): boolean {
