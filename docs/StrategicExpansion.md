@@ -220,6 +220,12 @@ por tile. O combate usa o nível daquele tile, aplica defesa e atraso de avanço
 e reduz um nível por tile resolvido. Conquista, abandono e conversão para água
 limpam a fortificação. O modo legado ignora o bônus.
 
+Ataques estratégicos também podem reduzir o bônus defensivo e o atraso das
+trincheiras: cada tanque atribuído reduz 10% do efeito enquanto tiver suprimento,
+com redução máxima de 75%. A baixa de suprimento reduz proporcionalmente essa
+eficiência. Os valores ficam em `STRATEGIC_COMBAT`; sem tanques, o efeito
+anterior permanece igual.
+
 Arquivos desta etapa: `src/core/game/GameMap.ts`, `src/core/game/GameImpl.ts`,
 `src/core/Schemas.ts`, `src/core/execution/BuildTrenchExecution.ts`,
 `src/core/execution/ExecutionManager.ts`, `src/core/execution/AttackExecution.ts`,
@@ -247,7 +253,10 @@ e sem dono; os 15 testes desse arquivo passaram nesta rodada.
    `1/3`, `2/3`, `3/3` e o tom terroso crescente no tile. No nível 3, a opção
    deve ficar desativada.
 3. Deixe um ataque terrestre alcançar o tile. Cada tile resolvido deve reduzir
-   o nível uma vez; a captura pelo atacante deve limpar a trincheira.
+   o nível uma vez; a captura pelo atacante deve limpar a trincheira. Compare
+   também ataques com e sem tanques/suprimento: tanques bem supridos devem
+   reduzir parte do bônus da trincheira, e a mesma força sem suprimento deve
+   perder parte desse contra-efeito.
 4. Repita em tile interior, território inimigo e com aço insuficiente: a opção
    deve ficar desativada e nenhum recurso deve ser consumido. Repita com
    `strategicEconomy` desligado e confirme que o botão não aparece.
@@ -256,9 +265,9 @@ e sem dono; os 15 testes desse arquivo passaram nesta rodada.
 
 Esperado: o servidor/core rejeita qualquer tile inválido mesmo que um cliente
 envie o intent manualmente; clientes e replay recebem o mesmo nível via update
-compacto. Permanecem para esta issue os counters de tanque/supply e a revisão
-visual em replay/multiplayer; não foram alteradas regras de seleção de alvos
-navais ou nucleares. A validação manual acima continua pendente.
+compacto. Trincheiras retêm mais do bônus contra forças sem tanques ou sem
+suprimento. A revisão visual em replay/multiplayer continua pendente; não foram
+alteradas regras de seleção de alvos navais ou nucleares.
 
 ## Supremacia local por setor marítimo — issue #7 (parcial)
 

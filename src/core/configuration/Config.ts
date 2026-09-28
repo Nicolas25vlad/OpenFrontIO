@@ -957,8 +957,16 @@ export class Config {
     }
     const trenchLevel = input.defenderTrenchLevel ?? 0;
     if (this.strategicEconomy() && defender !== null && trenchLevel > 0) {
-      mag *= 1 + trenchLevel * STRATEGIC_COMBAT.trenchDefensePerLevel;
-      tileCost *= 1 + trenchLevel * STRATEGIC_COMBAT.trenchAttackSpeedPerLevel;
+      const trenchCounter = Math.min(
+        STRATEGIC_COMBAT.trenchTankCounterMax,
+        (attacker.tanks ?? 0) *
+          STRATEGIC_COMBAT.trenchTankCounterPerTank *
+          attackerSupply,
+      );
+      const effectiveTrenchLevel = trenchLevel * (1 - trenchCounter);
+      mag *= 1 + effectiveTrenchLevel * STRATEGIC_COMBAT.trenchDefensePerLevel;
+      tileCost *=
+        1 + effectiveTrenchLevel * STRATEGIC_COMBAT.trenchAttackSpeedPerLevel;
     }
     if (input.falloutRatio !== null) {
       const fallout = this.falloutDefenseModifier(input.falloutRatio);

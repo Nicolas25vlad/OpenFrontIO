@@ -106,6 +106,9 @@ export const STRATEGIC_COMBAT = {
   trenchMaxLevel: 3,
   trenchDefensePerLevel: 0.08,
   trenchAttackSpeedPerLevel: 0.06,
+  /** A supplied tank reduces the effective trench bonus by this share. */
+  trenchTankCounterPerTank: 0.1,
+  trenchTankCounterMax: 0.75,
   trenchWearPerResolvedTile: 1,
   trenchSteelPerLevel: 3,
   /** One tank joins a land attack for every 10,000 infantry sent. */
