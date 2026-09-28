@@ -797,7 +797,9 @@ veículos e `NationStructureBehavior`. Os casos incluem exércitos pequeno, méd
 e grande, estoque de tanque cheio, insumos insuficientes, economia legada,
 repetição sem duplicar pedido e posicionamento da fazenda até enfileirar sua
 construção. A decisão de fábrica agora também tem cenários de estoque baixo,
-médio (exatamente os insumos do primeiro tanque) e alto. Agora a cobertura de
+médio (custo da fábrica mais os insumos do primeiro tanque) e alto; nos cenários
+médio e alto, o teste executa a construção real sem simular
+`maybeSpawnStructure`. Agora a cobertura de
 5.000, 25.000 e 100.000 tropas usa partidas
 reais e confirma que a fazenda é construída após o pedido. A regressão de
 economia da IA passou em mais 7 arquivos/24 testes,
@@ -858,6 +860,17 @@ naval com tanques, e a prioridade de fábrica cobre reservas baixas, no custo
 mínimo e altas; `tsc --noEmit`, lint, Prettier e `git diff --check` também
 passaram.
 
+Correção em 2026-09-28: a prioridade de Vehicle Factory agora exige, antes de
+enfileirar, o estoque combinado para construir a fábrica e financiar o primeiro
+lote de tanques. A regra anterior conferia apenas o lote; o teste integrado
+mostrou que `canBuild` recusava a fábrica sem os 30 de aço e 5 circuitos da
+construção. Os cenários baixo, médio e alto agora executam a construção real
+quando há materiais suficientes. Testes também recusam aço abaixo do custo ou
+circuitos insuficientes. A regressão relacionada passou em 5 arquivos/92 testes;
+`tsc --noEmit`, Oxlint, ESLint, Prettier, `git diff --check` e
+`npm run build-dev` também passaram. O build mantém os avisos conhecidos de
+chunks maiores que 500 kB e tempo do plugin de assets.
+
 Na primeira execução completa, 484 de 485 arquivos passaram; os nove casos
 falhos em `NationAllianceBehavior.test.ts` usavam fixtures sem o novo `kind()`.
 Após atualizar os fixtures e cobrir capitulações, a suíte completa foi repetida
@@ -870,8 +883,9 @@ e passou em 485 arquivos/5.667 testes. `tsc --noEmit` e lint também passaram.
 2. Observe a construção de fazendas quando o estoque de comida fica abaixo do
    alvo; a decisão deve escolher um tile válido e não gerar erro no turno.
 3. Teste com 10.000, 50.000 e 100.000 infantes se a nação solicita uma única
-   Vehicle Factory quando faltam tanques e existem aço/combustível. Com estoque
-   no alvo ou sem insumos, ela não deve solicitá-la.
+   Vehicle Factory quando faltam tanques e existem os materiais para construir
+   a fábrica e produzir o primeiro lote (aço, circuitos e combustível). Com
+   estoque no alvo ou sem qualquer insumo, ela não deve solicitá-la.
 4. Sob ataque terrestre, confira se a nação fortifica tiles próprios na linha de
    contato quando há aço. O total de tiles fortificados deve crescer com a
    proporção entre tropas recebidas e tropas próprias, até o limite de oito;

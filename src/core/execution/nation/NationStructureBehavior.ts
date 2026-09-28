@@ -3,6 +3,7 @@ import {
   NUCLEAR_RECIPE,
   STRATEGIC_COMBAT,
   TANK_RECIPE,
+  type ResourceAmounts,
 } from "../../configuration/StrategyConfig";
 import { hasResources } from "../../game/Economy";
 import {
@@ -22,6 +23,7 @@ import {
   NaturalResource,
   ProcessedResource,
   type ResourceNode,
+  type ResourceType,
 } from "../../game/Resources";
 import { Cluster } from "../../game/TrainStation";
 import { PseudoRandom } from "../../PseudoRandom";
@@ -949,7 +951,18 @@ export class NationStructureBehavior {
       this.player.troops() / STRATEGIC_COMBAT.infantryPerTank,
     );
     if (targetTanks <= this.player.tanks()) return false;
-    if (!hasResources(this.player, TANK_RECIPE.inputs)) return false;
+
+    // Check both the factory construction cost and the first tank recipe.
+    // Checking the recipe alone can queue an order that can never construct
+    // the factory (which also consumes steel and circuits).
+    const requiredResources: ResourceAmounts = { ...TANK_RECIPE.inputs };
+    for (const [resource, amount] of Object.entries(
+      config.resourceCost(UnitType.VehicleFactory),
+    )) {
+      const type = resource as ResourceType;
+      requiredResources[type] = (requiredResources[type] ?? 0) + amount;
+    }
+    if (!hasResources(this.player, requiredResources)) return false;
 
     const retryAfter =
       (this.game.unitInfo(UnitType.VehicleFactory).constructionDuration ?? 0) +

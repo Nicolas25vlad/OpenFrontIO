@@ -41,8 +41,8 @@ describe("nation strategic vehicle factory priority", () => {
   );
 
   it.each([
-    { economy: "low", steel: 4, fuel: 2, shouldBuild: false },
-    { economy: "medium", steel: 5, fuel: 2, shouldBuild: true },
+    { economy: "low", steel: 34, fuel: 2, shouldBuild: false },
+    { economy: "medium", steel: 35, fuel: 2, shouldBuild: true },
     { economy: "high", steel: 50, fuel: 20, shouldBuild: true },
   ])(
     "uses safe tank-production decisions with $economy material reserves",
@@ -62,6 +62,58 @@ describe("nation strategic vehicle factory priority", () => {
 
       expect((behavior as any).tryBuildVehicleFactory()).toBe(shouldBuild);
       expect(build).toHaveBeenCalledTimes(Number(shouldBuild));
+    },
+  );
+
+  it.each([
+    { economy: "low", steel: 34, circuits: 5, fuel: 2, shouldBuild: false },
+    {
+      economy: "low-circuits",
+      steel: 35,
+      circuits: 4,
+      fuel: 2,
+      shouldBuild: false,
+    },
+    { economy: "medium", steel: 35, circuits: 5, fuel: 2, shouldBuild: true },
+    { economy: "high", steel: 50, circuits: 10, fuel: 20, shouldBuild: true },
+  ])(
+    "only produces an executable factory order for $economy reserves",
+    async ({ steel, circuits, fuel, shouldBuild }) => {
+      for (let x = 25; x <= 75; x++) {
+        for (let y = 25; y <= 75; y++) player.conquer(game.ref(x, y));
+      }
+      player.addTroops(50_000 - player.troops());
+      player.addGold(1_000_000_000n);
+      player.removeResource(
+        ProcessedResource.Steel,
+        player.resourceAmount(ProcessedResource.Steel),
+      );
+      player.removeResource(
+        ProcessedResource.Fuel,
+        player.resourceAmount(ProcessedResource.Fuel),
+      );
+      player.removeResource(
+        ProcessedResource.Circuits,
+        player.resourceAmount(ProcessedResource.Circuits),
+      );
+      player.addResource(ProcessedResource.Steel, steel);
+      player.addResource(ProcessedResource.Circuits, circuits);
+      player.addResource(ProcessedResource.Fuel, fuel);
+
+      const order = (behavior as any).tryBuildVehicleFactory();
+      expect(order).toBe(shouldBuild);
+
+      for (
+        let tick = 0;
+        tick < game.unitInfo(UnitType.VehicleFactory).constructionDuration! + 3;
+        tick++
+      ) {
+        game.executeNextTick();
+      }
+
+      expect(player.units(UnitType.VehicleFactory)).toHaveLength(
+        Number(shouldBuild),
+      );
     },
   );
 
