@@ -676,3 +676,8 @@ a suíte principal passou em 480 arquivos/5.639 testes e a suíte de servidor em
 emite o aviso já existente de bundle JavaScript acima de 500 kB. A revisão
 visual de rotas e ofertas de paz continua pendente no PC principal conforme os
 procedimentos descritos nas respectivas seções.
+
+Essa execução completa precedeu a correção posterior de reserva para intents
+simultâneos de comboio. Depois dessa correção, os testes focados passaram em 3
+arquivos/20 testes e foram repetidos typecheck, lint do repositório e build;
+essa alteração ainda não foi incluída em uma nova execução da suíte completa.
