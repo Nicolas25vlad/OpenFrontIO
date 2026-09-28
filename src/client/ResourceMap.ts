@@ -226,7 +226,11 @@ export async function createResourceMapImage(
 
   for (const node of nodes) {
     const color = RESOURCE_COLORS[node.resource];
-    const radius = cellSize * 0.7 + node.richness * cellSize * 0.08;
+    // The noise catalog stores discrete mine sites, but the map should read as
+    // a geological field. Broad, overlapping halos join neighboring sites
+    // into irregular belts; richness changes the footprint without changing
+    // the deterministic mine locations or reserves.
+    const radius = cellSize * (1.05 + node.richness * 0.15);
     const gradient = context.createRadialGradient(
       node.x,
       node.y,
@@ -235,9 +239,9 @@ export async function createResourceMapImage(
       node.y,
       radius,
     );
-    gradient.addColorStop(0, colorWithAlpha(color, 0.68));
-    gradient.addColorStop(0.4, colorWithAlpha(color, 0.43));
-    gradient.addColorStop(0.75, colorWithAlpha(color, 0.12));
+    gradient.addColorStop(0, colorWithAlpha(color, 0.48));
+    gradient.addColorStop(0.4, colorWithAlpha(color, 0.34));
+    gradient.addColorStop(0.78, colorWithAlpha(color, 0.1));
     gradient.addColorStop(1, colorWithAlpha(color, 0));
     context.fillStyle = gradient;
     context.beginPath();

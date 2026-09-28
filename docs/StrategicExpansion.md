@@ -65,8 +65,10 @@ noise ultrapassa o limiar. Escala, frequência, limiar e abundância continuam
 configuráveis em `RESOURCE_GENERATION_CONFIG`; a abundância desloca o limiar e a
 riqueza é calculada em faixas sobre o mesmo valor do noise. Cada candidato ainda
 é resolvido para terra passável. A malha de amostragem e a escala do noise se
-adaptam às dimensões do mapa, e o raio do overlay acompanha a malha para que
-mapas menores também formem zonas legíveis. A menor abundância do ouro foi
+adaptam às dimensões do mapa. No overlay, halos largos e semitransparentes se
+sobrepõem para que depósitos vizinhos apareçam como regiões geológicas contínuas;
+a riqueza amplia a área visual do depósito sem alterar posição ou reserva. A
+menor abundância do ouro foi
 ajustada para formar regiões produtoras conectadas sem tornar o recurso
 uniforme. A distribuição é cacheada por mapa e seed; o cálculo não roda durante
 os ticks da partida.
