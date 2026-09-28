@@ -3,7 +3,11 @@ import { ConstructionExecution } from "../src/core/execution/ConstructionExecuti
 import { Executor } from "../src/core/execution/ExecutionManager";
 import { MoveTankExecution } from "../src/core/execution/MoveTankExecution";
 import { Game, PlayerInfo, PlayerType, UnitType } from "../src/core/game/Game";
-import { GameUpdateType, HashUpdate } from "../src/core/game/GameUpdates";
+import {
+  GameUpdateType,
+  HashUpdate,
+  UnitUpdate,
+} from "../src/core/game/GameUpdates";
 import { setup } from "./util/Setup";
 
 async function tankGame(strategicEconomy = true): Promise<Game> {
@@ -202,14 +206,33 @@ describe("independent tank deployment", () => {
       }),
     );
 
-    game.executeNextTick(); // initialize the queued intent execution
+    const orderUpdates = game.executeNextTick(); // initialize the queued intent
+    expect(
+      (orderUpdates[GameUpdateType.Unit] as UnitUpdate[]).find(
+        (update) => update.id === tank.id(),
+      )?.targetTile,
+    ).toBe(destination);
+
+    const moveUpdates: UnitUpdate[] = [];
     for (let tick = 0; tick < STRATEGIC_COMBAT.tankMoveTicksPerTile; tick++) {
-      game.executeNextTick();
+      const updates = game.executeNextTick();
+      moveUpdates.push(...(updates[GameUpdateType.Unit] as UnitUpdate[]));
     }
 
     expect(tank.tile()).toBe(destination);
     expect(player.troops()).toBe(25_000);
     expect(tank.targetTile()).toBeUndefined();
+    expect(
+      moveUpdates.some(
+        (update) => update.id === tank.id() && update.pos === destination,
+      ),
+    ).toBe(true);
+    const tankMoveUpdates = moveUpdates.filter(
+      (update) => update.id === tank.id(),
+    );
+    expect(tankMoveUpdates[tankMoveUpdates.length - 1]?.targetTile).toBe(
+      undefined,
+    );
   });
 
   test("attacks and captures enemy land while applying territory casualties", async () => {
