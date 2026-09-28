@@ -238,8 +238,9 @@ traduções em `resources/lang/en.json` e `resources/lang/pt-BR.json`.
 Validação automatizada específica: `tests/core/game/GameMap.tileStateBuffer.test.ts`,
 `tests/core/executions/BuildTrenchExecution.test.ts`,
 `tests/economy/StrategicBalance.test.ts` e `tests/Attack.test.ts` — 4 arquivos,
-38 testes passaram. `tsc --noEmit`, lint e `npm run build-dev` passaram, incluindo
-o shader no bundle. A suite completa passou com 471 arquivos e 5.595 testes;
+49 testes passaram após adicionar os counters de tanque/suprimento. `tsc --noEmit`,
+lint e `npm run build-dev` passaram, incluindo o shader no bundle. A suite
+completa passou com 471 arquivos e 5.595 testes;
 os testes de servidor são executados separadamente. `tests/core/executions/NukeExecution.test.ts`
 também confirma que a detonação limpa o estado de trincheira dos tiles atingidos
 e sem dono; os 15 testes desse arquivo passaram nesta rodada.
