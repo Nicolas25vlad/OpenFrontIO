@@ -44,7 +44,6 @@ import {
   UT_MIRV_WARHEAD,
   UT_SAM_MISSILE,
   UT_SHELL,
-  UT_TANK,
   UT_TRADE_SHIP,
   UT_TRAIN,
   UT_TRANSPORT,
@@ -86,7 +85,6 @@ const UNIT_ORDER = [
   "TrainEngine",
   "TrainCarriage",
   "TrainCarriageLoaded",
-  UT_TANK,
 ] as const;
 
 const ATLAS_COLS = UNIT_ORDER.length;
@@ -405,7 +403,6 @@ export class UnitPass {
     if (!context) throw new Error("unit atlas canvas is unavailable");
     context.imageSmoothingEnabled = false;
     context.drawImage(img, 0, 0);
-    drawTankAtlasSprite(context, (UNIT_ORDER.length - 1) * 13);
     const gl = this.gl;
     gl.bindTexture(gl.TEXTURE_2D, this.atlasTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlas);
@@ -690,40 +687,5 @@ export class UnitPass {
     gl.deleteVertexArray(this.groundVao);
     gl.deleteVertexArray(this.missileVao);
     gl.deleteTexture(this.atlasTex);
-  }
-}
-
-const TANK_SPRITE = [
-  "     777     ",
-  "  777777777  ",
-  "  777777777  ",
-  "  666666666  ",
-  "  555555555  ",
-  "5555666555555",
-  "5555666555555",
-  "5555666555555",
-  "  555555555  ",
-  "  666666666  ",
-  "  777777777  ",
-  "  777777777  ",
-  "     777     ",
-] as const;
-
-function drawTankAtlasSprite(
-  context: CanvasRenderingContext2D,
-  offsetX: number,
-) {
-  const shades: Record<string, string> = {
-    "5": "#464646",
-    "6": "#828282",
-    "7": "#b4b4b4",
-  };
-  for (let y = 0; y < TANK_SPRITE.length; y++) {
-    for (let x = 0; x < TANK_SPRITE[y].length; x++) {
-      const shade = shades[TANK_SPRITE[y][x]];
-      if (shade === undefined) continue;
-      context.fillStyle = shade;
-      context.fillRect(offsetX + x, y, 1, 1);
-    }
   }
 }

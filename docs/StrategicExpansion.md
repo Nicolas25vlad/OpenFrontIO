@@ -147,84 +147,27 @@ mantém a carga sincronizada durante a rota e a transfere para o ataque ao chega
 A contagem viaja nos updates de unidade e no delta compacto de ataques; aparece
 no detalhe do transporte e nas listas/rótulos de ataques.
 
-### Tanques independentes — issue #13 (em andamento)
+### Tanques como estoque estratégico — revisão de issue #13
 
-Tanques produzidos continuam disponíveis no estoque estratégico e agora podem
-ser implantados como unidades móveis individuais. O core valida economia
-estratégica ativa, propriedade e terreno terrestre passável, reserva disponível
-e limite configurável de 24 tanques implantados por jogador. O cliente seleciona
-um tanque separadamente das tropas e aceita ordens de movimento por terra
-passável. Ordens a território neutro ou inimigo avançam tile a tile usando a
-fórmula de combate existente, aplicam baixas à guarnição, desgaste a postos e
-trincheiras, dano determinístico aos tanques envolvidos e capturam cada tile
-alcançado. Tanques implantados também se enfrentam quando disputam o mesmo tile;
-tiles bloqueados por tanques aliados encerram a ordem sem sobreposição. O
-caminho é determinístico, limitado a 250 tiles e calculado uma vez por ordem.
-A busca usa o iterador cardinal com buffer reutilizado e limita tanto a fila
-quanto a tabela de predecessores à área alcançável. A tabela ocupa no máximo o
-retângulo de 501×501 tiles para o alcance atual, em vez de alocar um inteiro por
-tile do mapa. `tests/TankDeployment.test.ts` simula um mapa de 2 milhões de tiles
-e confirma o limite de memória temporária, além de validar o caminho calculado.
-Um tanque cujo tile atual foi conquistado pelo inimigo ainda pode retornar por
-terra passável ao próprio território; a tile ocupada é admitida como origem da
-rota, sem permitir atravessar outras tiles hostis. O core valida os IDs
-selecionados antes da busca e descarta ordens sem tanques
-ativos ou acima do limite configurado, evitando trabalho de caminho em intents
-inválidos.
-Updates de unidade sincronizam movimento e saúde entre clientes e replay. A IA
-de nações e tribos pode implantar e ordenar até dois tanques quando há estoque,
-mantendo uma unidade de reserva para os ataques legados. Unidades móveis recebem
-sprite no carregamento do atlas, sem alterar o PNG compartilhado.
+Tanques permanecem como estoque autoritativo produzido pela Vehicle Factory,
+consumindo aço e combustível, sincronizado em `PlayerUpdate` e mostrado no
+painel econômico. Ataques terrestres e navais ainda podem comprometer esse
+estoque; produção, custos, força de combate, baixas, velocidade e penalidades de
+suprimento continuam no fluxo estratégico existente.
 
-Arquivos desta etapa: `src/core/game/Game.ts`, `src/core/game/PlayerImpl.ts`,
-`src/core/game/UnitImpl.ts`, `src/core/configuration/Config.ts`,
-`src/core/configuration/StrategyConfig.ts`,
-`src/core/execution/ConstructionExecution.ts`,
-`src/core/execution/MoveTankExecution.ts`, `src/core/Schemas.ts`,
-`src/core/StatsSchemas.ts`, `src/client/controllers/TankSelectionController.ts`,
-`src/client/render/gl/passes/UnitPass.ts`, `resources/images/TankIcon.svg`,
-`src/core/execution/nation/AiTankBehavior.ts`, as execuções de nação e tribo,
-traduções e a tabela de estatísticas. Testes cobrem implantação, reserva,
-limite e ocupação, economia legada, movimento e combate determinísticos,
-captura/baixas, uso da reserva pela IA, isolamento da infantaria e seleção.
-Também há cobertura do fluxo normal de implantação pelo intent `build_unit` →
-`Executor` e do round-trip wire desse intent para a unidade Tank. O movimento
-também passa pelo intent `move_tank` no `Executor`, com ticks reais confirmando
-que a ordem move o tanque selecionado sem alterar a infantaria; testes na
-fronteira de 250/251 tiles validam o limite de alcance do core.
-Revalidação focada de implantação, alcance, movimento, seleção e wire passou em
-3 arquivos/51 testes; os testes adicionais de alcance, memória e intents inválidos
-passaram com os 11 casos de `TankDeployment.test.ts` (14 no total). `tsc --noEmit`,
-ESLint, Prettier e `git diff --check` também passaram.
-`tests/AiTankBehavior.test.ts` também exercita as execuções completas de nação e
-tribo: ambas implantam uma unidade móvel a partir da reserva e preservam um
-tanque legado.
+Tanques não são unidades de mapa. A revisão removeu o tipo de unidade, a
+construção individual, o intent de movimento, a seleção, o comportamento de IA
+de implantação, os limites de implantação e os sprites exclusivos. O campo
+histórico `tank` permanece no schema de estatísticas para compatibilidade dos
+vetores serializados, sem aceitar ou criar entidades Tank.
 
-### Validação manual pendente no PC principal
-
-1. Rode `npm run dev:host` e inicie uma partida multiplayer com dois clientes,
-   economia estratégica ativa e tanques produzidos em uma Vehicle Factory.
-2. No menu Militar, implante um tanque em terra própria passável. Confirme que o
-   estoque cai em uma unidade, aparece o sprite do tanque e a unidade recebe
-   seleção independente.
-3. Clique em uma tile de terra própria conectada e depois numa tile inimiga
-   adjacente. O tanque deve avançar, reduzir tropas inimigas, sofrer dano e
-   capturar o território sem deslocar a infantaria. Se houver um tanque inimigo
-   no caminho, ambos devem trocar dano até um ser destruído; um tanque aliado
-   deve bloquear a rota sem empilhamento. Se um inimigo conquistar a tile sob
-   um tanque parado, ordene sua retirada por terra passável até uma tile própria.
-4. Tente implantar sem reserva, em terra alheia, numa tile já ocupada por tanque
-   ou acima do limite. Nenhuma unidade deve ser criada. Veja também uma partida
-   com IA e confirme que ela implanta tanques sem gastar a última reserva.
-5. Compare posição e saúde nos dois clientes. Repita o ataque no replay e
-   confira a mesma sequência de tiles, baixas e captura.
-
-Em 2026-09-28, a regressão de retirada após a captura do tile do tanque passou
-junto com `AiTankBehavior.test.ts`: 20 testes em 2 arquivos. ESLint, Prettier e
-`tsc --noEmit` também passaram.
-
-Esperado: implantação, movimento e combate determinísticos; ordens ilegais não
-alteram estoque ou posição e tanques aliados não ocupam o mesmo tile.
+Validação local: `tsc --noEmit` passou após a remoção dos caminhos de unidade.
+Os testes de produção, combate, transporte naval e wire devem confirmar que o
+estoque estratégico continua funcionando sem permitir a criação de entidades.
+No PC principal, inicie uma partida com economia estratégica, produza tanques,
+confirme o estoque no painel e envie ataques terrestre e naval; a quantidade
+comprometida deve aparecer nos ataques e nenhuma unidade Tank deve surgir no
+mapa.
 
 Agora a interface estratégica também oferece um controle de 0–100% para a
 quantidade de tanques que acompanha cada ataque terrestre, calculada sobre o
@@ -948,13 +891,10 @@ com 49 testes. A regressão focada em `NationTrenchPriority`,
 `NationVehicleFactoryPriority`, `NationStructureBehavior` e `BuildTrenchExecution`
 passou com 79 testes.
 
-Agora a IA também pode implantar até dois tanques controláveis quando tem pelo
-menos três na reserva, preservando uma unidade para o ataque legado. Unidades
-implantadas recebem ordens determinísticas contra uma fronteira hostil. A rotina
-roda nas execuções de nação e tribo, fica inativa na economia legada e não varre
-fronteiras quando não há tanques para ordenar. `tests/AiTankBehavior.test.ts`
-cobre implantação/ordens, reserva protegida e economia legada; o teste de
-salvas nucleares confirma que a IA mantém o tempo de resposta esperado.
+Na economia estratégica, a IA continua usando tanques do estoque em ataques
+terrestres e navais, sem criar entidades móveis no mapa. A cobertura de
+`AiAttackBehavior` confirma o compromisso de estoque nos dois tipos de ataque;
+as rotinas antigas de implantação individual foram removidas.
 
 Na mesma prioridade, nações agora constroem trincheiras em frentes terrestres
 sob ameaça, desde que a economia estratégica esteja ativa e haja aço para o

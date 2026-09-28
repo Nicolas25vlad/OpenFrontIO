@@ -9,7 +9,6 @@ import { MapLayerController } from "../controllers/MapLayerController";
 import { ResourceMapController } from "../controllers/ResourceMapController";
 import { SoundEffectController } from "../controllers/SoundEffectController";
 import { StructureHighlightController } from "../controllers/StructureHighlightController";
-import { TankSelectionController } from "../controllers/TankSelectionController";
 import { ViewModeController } from "../controllers/ViewModeController";
 import { WarshipSelectionController } from "../controllers/WarshipSelectionController";
 import { GameStartingModal } from "../GameStartingModal";
@@ -328,7 +327,6 @@ export function createRenderer(
 
   const layers: Controller[] = [
     new WarshipSelectionController(game, eventBus, transformHandler, view),
-    new TankSelectionController(game, eventBus, transformHandler, view),
     new BuildPreviewController(
       game,
       eventBus,

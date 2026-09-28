@@ -8,7 +8,7 @@ import {
   toInt,
   within,
 } from "../Util";
-import { ECONOMY, STRATEGIC_COMBAT } from "../configuration/StrategyConfig";
+import { ECONOMY } from "../configuration/StrategyConfig";
 import { AttackImpl } from "./AttackImpl";
 import {
   consumeResources,
@@ -1818,17 +1818,6 @@ export class PlayerImpl implements Player {
         return this.tradeShipSpawn(targetTile);
       case UnitType.Train:
         return this.landBasedUnitSpawn(targetTile);
-      case UnitType.Tank:
-        return this.mg.config().strategicEconomy() &&
-          this.tanks() > 0 &&
-          this.unitCount(UnitType.Tank) <
-            STRATEGIC_COMBAT.maxDeployedTanksPerPlayer &&
-          !this.mg
-            .units(UnitType.Tank)
-            .some((tank) => tank.isActive() && tank.tile() === targetTile) &&
-          this.mg.owner(targetTile) === this
-          ? this.landBasedUnitSpawn(targetTile)
-          : false;
       case UnitType.MissileSilo:
       case UnitType.DefensePost:
       case UnitType.SAMLauncher:

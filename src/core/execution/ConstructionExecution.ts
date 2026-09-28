@@ -141,17 +141,6 @@ export class ConstructionExecution implements Execution {
           new WarshipExecution({ owner: player, patrolTile: this.tile }),
         );
         break;
-      case UnitType.Tank: {
-        const spawnTile = player.canBuild(UnitType.Tank, this.tile);
-        if (spawnTile === false || player.removeTanks(1) !== 1) break;
-        try {
-          player.buildUnit(UnitType.Tank, spawnTile, {});
-        } catch (error) {
-          player.addTanks(1);
-          throw error;
-        }
-        break;
-      }
       case UnitType.Port:
         this.mg.addExecution(new PortExecution(this.structure!));
         break;

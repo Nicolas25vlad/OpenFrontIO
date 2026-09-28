@@ -57,8 +57,7 @@ export type OtherUnitType =
   | UnitType.Farm
   | UnitType.Infrastructure
   | UnitType.VehicleFactory
-  | UnitType.NuclearPlant
-  | UnitType.Tank;
+  | UnitType.NuclearPlant;
 
 export const unitTypeToOtherUnit = {
   [UnitType.City]: "city",
@@ -73,7 +72,6 @@ export const unitTypeToOtherUnit = {
   [UnitType.Infrastructure]: "infra",
   [UnitType.VehicleFactory]: "vehicle",
   [UnitType.NuclearPlant]: "plant",
-  [UnitType.Tank]: "tank",
 } as const satisfies Record<OtherUnitType, OtherUnit>;
 
 // Attacks

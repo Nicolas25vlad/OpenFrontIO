@@ -746,12 +746,6 @@ export class Config {
           cost: () => 0n,
         };
         break;
-      case UnitType.Tank:
-        info = {
-          cost: () => 0n,
-          maxHealth: STRATEGIC_COMBAT.tankUnitMaxHealth,
-        };
-        break;
       default:
         assertNever(type);
     }

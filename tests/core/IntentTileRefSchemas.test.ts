@@ -7,11 +7,12 @@ import {
   DeleteUnitIntentSchema,
   DonateGoldIntentSchema,
   DonateTroopIntentSchema,
-  MoveTankIntentSchema,
+  IntentSchema,
   MoveWarshipIntentSchema,
   SpawnIntentSchema,
   UpgradeStructureIntentSchema,
 } from "../../src/core/Schemas";
+import { UnitType } from "../../src/core/game/Game";
 
 const RECIPIENT = "aaaaaaaa";
 
@@ -38,11 +39,6 @@ const tileRefCases = [
     name: "move_warship",
     schema: MoveWarshipIntentSchema,
     build: (tile: number) => ({ type: "move_warship", unitIds: [1], tile }),
-  },
-  {
-    name: "move_tank",
-    schema: MoveTankIntentSchema,
-    build: (tile: number) => ({ type: "move_tank", unitIds: [1], tile }),
   },
 ];
 
@@ -87,6 +83,23 @@ describe("intent schemas: unit ids are non-negative integers", () => {
     expect(DeleteUnitIntentSchema.safeParse(ok).success).toBe(true);
     const bad = { type: "delete_unit", unitId: 3.5 };
     expect(DeleteUnitIntentSchema.safeParse(bad).success).toBe(false);
+  });
+});
+
+describe("tanks are troop stock, not buildable units", () => {
+  it("rejects individual tank construction and movement intents", () => {
+    expect(Object.values(UnitType)).not.toContain("Tank");
+    expect(
+      BuildUnitIntentSchema.safeParse({
+        type: "build_unit",
+        unit: "Tank",
+        tile: 42,
+      }).success,
+    ).toBe(false);
+    expect(
+      IntentSchema.safeParse({ type: "move_tank", unitIds: [1], tile: 42 })
+        .success,
+    ).toBe(false);
   });
 });
 

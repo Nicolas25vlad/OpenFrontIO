@@ -50,7 +50,6 @@ export type Intent =
   | EmbargoIntent
   | QuickChatIntent
   | MoveWarshipIntent
-  | MoveTankIntent
   | DispatchTradeRouteIntent
   | MarkDisconnectedIntent
   | EmbargoAllIntent
@@ -83,7 +82,6 @@ export type UpgradeStructureIntent = z.infer<
   typeof UpgradeStructureIntentSchema
 >;
 export type MoveWarshipIntent = z.infer<typeof MoveWarshipIntentSchema>;
-export type MoveTankIntent = z.infer<typeof MoveTankIntentSchema>;
 export type DispatchTradeRouteIntent = z.infer<
   typeof DispatchTradeRouteIntentSchema
 >;
@@ -754,12 +752,6 @@ export const MoveWarshipIntentSchema = z.object({
   tile: zb.uint(),
 });
 
-export const MoveTankIntentSchema = z.object({
-  type: z.literal("move_tank"),
-  unitIds: z.array(zb.uint()).nonempty(),
-  tile: zb.uint(),
-});
-
 export const DispatchTradeRouteIntentSchema = z.object({
   type: z.literal("dispatch_trade_route"),
   sourcePortID: zb.uint(),
@@ -834,7 +826,6 @@ export const IntentSchema = z.discriminatedUnion("type", [
   EmbargoIntentSchema,
   EmbargoAllIntentSchema,
   MoveWarshipIntentSchema,
-  MoveTankIntentSchema,
   DispatchTradeRouteIntentSchema,
   QuickChatIntentSchema,
   AllianceExtensionIntentSchema,

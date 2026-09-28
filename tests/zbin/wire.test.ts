@@ -100,12 +100,6 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     tile: 7,
     amount: 3,
   },
-  {
-    type: "build_unit",
-    clientID: P2,
-    unit: UnitType.Tank,
-    tile: 8,
-  },
   { type: "build_trench", clientID: P2, tile: 9 },
   {
     type: "upgrade_structure",
@@ -116,7 +110,6 @@ const SAMPLE_INTENTS: StampedIntent[] = [
   { type: "embargo", clientID: P1, targetID: P2, action: "start" },
   { type: "embargo_all", clientID: P1, action: "stop" },
   { type: "move_warship", clientID: P3, unitIds: [1, 2, 3], tile: 555 },
-  { type: "move_tank", clientID: P1, unitIds: [4, 5], tile: 556 },
   {
     type: "dispatch_trade_route",
     clientID: P3,

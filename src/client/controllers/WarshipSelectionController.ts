@@ -37,7 +37,6 @@ export class WarshipSelectionController implements Controller {
   // Currently selected single warship (game-logic readers use this; the
   // visual is drawn by WebGL SelectionBoxPass).
   private selectedUnit: UnitView | null = null;
-  private tankSelectionActive = false;
   // Currently multi-selected warships (shift+drag box select).
   private multiSelectedWarships: UnitView[] = [];
 
@@ -160,19 +159,6 @@ export class WarshipSelectionController implements Controller {
       );
   }
 
-  private findTanksNearCell(clickRef: TileRef): UnitView[] {
-    const myPlayer = this.game.myPlayer();
-    if (!myPlayer) return [];
-    return this.game
-      .units(UnitType.Tank)
-      .filter(
-        (unit) =>
-          unit.isActive() &&
-          unit.owner() === myPlayer &&
-          this.game.manhattanDist(unit.tile(), clickRef) <= 5,
-      );
-  }
-
   /**
    * Resolve a left-click in the world:
    *  - multi-selected warships present + clicked water → move them all
@@ -240,12 +226,6 @@ export class WarshipSelectionController implements Controller {
       return;
     }
     if (!this.game.isWater(clickRef)) {
-      if (
-        this.tankSelectionActive ||
-        this.findTanksNearCell(clickRef).length > 0
-      ) {
-        return;
-      }
       this.eventBus.emit(new ContextMenuEvent(event.x, event.y));
       return;
     }
@@ -333,10 +313,6 @@ export class WarshipSelectionController implements Controller {
     const selectedUnits = event.units ?? [];
     this.multiSelectedWarships = [];
     this.selectedUnit = null;
-    this.tankSelectionActive =
-      event.isSelected &&
-      (event.unit?.type() === UnitType.Tank ||
-        selectedUnits.some((unit) => unit.type?.() === UnitType.Tank));
 
     if (
       event.isSelected &&
