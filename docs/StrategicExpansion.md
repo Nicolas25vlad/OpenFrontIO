@@ -154,7 +154,10 @@ quanto a tabela de predecessores à área alcançável. A tabela ocupa no máxim
 retângulo de 501×501 tiles para o alcance atual, em vez de alocar um inteiro por
 tile do mapa. `tests/TankDeployment.test.ts` simula um mapa de 2 milhões de tiles
 e confirma o limite de memória temporária, além de validar o caminho calculado.
-O core valida os IDs selecionados antes da busca e descarta ordens sem tanques
+Um tanque cujo tile atual foi conquistado pelo inimigo ainda pode retornar por
+terra passável ao próprio território; a tile ocupada é admitida como origem da
+rota, sem permitir atravessar outras tiles hostis. O core valida os IDs
+selecionados antes da busca e descarta ordens sem tanques
 ativos ou acima do limite configurado, evitando trabalho de caminho em intents
 inválidos.
 Updates de unidade sincronizam movimento e saúde entre clientes e replay. A IA
@@ -197,12 +200,17 @@ tanque legado.
    adjacente. O tanque deve avançar, reduzir tropas inimigas, sofrer dano e
    capturar o território sem deslocar a infantaria. Se houver um tanque inimigo
    no caminho, ambos devem trocar dano até um ser destruído; um tanque aliado
-   deve bloquear a rota sem empilhamento.
+   deve bloquear a rota sem empilhamento. Se um inimigo conquistar a tile sob
+   um tanque parado, ordene sua retirada por terra passável até uma tile própria.
 4. Tente implantar sem reserva, em terra alheia, numa tile já ocupada por tanque
    ou acima do limite. Nenhuma unidade deve ser criada. Veja também uma partida
    com IA e confirme que ela implanta tanques sem gastar a última reserva.
 5. Compare posição e saúde nos dois clientes. Repita o ataque no replay e
    confira a mesma sequência de tiles, baixas e captura.
+
+Em 2026-09-28, a regressão de retirada após a captura do tile do tanque passou
+junto com `AiTankBehavior.test.ts`: 20 testes em 2 arquivos. ESLint, Prettier e
+`tsc --noEmit` também passaram.
 
 Esperado: implantação, movimento e combate determinísticos; ordens ilegais não
 alteram estoque ou posição e tanques aliados não ocupam o mesmo tile.

@@ -52,7 +52,12 @@ export class MoveTankExecution implements Execution {
       .filter((tank): tank is Unit => tank !== undefined && tank.isActive());
     if (orderedTanks.length === 0) return;
 
-    const paths = this.findPathsTo(mg, this.destination, allowHostileTraversal);
+    const paths = this.findPathsTo(
+      mg,
+      this.destination,
+      allowHostileTraversal,
+      new Set(orderedTanks.map((tank) => tank.tile())),
+    );
     for (const tank of orderedTanks) {
       const path = this.pathFromSource(mg, paths, tank.tile());
       if (path === null) continue;
@@ -101,11 +106,7 @@ export class MoveTankExecution implements Execution {
           nextTile,
           order.allowHostileTraversal,
         ) ||
-        !this.isPassableLand(
-          this.game,
-          order.unit.tile(),
-          order.allowHostileTraversal,
-        )
+        !this.isValidCurrentTile(this.game, order.unit.tile())
       ) {
         this.finishOrder(order.unit);
         this.orders.delete(unitID);
@@ -178,6 +179,7 @@ export class MoveTankExecution implements Execution {
     mg: Game,
     destination: TileRef,
     allowHostileTraversal: boolean,
+    sourceTiles: ReadonlySet<TileRef> = new Set(),
   ): TankPathTree {
     const maxRange = STRATEGIC_COMBAT.tankMaxMovementRange;
     const destinationX = mg.x(destination);
@@ -223,6 +225,10 @@ export class MoveTankExecution implements Execution {
     while (head < tail && distance < maxRange) {
       while (head < layerEnd) {
         const current = queue[head++];
+        // An ordered tank can start on a tile that the enemy has just taken.
+        // Treat that occupied tile as a route endpoint, not a corridor through
+        // otherwise hostile territory.
+        if (sourceTiles.has(current)) continue;
         const neighborCount = mg.neighbors4(current, neighborBuffer);
         for (let index = 0; index < neighborCount; index++) {
           const neighbor = neighborBuffer[index];
@@ -230,7 +236,8 @@ export class MoveTankExecution implements Execution {
           if (
             neighborIndex < 0 ||
             nextTile[neighborIndex] !== -2 ||
-            !this.isPassableLand(mg, neighbor, allowHostileTraversal)
+            (!sourceTiles.has(neighbor) &&
+              !this.isPassableLand(mg, neighbor, allowHostileTraversal))
           ) {
             continue;
           }
@@ -305,6 +312,10 @@ export class MoveTankExecution implements Execution {
           (!this.player.isFriendly(owner) &&
             this.player.canAttackPlayer(owner))))
     );
+  }
+
+  private isValidCurrentTile(mg: Game, tile: TileRef): boolean {
+    return mg.isLand(tile) && !mg.isImpassable(tile);
   }
 
   private resolveTankCombat(

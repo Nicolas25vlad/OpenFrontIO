@@ -183,6 +183,43 @@ describe("independent tank deployment", () => {
     expect(execution.isActive()).toBe(false);
   });
 
+  test("lets a tank retreat after an enemy captures its current tile", async () => {
+    const game = await setup(
+      "big_plains",
+      { strategicEconomy: true, infiniteGold: true, instantBuild: true },
+      [
+        new PlayerInfo("army", PlayerType.Human, "army-client", "army"),
+        new PlayerInfo("rival", PlayerType.Human, "rival-client", "rival"),
+      ],
+    );
+    const player = game.player("army");
+    const rival = game.player("rival");
+    const source = game.ref(50, 50);
+    const friendlyDestination = game.ref(49, 50);
+    player.conquer(source);
+    player.conquer(friendlyDestination);
+    player.addTanks(1);
+
+    const deployment = new ConstructionExecution(player, UnitType.Tank, source);
+    deployment.init(game, 0);
+    deployment.tick(0);
+    const tank = player.units(UnitType.Tank)[0];
+    rival.conquer(source);
+
+    const execution = new MoveTankExecution(
+      player,
+      [tank.id()],
+      friendlyDestination,
+    );
+    execution.init(game, 1);
+    execution.tick(1);
+    execution.tick(2);
+
+    expect(game.owner(source)).toBe(rival);
+    expect(tank.tile()).toBe(friendlyDestination);
+    expect(tank.targetTile()).toBeUndefined();
+  });
+
   test("bounds tank path scratch memory by the configured movement range", async () => {
     const game = await tankGame();
     const player = game.player("army");
