@@ -664,3 +664,12 @@ reserva e continua a usar as regras de construção existentes. A issue permanec
 aberta para decisões adicionais de tanques, fortificações, marinha, bloqueios e
 negociação de bots, além da cobertura adicional dos critérios de economia
 baixa/média/alta.
+
+### Revalidação geral do branch — 2026-09-27
+
+Após as etapas de rotas comerciais, prioridades de fazenda e percentuais de paz,
+a suíte principal passou em 480 arquivos/5.639 testes e a suíte de servidor em
+63 arquivos/656 testes. `npm run lint` e `npm run build-dev` passaram; o build
+emite o aviso já existente de bundle JavaScript acima de 500 kB. A revisão
+visual de rotas e ofertas de paz continua pendente no PC principal conforme os
+procedimentos descritos nas respectivas seções.
