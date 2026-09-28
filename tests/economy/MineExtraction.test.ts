@@ -86,6 +86,41 @@ describe("mine extraction", () => {
     expect(mine.toUpdate().production?.produced).toBeGreaterThan(0);
   });
 
+  test("one mine extracts every resource in an overlapping noise area", () => {
+    let site: number | undefined;
+    for (let y = 0; y < game.height() && site === undefined; y++) {
+      for (let x = 0; x < game.width(); x++) {
+        const tile = game.ref(x, y);
+        if (game.resourceDepositsAt(tile).length > 1) {
+          site = tile;
+          break;
+        }
+      }
+    }
+
+    expect(site).toBeDefined();
+    const deposits = game.resourceDepositsAt(site!);
+    player.conquer(site!);
+    expect(player.canBuild(UnitType.Mine, site!)).toBe(site);
+    game.addExecution(new ConstructionExecution(player, UnitType.Mine, site!));
+    for (let i = 0; i < 11; i++) game.executeNextTick();
+
+    const mine = player.units(UnitType.Mine)[0];
+    const production = mine.toUpdate().production!;
+    expect(Object.keys(production.resourceOutputs ?? {}).sort()).toEqual(
+      deposits.map((deposit) => deposit.resource).sort(),
+    );
+    for (const deposit of deposits) {
+      expect(production.resourceOutputs?.[deposit.resource]).toBeGreaterThan(0);
+      expect(production.depositConcentrations?.[deposit.resource]).toBe(
+        deposit.concentration,
+      );
+      expect(player.resourceAmount(deposit.resource)).toBe(
+        production.resourceOutputs?.[deposit.resource],
+      );
+    }
+  });
+
   test("depletion persists through demolition and rebuilding", () => {
     const node = game.resourceNodes()[0];
     const tile = game.ref(node.x, node.y);

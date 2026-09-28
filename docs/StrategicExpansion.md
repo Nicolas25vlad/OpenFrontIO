@@ -1097,6 +1097,9 @@ extraídos e a riqueza local. O comércio automático estratégico busca portos
 fornecedores pela disponibilidade e diplomacia, envia recursos brutos e
 processados conforme déficit, reserva, estoque e ouro, e não negocia durante
 guerra ativa. A carga em trânsito também conta como importação reservada.
+`tests/economy/MineExtraction.test.ts` também cobre uma única mina extraindo
+simultaneamente todos os recursos presentes em uma área de noise sobreposta,
+incluindo valores locais mostrados no estado de produção da mina.
 
 Arquivos alterados nesta etapa: `src/core/game/Resources.ts`,
 `src/core/game/Economy.ts`, `src/core/game/UnitImpl.ts`,
