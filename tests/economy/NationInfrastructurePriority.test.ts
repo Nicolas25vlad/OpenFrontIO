@@ -1,4 +1,5 @@
 import { ConstructionExecution } from "../../src/core/execution/ConstructionExecution";
+import { InfrastructureRouteExecution } from "../../src/core/execution/InfrastructureRouteExecution";
 import { NationStructureBehavior } from "../../src/core/execution/nation/NationStructureBehavior";
 import { productionEfficiency } from "../../src/core/game/Economy";
 import {
@@ -50,7 +51,7 @@ describe("nation strategic infrastructure priority", () => {
     behavior = new NationStructureBehavior(new PseudoRandom(0), game, player);
   });
 
-  it("places infrastructure to cover a farm and applies the production bonus", () => {
+  it("builds a supply center and links it to the capital rail network", () => {
     const farm = player.units(UnitType.Farm)[0];
     expect(farm).toBeDefined();
     expect(productionEfficiency(game, farm).infrastructureBonus).toBe(0);
@@ -60,11 +61,22 @@ describe("nation strategic infrastructure priority", () => {
 
     for (let i = 0; i < 45; i++) game.executeNextTick();
 
-    expect(player.units(UnitType.Infrastructure)).toHaveLength(1);
+    expect(player.units(UnitType.SupplyCenter)).toHaveLength(1);
+    const city = player.units(UnitType.City)[0];
+    const supplyCenter = player.units(UnitType.SupplyCenter)[0];
+    game.addExecution(
+      new InfrastructureRouteExecution(player, [city.id(), supplyCenter.id()]),
+    );
+    for (let i = 0; i < 2; i++) game.executeNextTick();
     expect(
-      productionEfficiency(game, farm).infrastructureBonus,
-    ).toBeGreaterThanOrEqual(10);
-    player.updateEconomy(game.ticks());
+      game
+        .railNetwork()
+        .stationManager()
+        .findStation(supplyCenter)
+        ?.getCluster()
+        ?.size(),
+    ).toBe(2);
+    player.updateEconomy(50);
     expect(player.supplyStatus().logistics).toBeGreaterThan(0);
   });
 
@@ -74,11 +86,20 @@ describe("nation strategic infrastructure priority", () => {
       game.addExecution(
         new ConstructionExecution(
           player,
-          UnitType.Infrastructure,
-          game.ref(105, 50),
+          UnitType.SupplyCenter,
+          game.ref(120, 50),
         ),
       );
       for (let i = 0; i < 45; i++) game.executeNextTick();
+      const city = player.units(UnitType.City)[0];
+      const supplyCenter = player.units(UnitType.SupplyCenter)[0];
+      game.addExecution(
+        new InfrastructureRouteExecution(player, [
+          city.id(),
+          supplyCenter.id(),
+        ]),
+      );
+      for (let i = 0; i < 2; i++) game.executeNextTick();
 
       const supply = player.supplyStatus();
       expect(supply.infantry).toBe(100);
@@ -95,7 +116,7 @@ describe("nation strategic infrastructure priority", () => {
         value(game.ref(199, 199)),
       );
       expect((behavior as any).tryBuildInfrastructure()).toBe(true);
-      expect(build).toHaveBeenCalledExactlyOnceWith(UnitType.Infrastructure);
+      expect(build).toHaveBeenCalledExactlyOnceWith(UnitType.SupplyCenter);
 
       vi.spyOn(player, "supplyStatus").mockReturnValue(supply);
       const healthyBehavior = new NationStructureBehavior(

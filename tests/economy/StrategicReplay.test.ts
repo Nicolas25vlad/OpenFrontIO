@@ -48,7 +48,7 @@ async function replayStrategicEconomy(): Promise<{
     [UnitType.City, 45],
     [UnitType.Farm, 65],
     [UnitType.NuclearPlant, 85],
-    [UnitType.Infrastructure, 105],
+    [UnitType.SupplyCenter, 105],
     [UnitType.VehicleFactory, 125],
   ] as const) {
     game.addExecution(new ConstructionExecution(player, type, game.ref(x, 50)));

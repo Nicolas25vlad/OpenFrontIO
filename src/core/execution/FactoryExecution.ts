@@ -25,7 +25,17 @@ export class FactoryExecution implements Execution {
   }
 
   private createStation(): void {
-    const strategicEconomy = this.game.config().strategicEconomy();
+    const strategicEconomy =
+      this.game.config().strategicEconomy() && !this.game.config().isReplay();
+    if (strategicEconomy) {
+      if (
+        this.factory.info().logisticsNode === true &&
+        !this.factory.hasTrainStation()
+      ) {
+        this.game.addExecution(new TrainStationExecution(this.factory));
+      }
+      return;
+    }
     const structures = this.game.nearbyUnits(
       this.factory.tile()!,
       this.game.config().trainStationMaxRange(),
@@ -36,9 +46,7 @@ export class FactoryExecution implements Execution {
     // non-strategic games; strategic games use one non-spawning station per
     // structure so factories do not create duplicate train spawners.
     if (!strategicEconomy) {
-      this.game.addExecution(
-        new TrainStationExecution(this.factory, true),
-      );
+      this.game.addExecution(new TrainStationExecution(this.factory, true));
       for (const { unit } of structures) {
         if (!unit.hasTrainStation()) {
           this.game.addExecution(new TrainStationExecution(unit));

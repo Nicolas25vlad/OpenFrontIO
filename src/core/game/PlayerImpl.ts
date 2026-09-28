@@ -1460,20 +1460,48 @@ export class PlayerImpl implements Player {
         0,
       );
     const ships = this.unitCount(UnitType.Warship);
-    const infrastructure = this.units(UnitType.Infrastructure).reduce(
-      (levels, unit) =>
-        levels +
-        (!unit.isUnderConstruction() &&
-        (this.mg
-          .railNetwork()
-          .stationManager()
-          .findStation(unit)
-          ?.getCluster()
-          ?.size() ?? 0) > 1
-          ? unit.level()
-          : 0),
-      0,
-    );
+    const stationManager = this.mg.railNetwork().stationManager();
+    let infrastructure: number;
+    if (this.mg.config().isReplay()) {
+      infrastructure = this.units(UnitType.Infrastructure).reduce(
+        (levels, unit) =>
+          levels +
+          (!unit.isUnderConstruction() &&
+          (stationManager.findStation(unit)?.getCluster()?.size() ?? 0) > 1
+            ? unit.level()
+            : 0),
+        0,
+      );
+    } else {
+      const spawnTile = this.spawnTile();
+      const capital = this.units(UnitType.City)
+        .filter((city) => !city.isUnderConstruction())
+        .sort((a, b) => {
+          if (spawnTile === undefined) return a.id() - b.id();
+          const da =
+            (this.mg.x(a.tile()) - this.mg.x(spawnTile)) ** 2 +
+            (this.mg.y(a.tile()) - this.mg.y(spawnTile)) ** 2;
+          const db =
+            (this.mg.x(b.tile()) - this.mg.x(spawnTile)) ** 2 +
+            (this.mg.y(b.tile()) - this.mg.y(spawnTile)) ** 2;
+          return da - db || a.id() - b.id();
+        })[0];
+      const capitalCluster = capital
+        ? stationManager.findStation(capital)?.getCluster()
+        : null;
+      infrastructure = capitalCluster
+        ? this.units().reduce((levels, unit) => {
+            if (
+              unit === capital ||
+              unit.isUnderConstruction() ||
+              unit.info().logisticsNode !== true ||
+              stationManager.findStation(unit)?.getCluster() !== capitalCluster
+            )
+              return levels;
+            return levels + unit.level() * (unit.info().logisticsCapacity ?? 1);
+          }, 0)
+        : 0;
+    }
     const logistics = Math.min(
       ECONOMY.maxLogisticsBonus,
       infrastructure * ECONOMY.logisticsPerLevel,
@@ -1832,6 +1860,7 @@ export class PlayerImpl implements Player {
       case UnitType.Factory:
       case UnitType.Farm:
       case UnitType.Infrastructure:
+      case UnitType.SupplyCenter:
       case UnitType.VehicleFactory:
       case UnitType.NuclearPlant:
         return this.landBasedStructureSpawn(targetTile, validTiles);

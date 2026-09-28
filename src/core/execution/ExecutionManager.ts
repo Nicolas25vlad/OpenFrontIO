@@ -19,6 +19,7 @@ import { DonateTroopsExecution } from "./DonateTroopExecution";
 import { EmbargoAllExecution } from "./EmbargoAllExecution";
 import { EmbargoExecution } from "./EmbargoExecution";
 import { EmojiExecution } from "./EmojiExecution";
+import { InfrastructureRouteExecution } from "./InfrastructureRouteExecution";
 import { MarkDisconnectedExecution } from "./MarkDisconnectedExecution";
 import { MoveWarshipExecution } from "./MoveWarshipExecution";
 import { NationExecution } from "./NationExecution";
@@ -141,6 +142,8 @@ export class Executor {
         );
       case "build_trench":
         return new BuildTrenchExecution(player, intent.tiles ?? [intent.tile]);
+      case "infrastructure_route":
+        return new InfrastructureRouteExecution(player, intent.unitIds);
       case "allianceExtension": {
         return new AllianceExtensionExecution(player, intent.recipient);
       }

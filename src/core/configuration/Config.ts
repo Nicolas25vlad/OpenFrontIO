@@ -27,6 +27,9 @@ import { NukeType } from "../StatsSchemas";
 import { assertNever, sigmoid, toInt, within } from "../Util";
 import {
   ECONOMY,
+  INFRASTRUCTURE_ROUTE,
+  LOGISTICS_CAPACITY,
+  LOGISTICS_NODES,
   NAVAL_SUPREMACY,
   NAVAL_TRADE,
   NUCLEAR_PRODUCTION_TICKS,
@@ -518,6 +521,15 @@ export class Config {
   trainStationMaxRange(): number {
     return 110;
   }
+  infrastructureRoute(): typeof INFRASTRUCTURE_ROUTE {
+    return INFRASTRUCTURE_ROUTE;
+  }
+  infrastructureRouteGoldCost(tileCount: number, player: Player): Gold {
+    if (player.type() === PlayerType.Human && this.hasInfiniteGoldFor(player)) {
+      return 0n;
+    }
+    return BigInt(tileCount * INFRASTRUCTURE_ROUTE.goldPerTile);
+  }
   railroadMaxSize(): number {
     return this.trainStationMaxRange() * 1.4142;
   }
@@ -729,6 +741,7 @@ export class Config {
       case UnitType.Mine:
       case UnitType.Farm:
       case UnitType.Infrastructure:
+      case UnitType.SupplyCenter:
       case UnitType.VehicleFactory:
       case UnitType.NuclearPlant:
         info = {
@@ -752,6 +765,11 @@ export class Config {
         assertNever(type);
     }
 
+    info.logisticsNode =
+      this.strategicEconomy() &&
+      (LOGISTICS_NODES[type] === true ||
+        (this.isReplay() && type === UnitType.Infrastructure));
+    info.logisticsCapacity = LOGISTICS_CAPACITY[type] ?? 1;
     this.unitInfoCache.set(type, info);
     return info;
   }

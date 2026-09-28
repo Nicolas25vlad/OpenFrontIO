@@ -2,6 +2,7 @@ import {
   Execution,
   Game,
   Player,
+  PlayerType,
   Structures,
   Tick,
   Unit,
@@ -18,6 +19,8 @@ import { NukeExecution } from "./NukeExecution";
 import { PortExecution } from "./PortExecution";
 import { ProductionExecution } from "./ProductionExecution";
 import { SAMLauncherExecution } from "./SAMLauncherExecution";
+import { SupplyCenterRouteExecution } from "./SupplyCenterRouteExecution";
+import { TrainStationExecution } from "./TrainStationExecution";
 import { WarshipExecution } from "./WarshipExecution";
 
 export class ConstructionExecution implements Execution {
@@ -37,6 +40,18 @@ export class ConstructionExecution implements Execution {
 
   init(mg: Game, ticks: number): void {
     this.mg = mg;
+
+    if (
+      this.constructionType === UnitType.Infrastructure &&
+      this.mg.config().strategicEconomy() &&
+      !this.mg.config().isReplay()
+    ) {
+      console.warn(
+        "point infrastructure is disabled in strategic games; submit an infrastructure route",
+      );
+      this.active = false;
+      return;
+    }
 
     if (this.mg.config().isUnitDisabled(this.constructionType)) {
       console.warn(
@@ -173,6 +188,13 @@ export class ConstructionExecution implements Execution {
       case UnitType.Infrastructure:
         this.mg.addExecution(new FactoryExecution(this.structure!));
         break;
+      case UnitType.SupplyCenter:
+        if (player.type() === PlayerType.Nation) {
+          this.mg.addExecution(
+            new SupplyCenterRouteExecution(player, this.structure!),
+          );
+        }
+        break;
       case UnitType.VehicleFactory:
         this.mg.addExecution(new ProductionExecution(this.structure!));
         break;
@@ -181,6 +203,14 @@ export class ConstructionExecution implements Execution {
           `unit type ${this.constructionType} cannot be constructed`,
         );
         break;
+    }
+    if (
+      this.mg.config().strategicEconomy() &&
+      !this.mg.config().isReplay() &&
+      this.structure?.info().logisticsNode === true &&
+      !this.structure.hasTrainStation()
+    ) {
+      this.mg.addExecution(new TrainStationExecution(this.structure));
     }
   }
 

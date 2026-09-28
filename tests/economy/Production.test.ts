@@ -170,19 +170,19 @@ describe("strategic production", () => {
     expect(factory.toUpdate().production?.shortage).toBe(true);
   });
 
-  test("local city and infrastructure bonuses are bounded and ownership-aware", async () => {
+  test("local cities help production while point infrastructure does not create a route", async () => {
     const game = await economyGame();
     const factory = build(game, UnitType.Factory);
     const city = build(game, UnitType.City, 80, 50);
-    const infra = build(game, UnitType.Infrastructure, 50, 80);
-    expect(productionEfficiency(game, factory).efficiency).toBe(120);
+    const infra = build(game, UnitType.SupplyCenter, 50, 80);
+    expect(productionEfficiency(game, factory).efficiency).toBe(110);
     for (let i = 0; i < 10; i++) {
       city.increaseLevel();
       infra.increaseLevel();
     }
-    expect(productionEfficiency(game, factory).efficiency).toBe(170);
+    expect(productionEfficiency(game, factory).efficiency).toBe(130);
     city.setUnderConstruction(true);
-    expect(productionEfficiency(game, factory).efficiency).toBe(140);
+    expect(productionEfficiency(game, factory).efficiency).toBe(100);
   });
 
   test("the same construction turns replay to identical stocks, rates, units and hashes", async () => {

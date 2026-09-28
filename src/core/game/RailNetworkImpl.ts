@@ -100,11 +100,131 @@ export class RailNetworkImpl implements RailNetwork {
     return this._stationManager;
   }
 
+  private logisticsTypes(): UnitType[] {
+    return Object.values(UnitType).filter(
+      (type) => this.game.unitInfo(type).logisticsNode === true,
+    );
+  }
+
+  private railCompatible(type: UnitType): boolean {
+    if (this.game.config().strategicEconomy?.())
+      return this.game.unitInfo(type).logisticsNode === true;
+    return [
+      UnitType.City,
+      UnitType.Port,
+      UnitType.Factory,
+      UnitType.Infrastructure,
+    ].includes(type);
+  }
+
   connectStation(station: TrainStation) {
     this._stationManager.addStation(station);
+    if (
+      this.game.config().strategicEconomy?.() &&
+      !this.game.config().isReplay?.()
+    ) {
+      const cluster = new Cluster();
+      cluster.addStation(station);
+      this.connectToExistingRails(station);
+      return;
+    }
     if (!this.connectToExistingRails(station)) {
       this.connectToNearbyStations(station);
     }
+  }
+
+  planInfrastructureRoute(units: Unit[]): TileRef[][] | null {
+    if (units.length < 2) return null;
+    const paths: TileRef[][] = [];
+    for (let i = 1; i < units.length; i++) {
+      const path = this.pathService.findTilePath(
+        units[i - 1].tile(),
+        units[i].tile(),
+      );
+      if (
+        path.length === 0 ||
+        path.length >= this.game.config().railroadMaxSize()
+      ) {
+        return null;
+      }
+      paths.push(path);
+    }
+    return paths;
+  }
+
+  connectInfrastructureRoute(units: Unit[], paths: TileRef[][]): boolean {
+    if (units.length < 2 || paths.length !== units.length - 1) return false;
+    const stations = units.map((unit) => {
+      let station = this._stationManager.findStation(unit);
+      if (station === null) {
+        station = new TrainStation(this.game, unit);
+        this._stationManager.addStation(station);
+        unit.setTrainStation(true);
+        new Cluster().addStation(station);
+      }
+      return station;
+    });
+
+    for (let i = 0; i < paths.length; i++) {
+      const path = paths[i];
+      const from = stations[i];
+      const to = stations[i + 1];
+      if (from.getRailroadTo(to) !== null) continue;
+      if (
+        path.length === 0 ||
+        path[0] !== from.tile() ||
+        path[path.length - 1] !== to.tile() ||
+        path.length >= this.game.config().railroadMaxSize()
+      ) {
+        return false;
+      }
+      const railroad = new Railroad(from, to, path, this.nextId++);
+      this.game.addUpdate({
+        type: GameUpdateType.RailroadConstructionEvent,
+        id: railroad.id,
+        tiles: railroad.tiles,
+      });
+      from.addRailroad(railroad);
+      to.addRailroad(railroad);
+      this.railGrid.register(railroad);
+      const clusters = new Set(
+        [from.getCluster(), to.getCluster()].filter(
+          (cluster): cluster is Cluster => cluster !== null,
+        ),
+      );
+      if (clusters.size > 1) this.mergeClusters(clusters);
+    }
+
+    // Route corridors automatically serve compatible owned buildings that lie close to the line.
+    const routeOwner = units[0].owner();
+    const logisticsTypes = Object.values(UnitType).filter(
+      (type) => this.game.unitInfo(type).logisticsNode,
+    );
+    for (const path of paths) {
+      for (const tile of path) {
+        for (const { unit } of this.game.nearbyUnits(
+          tile,
+          this.stationRadius,
+          logisticsTypes,
+        )) {
+          if (
+            unit.owner() !== routeOwner ||
+            !unit.isActive() ||
+            unit.isUnderConstruction()
+          )
+            continue;
+          let station = this._stationManager.findStation(unit);
+          if (station === null) {
+            station = new TrainStation(this.game, unit);
+            this._stationManager.addStation(station);
+            unit.setTrainStation(true);
+            new Cluster().addStation(station);
+          }
+          this.connectToExistingRails(station);
+        }
+      }
+    }
+    return true;
   }
 
   recomputeClusters() {
@@ -166,6 +286,14 @@ export class RailNetworkImpl implements RailNetwork {
     for (const rail of rails) {
       const from = rail.from;
       const to = rail.to;
+      if (
+        this.game.config().strategicEconomy?.() &&
+        !this.game.config().isReplay?.() &&
+        from.unit.owner() !== station.unit.owner() &&
+        to.unit.owner() !== station.unit.owner()
+      ) {
+        continue;
+      }
       const originalId = rail.id;
       const closestRailIndex = rail.getClosestTileIndex(
         this.game,
@@ -224,14 +352,7 @@ export class RailNetworkImpl implements RailNetwork {
   }
 
   overlappingRailroads(unitType: UnitType, tile: TileRef): TileRef[] {
-    if (
-      ![
-        UnitType.City,
-        UnitType.Port,
-        UnitType.Factory,
-        UnitType.Infrastructure,
-      ].includes(unitType)
-    ) {
+    if (!this.railCompatible(unitType)) {
       return [];
     }
     const tiles = new Set<TileRef>();
@@ -248,14 +369,7 @@ export class RailNetworkImpl implements RailNetwork {
   }
 
   computeGhostRailPaths(unitType: UnitType, tile: TileRef): TileRef[][] {
-    if (
-      ![
-        UnitType.City,
-        UnitType.Port,
-        UnitType.Factory,
-        UnitType.Infrastructure,
-      ].includes(unitType)
-    ) {
+    if (!this.railCompatible(unitType)) {
       return [];
     }
 
@@ -281,12 +395,18 @@ export class RailNetworkImpl implements RailNetwork {
       return [];
     }
 
-    const neighbors = this.game.nearbyUnits(tile, maxRange, [
-      UnitType.City,
-      UnitType.Factory,
-      UnitType.Port,
-      UnitType.Infrastructure,
-    ]);
+    const neighbors = this.game.nearbyUnits(
+      tile,
+      maxRange,
+      this.game.config().strategicEconomy?.()
+        ? this.logisticsTypes()
+        : [
+            UnitType.City,
+            UnitType.Factory,
+            UnitType.Port,
+            UnitType.Infrastructure,
+          ],
+    );
     neighbors.sort((a, b) => a.distSquared - b.distSquared);
 
     const paths: TileRef[][] = [];

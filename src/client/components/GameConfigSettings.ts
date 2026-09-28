@@ -121,6 +121,7 @@ const unitOptions: { type: UnitType; translationKey: string }[] = [
   { type: UnitType.Mine, translationKey: "unit_type.mine" },
   { type: UnitType.Farm, translationKey: "unit_type.farm" },
   { type: UnitType.Infrastructure, translationKey: "unit_type.infrastructure" },
+  { type: UnitType.SupplyCenter, translationKey: "unit_type.supply_center" },
   {
     type: UnitType.VehicleFactory,
     translationKey: "unit_type.vehicle_factory",

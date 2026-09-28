@@ -12,6 +12,7 @@ import { UserSettings } from "../../../core/game/UserSettings";
 import { Controller } from "../../Controller";
 import {
   SelectBuildCategoryEvent,
+  StartInfrastructureRouteEvent,
   ToggleStructureEvent,
 } from "../../InputHandler";
 import { Platform } from "../../Platform";
@@ -95,6 +96,19 @@ export class UnitDisplay extends LitElement implements Controller {
 
   private canBuild(item: UnitType): boolean {
     if (this.game?.config().isUnitDisabled(item)) return false;
+    if (
+      item === UnitType.Infrastructure &&
+      this.game?.config().strategicEconomy()
+    ) {
+      return (
+        (this.game
+          .myPlayer()
+          ?.units()
+          .filter(
+            (unit) => this.game.unitInfo(unit.type()).logisticsNode === true,
+          ).length ?? 0) >= 2
+      );
+    }
     if (
       this.playerBuildables?.find((bu) => bu.type === item)?.resourceLimit === 0
     )
@@ -267,19 +281,26 @@ export class UnitDisplay extends LitElement implements Controller {
                       ⇧ ${translateText("build_menu.warship_shift_hint")}
                     </div>`
                   : null}
-                <div class="flex items-center justify-center gap-1">
-                  <img src=${goldCoinIcon} width="13" height="13" />
-                  <span class="text-yellow-300"
-                    >${renderNumber(this.cost(unitType))}</span
-                  >
-                </div>
-                ${Object.entries(this.game.config().resourceCost(unitType)).map(
-                  ([resource, amount]) => html`
-                    <div class="text-xs text-amber-200">
-                      ${translateText(`resource.${resource}`)}: ${amount}
-                    </div>
-                  `,
-                )}
+                ${unitType === UnitType.Infrastructure &&
+                this.game.config().strategicEconomy()
+                  ? html`<div class="text-amber-200">
+                      ${translateText("infrastructure.route_cost_variable")}
+                    </div>`
+                  : html`<div class="flex items-center justify-center gap-1">
+                        <img src=${goldCoinIcon} width="13" height="13" />
+                        <span class="text-yellow-300"
+                          >${renderNumber(this.cost(unitType))}</span
+                        >
+                      </div>
+                      ${Object.entries(
+                        this.game.config().resourceCost(unitType),
+                      ).map(
+                        ([resource, amount]) => html`
+                          <div class="text-xs text-amber-200">
+                            ${translateText(`resource.${resource}`)}: ${amount}
+                          </div>
+                        `,
+                      )}`}
               </div>
             `
           : null}
@@ -303,7 +324,13 @@ export class UnitDisplay extends LitElement implements Controller {
              rounded-sm text-white ${selected ? "bg-slate-400/20" : ""}
              ${this.tutorialHighlight === unitType ? "tutorial-highlight" : ""}"
           @click=${() => {
-            if (selected) {
+            if (
+              unitType === UnitType.Infrastructure &&
+              this.game.config().strategicEconomy()
+            ) {
+              if (!this.uiState.infrastructureRouteMode)
+                this.eventBus.emit(new StartInfrastructureRouteEvent());
+            } else if (selected) {
               this.uiState.ghostStructure = null;
             } else if (this.canBuild(unitType)) {
               this.uiState.ghostStructure = unitType;

@@ -32,6 +32,11 @@ export class CityExecution implements Execution {
   }
 
   private createStation(): void {
+    if (this.mg.config().strategicEconomy() && !this.mg.config().isReplay()) {
+      if (!this.city.hasTrainStation())
+        this.mg.addExecution(new TrainStationExecution(this.city));
+      return;
+    }
     const nearbyFactory = this.mg.hasUnitNearby(
       this.city.tile()!,
       this.mg.config().trainStationMaxRange(),

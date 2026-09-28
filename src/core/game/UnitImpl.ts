@@ -25,6 +25,7 @@ import { GameImpl } from "./GameImpl";
 import { TileRef } from "./GameMap";
 import { GameUpdateType, UnitUpdate } from "./GameUpdates";
 import { PlayerImpl } from "./PlayerImpl";
+import { TrainStation } from "./TrainStation";
 import { maxHealthWithVeterancy } from "./Veterancy";
 
 export class UnitImpl implements Unit {
@@ -123,6 +124,7 @@ export class UnitImpl implements Unit {
       case UnitType.Mine:
       case UnitType.Farm:
       case UnitType.Infrastructure:
+      case UnitType.SupplyCenter:
       case UnitType.VehicleFactory:
       case UnitType.NuclearPlant:
         this.mg.stats().unitBuild(_owner, this._type);
@@ -254,6 +256,11 @@ export class UnitImpl implements Unit {
 
   setOwner(newOwner: PlayerImpl): void {
     this.clearPendingDeletion();
+    const wasLogisticsStation =
+      this.mg.config().strategicEconomy() &&
+      !this.mg.config().isReplay() &&
+      this._hasTrainStation;
+    if (wasLogisticsStation) this.mg.railNetwork().removeStation(this);
     switch (this._type) {
       case UnitType.Warship:
       case UnitType.Port:
@@ -265,6 +272,7 @@ export class UnitImpl implements Unit {
       case UnitType.Mine:
       case UnitType.Farm:
       case UnitType.Infrastructure:
+      case UnitType.SupplyCenter:
       case UnitType.VehicleFactory:
       case UnitType.NuclearPlant:
         this.mg.stats().unitCapture(newOwner, this._type);
@@ -289,6 +297,14 @@ export class UnitImpl implements Unit {
     this._owner._myUnitsVersion++;
     this.mg.bumpUnitsVersion();
     this.mg.addUpdate(this.toUpdate());
+    if (
+      wasLogisticsStation &&
+      this.isActive() &&
+      !this.isUnderConstruction() &&
+      this.info().logisticsNode === true
+    ) {
+      this.mg.railNetwork().connectStation(new TrainStation(this.mg, this));
+    }
   }
 
   maxHealth(): number {
@@ -394,6 +410,7 @@ export class UnitImpl implements Unit {
         case UnitType.Mine:
         case UnitType.Farm:
         case UnitType.Infrastructure:
+        case UnitType.SupplyCenter:
         case UnitType.VehicleFactory:
         case UnitType.NuclearPlant:
           this.mg.stats().unitDestroy(destroyer, this._type);

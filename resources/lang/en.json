@@ -168,13 +168,14 @@
       "factory": "Creates railroads and spawns trains",
       "farm": "Produces food; fertilizer doubles the base yield.",
       "hydrogen_bomb": "Large explosion",
-      "infrastructure": "Improves nearby industrial production and logistics.",
+      "infrastructure": "Connects logistics buildings by rail.",
       "mine": "Extracts resources from deposits",
       "mirv": "Huge explosion, only targets selected player",
       "missile_silo": "Used to launch nukes",
       "nuclear_plant": "Enriches uranium using fuel. Required for nuclear weapons.",
       "port": "Sends trade ships to generate gold",
       "sam_launcher": "Defends against incoming nukes",
+      "supply_center": "Extends supply when connected to your capital by rail.",
       "tank": "Deploys one independently controlled tank from your reserve.",
       "trench": "Drag across your border to paint trenches against land attacks.",
       "vehicle_factory": "Manufactures tanks using steel and fuel.",
@@ -1136,6 +1137,11 @@
     "visibility_public": "Public",
     "waiting": "Waiting for players..."
   },
+  "infrastructure": {
+    "route_confirm": "Build route",
+    "route_cost_variable": "Cost depends on route length",
+    "route_hint": "Click owned logistics buildings in order ({count} selected), then confirm."
+  },
   "inventory": {
     "equipped": "Equipped",
     "load_failed": "Couldn't load your inventory. Please reload and try again.",
@@ -2096,6 +2102,7 @@
     "nuclear_plant": "Nuclear plant",
     "port": "Port",
     "sam_launcher": "SAM Launcher",
+    "supply_center": "Supply Center",
     "tank": "Tank",
     "trench": "Trench",
     "vehicle_factory": "Vehicle factory",

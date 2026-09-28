@@ -135,13 +135,14 @@
       "factory": "Cria trilhos e spawna trens",
       "farm": "Produz comida; fertilizante dobra o rendimento básico.",
       "hydrogen_bomb": "Explosão Grande",
-      "infrastructure": "Melhora a produção industrial e a logística próximas.",
+      "infrastructure": "Conecta edifícios logísticos por ferrovia.",
       "mine": "Extrai recursos dos depósitos",
       "mirv": "Explosão Imensa, apenas mira o jogador escolhido",
       "missile_silo": "Usado para lançar bombas nucleares",
       "nuclear_plant": "Enriquece urânio consumindo combustível. Necessária para armas nucleares.",
       "port": "Envie navios de troca para gerar ouro",
       "sam_launcher": "Defende Contra Chegada de Bombas Nucleares",
+      "supply_center": "Amplia o abastecimento quando conectado à capital por ferrovia.",
       "tank": "Implanta um tanque controlável usando seu estoque de reserva.",
       "trench": "Arraste pela fronteira para construir trincheiras contra ataques terrestres.",
       "vehicle_factory": "Fabrica tanques usando aço e combustível.",
@@ -1053,6 +1054,11 @@
     "visibility_public": "Público",
     "waiting": "Aguardando jogadores..."
   },
+  "infrastructure": {
+    "route_confirm": "Construir rota",
+    "route_cost_variable": "Custo varia conforme o comprimento da rota",
+    "route_hint": "Clique nos edifícios logísticos próprios em ordem ({count} selecionados) e confirme."
+  },
   "inventory": {
     "equipped": "Equipado",
     "load_failed": "Não foi possível carregar seu inventário. Por favor, recarregue e tente novamente.",
@@ -1928,6 +1934,7 @@
     "nuclear_plant": "Usina nuclear",
     "port": "Porto",
     "sam_launcher": "Lançador de SAMs",
+    "supply_center": "Centro de Abastecimento",
     "trench": "Trincheira",
     "vehicle_factory": "Fábrica de veículos",
     "tank": "Tanque",

@@ -47,6 +47,7 @@ export type Intent =
   | DonateTroopsIntent
   | BuildUnitIntent
   | BuildTrenchIntent
+  | InfrastructureRouteIntent
   | EmbargoIntent
   | QuickChatIntent
   | MoveWarshipIntent
@@ -78,6 +79,9 @@ export type DonateTroopsIntent = z.infer<typeof DonateTroopIntentSchema>;
 export type EmbargoIntent = z.infer<typeof EmbargoIntentSchema>;
 export type BuildUnitIntent = z.infer<typeof BuildUnitIntentSchema>;
 export type BuildTrenchIntent = z.infer<typeof BuildTrenchIntentSchema>;
+export type InfrastructureRouteIntent = z.infer<
+  typeof InfrastructureRouteIntentSchema
+>;
 export type UpgradeStructureIntent = z.infer<
   typeof UpgradeStructureIntentSchema
 >;
@@ -730,6 +734,12 @@ export const BuildTrenchIntentSchema = z.object({
   tiles: zb.uint().array().min(1).max(512).optional(),
 });
 
+export const InfrastructureRouteIntentSchema = z.object({
+  type: z.literal("infrastructure_route"),
+  // Kept in sync with INFRASTRUCTURE_ROUTE.maxNodes (Config also revalidates).
+  unitIds: zb.uint().array().min(2).max(16),
+});
+
 export const UpgradeStructureIntentSchema = z.object({
   type: z.literal("upgrade_structure"),
   unit: z.enum(UnitType),
@@ -823,6 +833,7 @@ export const IntentSchema = z.discriminatedUnion("type", [
   DonateTroopIntentSchema,
   BuildUnitIntentSchema,
   BuildTrenchIntentSchema,
+  InfrastructureRouteIntentSchema,
   UpgradeStructureIntentSchema,
   EmbargoIntentSchema,
   EmbargoAllIntentSchema,

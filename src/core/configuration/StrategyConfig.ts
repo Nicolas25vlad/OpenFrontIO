@@ -57,6 +57,7 @@ export type ResourceAmounts = Partial<Record<ResourceType, number>>;
 export const RESOURCE_COSTS: Partial<Record<UnitType, ResourceAmounts>> = {
   [UnitType.City]: { [Product.Steel]: 10 },
   [UnitType.Infrastructure]: { [Product.Steel]: 10 },
+  [UnitType.SupplyCenter]: { [Product.Steel]: 20 },
   [UnitType.Port]: { [Product.Steel]: 15 },
   [UnitType.DefensePost]: { [Product.Steel]: 8 },
   [UnitType.VehicleFactory]: { [Product.Steel]: 30, [Product.Circuits]: 5 },
@@ -230,6 +231,32 @@ export const STRATEGIC_BUILDINGS = {
   [UnitType.Mine]: { gold: 100_000, ticks: 20 },
   [UnitType.Farm]: { gold: 50_000, ticks: 20 },
   [UnitType.Infrastructure]: { gold: 150_000, ticks: 30 },
+  [UnitType.SupplyCenter]: { gold: 200_000, ticks: 30 },
   [UnitType.VehicleFactory]: { gold: 500_000, ticks: 50 },
   [UnitType.NuclearPlant]: { gold: 4_000_000, ticks: 150 },
+} as const;
+
+/** Eligible strategic logistics nodes; rendering, routing and economy use this metadata. */
+export const LOGISTICS_NODES: Partial<Record<UnitType, true>> = {
+  [UnitType.City]: true,
+  [UnitType.SupplyCenter]: true,
+  [UnitType.Factory]: true,
+  [UnitType.Mine]: true,
+  [UnitType.Farm]: true,
+  [UnitType.VehicleFactory]: true,
+  [UnitType.NuclearPlant]: true,
+  [UnitType.Port]: true,
+};
+
+/** Relative contribution of connected logistics nodes to player supply. */
+export const LOGISTICS_CAPACITY: Partial<Record<UnitType, number>> = {
+  [UnitType.SupplyCenter]: 3,
+};
+
+/** Configurable costs and limits for player-built infrastructure routes. */
+export const INFRASTRUCTURE_ROUTE = {
+  minNodes: 2,
+  maxNodes: 16,
+  goldPerTile: 250,
+  steelPerTiles: 40,
 } as const;

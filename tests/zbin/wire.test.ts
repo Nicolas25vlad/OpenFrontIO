@@ -103,6 +103,11 @@ const SAMPLE_INTENTS: StampedIntent[] = [
   { type: "build_trench", clientID: P2, tile: 9 },
   { type: "build_trench", clientID: P2, tile: 9, tiles: [9, 10] },
   {
+    type: "infrastructure_route",
+    clientID: P2,
+    unitIds: [11, 12, 13],
+  },
+  {
     type: "upgrade_structure",
     clientID: P2,
     unit: UnitType.City,

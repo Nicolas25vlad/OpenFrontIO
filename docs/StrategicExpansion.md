@@ -1140,3 +1140,58 @@ principal:
    aberta; a primeira deve custar mais perdas e tempo. Tanques abastecidos
    reduzem parte das penalidades, e cada tile conquistado perde um nível
    conforme o desgaste configurado.
+
+### Infraestrutura como rota logística — issue #14
+
+Na economia estratégica, Infraestrutura agora inicia um modo de seleção de rota
+em vez de criar um edifício pontual. O jogador escolhe de 2 a 16 cidades,
+indústrias e outros nós próprios em sequência, confirma, e o core calcula e
+cria os trechos ferroviários determinísticos. Edifícios logísticos próprios a
+até três tiles do corredor são anexados automaticamente. A elegibilidade vem
+do metadado `UnitInfo.logisticsNode`; silos, defesas e estruturas militares
+ficam fora da rede. Pedidos são revalidados no servidor, cobram ouro por tile e
+aço a cada 40 tiles, e rejeitam nós inválidos, capturados, em construção ou
+sem saldo. `Infrastructure` pontual continua apenas para legado/replay.
+
+O projeto não tinha um tipo Supply Center. Foi adicionado como construção
+estratégica compatível com a rede; nós conectados à cidade mais próxima do
+tile de spawn contribuem para a capacidade logística conforme
+`LOGISTICS_CAPACITY`. As nações conectam seus próprios supply centers à capital
+automaticamente. A produção recebe bônus ferroviário somente quando o edifício
+participa de uma rede conectada. Capturar um nó remove os trilhos ligados ao
+antigo dono e cria uma estação isolada para o novo dono. A renderização de
+ferrovias e o replay reaproveitam os eventos ferroviários existentes.
+
+Arquivos principais: `src/core/game/RailNetworkImpl.ts`,
+`src/core/execution/InfrastructureRouteExecution.ts`,
+`src/core/execution/SupplyCenterRouteExecution.ts`,
+`src/core/configuration/StrategyConfig.ts`, `src/core/game/PlayerImpl.ts`,
+`src/client/hud/layers/BuildMenu.ts` e `src/client/InputHandler.ts`. Os testes
+`tests/economy/Infrastructure.test.ts`,
+`tests/economy/NationInfrastructurePriority.test.ts`,
+`tests/economy/Production.test.ts` e `tests/zbin/wire.test.ts` cobrem conexão,
+anexação automática, custos, rejeição de estruturas militares, bônus industrial,
+logística da capital, captura, supply center e serialização do intent.
+
+Validação no homelab: `npm test` passou em 490 arquivos/5.761 testes da suíte
+principal e 63 arquivos/656 testes da suíte de servidor; `npm run lint`,
+`npm run build-dev` e `git diff --check` também passaram. O build mantém avisos
+de chunks acima de 500 kB e um aviso de depreciação do Node. A validação visual
+da seleção/confirmação de rota e da renderização ferroviária permanece pendente
+no PC principal.
+
+Validação manual pendente no PC principal:
+
+1. Rode `npm run dev:host`, inicie uma partida com economia estratégica e
+   selecione Infraestrutura na categoria Civil.
+2. Clique em uma cidade, uma indústria e uma mina/fazenda próprias; confirme a
+   rota. O traçado provisório deve mostrar a ordem escolhida e, após confirmar,
+   a ferrovia final deve ligar os edifícios. Um nó compatível próximo ao
+   corredor deve se anexar sem seleção explícita.
+3. Tente confirmar com menos de dois nós, misture edifício militar ou use um
+   edifício capturado/em construção. O servidor deve rejeitar sem cobrar.
+   Compare o ouro/aço antes e depois de uma rota válida; o custo deve crescer
+   com o comprimento.
+4. Ligue um Supply Center à capital. A capacidade logística e o supply devem
+   subir; deixe outro desconectado e confirme que ele não contribui. Capture um
+   nó do rival: o trecho até ele deve desaparecer do antigo dono.

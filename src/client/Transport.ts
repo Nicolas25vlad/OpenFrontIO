@@ -137,6 +137,10 @@ export class BuildTrenchIntentEvent implements GameEvent {
   }
 }
 
+export class SendInfrastructureRouteIntentEvent implements GameEvent {
+  constructor(public readonly unitIds: number[]) {}
+}
+
 /** Starts the local brush mode; only the completed stroke is sent to the core. */
 export class StartTrenchBrushEvent implements GameEvent {}
 
@@ -366,6 +370,9 @@ export class Transport {
         tile: e.tile,
         tiles: e.tiles,
       }),
+    );
+    this.eventBus.on(SendInfrastructureRouteIntentEvent, (e) =>
+      this.sendIntent({ type: "infrastructure_route", unitIds: e.unitIds }),
     );
 
     this.eventBus.on(PauseGameIntentEvent, (e) => this.onPauseGameIntent(e));

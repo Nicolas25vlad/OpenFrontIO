@@ -159,6 +159,8 @@ export function productionEfficiency(game: Game, unit: Unit): ProductionStatus {
   const owner = unit.owner();
   let cityLevel = 0;
   const stations = game.railNetwork().stationManager();
+  const strategic =
+    game.config().strategicEconomy() && !game.config().isReplay();
   let connected = (stations.findStation(unit)?.getCluster()?.size() ?? 0) > 1;
   let infrastructureLevel = 0;
   for (const { unit: nearby, distSquared } of game.nearbyUnits(
@@ -167,14 +169,16 @@ export function productionEfficiency(game: Game, unit: Unit): ProductionStatus {
     [UnitType.City, UnitType.Infrastructure, UnitType.Factory, UnitType.Port],
   )) {
     if (nearby.owner() !== owner) continue;
-    connected ||= (stations.findStation(nearby)?.getCluster()?.size() ?? 0) > 1;
+    if (!strategic)
+      connected ||=
+        (stations.findStation(nearby)?.getCluster()?.size() ?? 0) > 1;
     if (
       nearby.type() === UnitType.City &&
       distSquared <= ECONOMY.urbanRadius ** 2
     ) {
       cityLevel = Math.max(cityLevel, nearby.level());
     }
-    if (nearby.type() === UnitType.Infrastructure)
+    if (!strategic && nearby.type() === UnitType.Infrastructure)
       infrastructureLevel = Math.max(infrastructureLevel, nearby.level());
   }
   const urbanBonus = Math.min(

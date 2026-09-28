@@ -55,7 +55,7 @@ export class PortExecution implements Execution {
       return;
     }
 
-    if (this.mg.config().strategicEconomy()) {
+    if (this.mg.config().strategicEconomy() && !this.mg.config().isReplay()) {
       const supplier = this.supplierPorts()[0];
       if (supplier === undefined) return;
       addTradeShipExecution(
@@ -103,6 +103,11 @@ export class PortExecution implements Execution {
   }
 
   createStation(): void {
+    if (this.mg.config().strategicEconomy()) {
+      if (!this.port.hasTrainStation())
+        this.mg.addExecution(new TrainStationExecution(this.port));
+      return;
+    }
     const nearbyFactory = this.mg.hasUnitNearby(
       this.port.tile()!,
       this.mg.config().trainStationMaxRange(),

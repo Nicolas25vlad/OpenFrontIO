@@ -196,6 +196,10 @@ export interface UnitInfo {
   upgradable?: boolean;
   /** Hard upgrade ceiling for structures with bounded defensive tiers. */
   maxLevel?: number;
+  /** Buildings marked here can be nodes in the strategic logistics network. */
+  logisticsNode?: boolean;
+  /** Supply capacity supplied when this node is connected to the capital. */
+  logisticsCapacity?: number;
 }
 
 function unitTypeGroup<T extends readonly UnitType[]>(types: T) {
@@ -227,6 +231,7 @@ export enum UnitType {
   Mine = "Mine",
   Farm = "Farm",
   Infrastructure = "Infrastructure",
+  SupplyCenter = "Supply Center",
   VehicleFactory = "Vehicle Factory",
   NuclearPlant = "Nuclear Plant",
 }
@@ -261,6 +266,7 @@ export const Structures = unitTypeGroup([
   UnitType.Mine,
   UnitType.Farm,
   UnitType.Infrastructure,
+  UnitType.SupplyCenter,
   UnitType.VehicleFactory,
   UnitType.NuclearPlant,
 ] as const);
@@ -340,6 +346,7 @@ export interface UnitParamsMap {
   [UnitType.Mine]: Record<string, never>;
   [UnitType.Farm]: Record<string, never>;
   [UnitType.Infrastructure]: Record<string, never>;
+  [UnitType.SupplyCenter]: Record<string, never>;
   [UnitType.VehicleFactory]: Record<string, never>;
   [UnitType.NuclearPlant]: Record<string, never>;
 

@@ -18,23 +18,23 @@ test("previews match atomic build and bulk upgrade costs, even in the same turn"
   const player = game.player("builder");
   const tiles = [game.ref(50, 50), game.ref(150, 150)];
   tiles.forEach((tile) => player.conquer(tile));
-  const cost = game.config().resourceCost(UnitType.Infrastructure);
+  const cost = game.config().resourceCost(UnitType.SupplyCenter);
   const steel = cost[Product.Steel]!;
   expect(steel).toBeGreaterThan(0);
   player.removeResource(Product.Steel, player.resourceAmount(Product.Steel));
   player.addResource(Product.Steel, steel);
-  const preview = player.buildableUnits(tiles[0], [UnitType.Infrastructure])[0];
+  const preview = player.buildableUnits(tiles[0], [UnitType.SupplyCenter])[0];
   expect(preview.resourceCost).toEqual(cost);
   expect(preview.canBuild).toBe(tiles[0]);
   expect(maxBulkAmount(preview, player.gold())).toBe(1);
   for (const tile of tiles)
     game.addExecution(
-      new ConstructionExecution(player, UnitType.Infrastructure, tile),
+      new ConstructionExecution(player, UnitType.SupplyCenter, tile),
     );
   for (let i = 0; i < 3; i++) game.executeNextTick();
-  expect(player.units(UnitType.Infrastructure)).toHaveLength(1);
+  expect(player.units(UnitType.SupplyCenter)).toHaveLength(1);
   expect(player.resourceAmount(Product.Steel)).toBe(0);
-  const unit = player.units(UnitType.Infrastructure)[0];
+  const unit = player.units(UnitType.SupplyCenter)[0];
   player.addResource(Product.Steel, steel * 2);
   const upgrade = new UpgradeStructureExecution(player, unit.id(), 10);
   upgrade.init(game, game.ticks());

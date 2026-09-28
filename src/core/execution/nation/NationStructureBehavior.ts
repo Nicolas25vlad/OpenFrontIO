@@ -155,13 +155,6 @@ const PRODUCTION_UNIT_TYPES = [
   UnitType.VehicleFactory,
 ] as const;
 
-const INFRASTRUCTURE_STATION_TYPES = [
-  UnitType.City,
-  UnitType.Port,
-  UnitType.Factory,
-  UnitType.Infrastructure,
-] as const;
-
 const MAX_LOGISTICS_INFRASTRUCTURE_LEVELS = Math.ceil(
   ECONOMY.maxLogisticsBonus / ECONOMY.logisticsPerLevel,
 );
@@ -814,16 +807,16 @@ export class NationStructureBehavior {
     const config = this.game.config();
     if (
       !config.strategicEconomy?.() ||
-      config.isUnitDisabled(UnitType.Infrastructure)
+      config.isUnitDisabled(UnitType.SupplyCenter)
     ) {
       return false;
     }
 
-    const infrastructure = this.player.units(UnitType.Infrastructure);
+    const infrastructure = this.player.units(UnitType.SupplyCenter);
     if (infrastructure.some((unit) => unit.isUnderConstruction())) return false;
 
     const retryAfter =
-      (this.game.unitInfo(UnitType.Infrastructure).constructionDuration ?? 0) +
+      (this.game.unitInfo(UnitType.SupplyCenter).constructionDuration ?? 0) +
       ECONOMY.periodTicks;
     if (this.pendingInfrastructureOrderTick !== null) {
       if (
@@ -836,23 +829,32 @@ export class NationStructureBehavior {
     }
 
     const productionUnits = this.player.units([...PRODUCTION_UNIT_TYPES]);
-    const coveredProductionUnits = productionUnits.filter((unit) =>
-      infrastructure.some(
-        (infra) =>
-          !infra.isUnderConstruction() &&
-          this.game.euclideanDistSquared(unit.tile(), infra.tile()) <=
-            ECONOMY.infrastructureRadius ** 2,
-      ),
-    );
-    const hasUncoveredProduction =
-      coveredProductionUnits.length < productionUnits.length;
-
     const stationManager = this.game.railNetwork().stationManager();
+    const spawnTile = this.player.spawnTile();
+    const capital = this.player
+      .units(UnitType.City)
+      .filter((city) => !city.isUnderConstruction())
+      .sort((a, b) => {
+        if (spawnTile === undefined) return a.id() - b.id();
+        const distance = (unit: Unit) =>
+          (this.game.x(unit.tile()) - this.game.x(spawnTile)) ** 2 +
+          (this.game.y(unit.tile()) - this.game.y(spawnTile)) ** 2;
+        return distance(a) - distance(b) || a.id() - b.id();
+      })[0];
+    const capitalCluster = capital
+      ? stationManager.findStation(capital)?.getCluster()
+      : null;
+    const hasUncoveredProduction = productionUnits.some(
+      (unit) =>
+        !capitalCluster ||
+        stationManager.findStation(unit)?.getCluster() !== capitalCluster,
+    );
     const connectedInfrastructureLevels = infrastructure.reduce(
       (levels, unit) =>
         levels +
-        ((stationManager.findStation(unit)?.getCluster()?.size() ?? 0) > 1
-          ? unit.level()
+        (stationManager.findStation(unit)?.getCluster() === capitalCluster &&
+        capitalCluster !== null
+          ? unit.level() * (unit.info().logisticsCapacity ?? 1)
           : 0),
       0,
     );
@@ -864,7 +866,7 @@ export class NationStructureBehavior {
       connectedInfrastructureLevels < MAX_LOGISTICS_INFRASTRUCTURE_LEVELS;
 
     if (!hasUncoveredProduction && !canImproveLogistics) return false;
-    if (!this.maybeSpawnStructure(UnitType.Infrastructure)) return false;
+    if (!this.maybeSpawnStructure(UnitType.SupplyCenter)) return false;
 
     this.pendingInfrastructureOrderTick = this.game.ticks();
     return true;
@@ -1287,7 +1289,7 @@ export class NationStructureBehavior {
     let bestValue = 0;
     for (const t of tiles) {
       const v = valueFunction(t);
-      if (type === UnitType.Infrastructure && v <= 0) continue;
+      if (type === UnitType.SupplyCenter && v <= 0) continue;
       if (v <= bestValue && bestTile !== null) continue;
       if (!this.player.canBuild(type, t)) continue;
       // Found a better tile
@@ -1355,6 +1357,8 @@ export class NationStructureBehavior {
       case UnitType.Port:
         return this.portValue();
       case UnitType.Infrastructure:
+        return this.infrastructureValue();
+      case UnitType.SupplyCenter:
         return this.infrastructureValue();
       case UnitType.NuclearPlant:
         return this.nuclearPlantValue();
@@ -1439,20 +1443,29 @@ export class NationStructureBehavior {
   }
 
   /**
-   * Score infrastructure by marginal coverage of production structures, with
-   * a smaller bonus for connecting it to an existing station when logistics
-   * are currently constrained.
+   * Choose a supply-center site that can join the capital network and serve
+   * production buildings that are not connected yet.
    */
   private infrastructureValue(): (tile: TileRef) => number {
     const game = this.game;
     const player = this.player;
-    const infrastructure = player
-      .units(UnitType.Infrastructure)
-      .filter((unit) => !unit.isUnderConstruction());
     const productionUnits = player.units([...PRODUCTION_UNIT_TYPES]);
-    const stationUnits = player.units([...INFRASTRUCTURE_STATION_TYPES]);
+    const stationManager = game.railNetwork().stationManager();
+    const spawnTile = player.spawnTile();
+    const capital = player
+      .units(UnitType.City)
+      .filter((city) => !city.isUnderConstruction())
+      .sort((a, b) => {
+        if (spawnTile === undefined) return a.id() - b.id();
+        const distance = (unit: Unit) =>
+          (game.x(unit.tile()) - game.x(spawnTile)) ** 2 +
+          (game.y(unit.tile()) - game.y(spawnTile)) ** 2;
+        return distance(a) - distance(b) || a.id() - b.id();
+      })[0];
+    const capitalCluster = capital
+      ? stationManager.findStation(capital)?.getCluster()
+      : null;
     const stationRangeSquared = game.config().trainStationMaxRange() ** 2;
-    const infrastructureRadiusSquared = ECONOMY.infrastructureRadius ** 2;
     const supply = player.supplyStatus();
     const needsLogistics = supply.infantry < 100 || supply.navy < 100;
 
@@ -1460,32 +1473,25 @@ export class NationStructureBehavior {
       let score = 0;
 
       for (const producer of productionUnits) {
-        const currentlyCovered = infrastructure.some(
-          (infra) =>
-            game.euclideanDistSquared(producer.tile(), infra.tile()) <=
-            infrastructureRadiusSquared,
-        );
+        const currentlyConnected =
+          stationManager.findStation(producer)?.getCluster() ===
+            capitalCluster && capitalCluster !== null;
         if (
-          !currentlyCovered &&
+          !currentlyConnected &&
           game.euclideanDistSquared(tile, producer.tile()) <=
-            infrastructureRadiusSquared
+            stationRangeSquared
         ) {
-          score += producer.level();
+          score += producer.level() * 2;
         }
       }
 
       if (
         needsLogistics &&
-        stationUnits.some(
-          (station) =>
-            !station.isUnderConstruction() &&
-            game.euclideanDistSquared(tile, station.tile()) <=
-              stationRangeSquared,
-        )
+        capital &&
+        game.euclideanDistSquared(tile, capital.tile()) <= stationRangeSquared
       ) {
         score += 1;
       }
-
       return score;
     };
   }
@@ -1494,7 +1500,7 @@ export class NationStructureBehavior {
   private nuclearPlantValue(): (tile: TileRef) => number {
     const game = this.game;
     const cities = this.player.units(UnitType.City);
-    const infrastructure = this.player.units(UnitType.Infrastructure);
+    const infrastructure = this.player.units(UnitType.SupplyCenter);
     const urbanRadiusSquared = ECONOMY.urbanRadius ** 2;
     const infrastructureRadiusSquared = ECONOMY.infrastructureRadius ** 2;
 

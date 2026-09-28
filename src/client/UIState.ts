@@ -10,4 +10,5 @@ export interface UIState {
   upgradeMultiplier: number;
   buildCategory?: BuildCategoryId;
   trenchBrushMode?: boolean;
+  infrastructureRouteMode?: boolean;
 }

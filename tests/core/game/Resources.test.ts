@@ -375,14 +375,26 @@ describe("deterministic resource deposits", () => {
 
     for (const resource of Object.values(NaturalResource)) {
       const resourceNodes = nodes.filter((node) => node.resource === resource);
-      for (let i = 0; i < resourceNodes.length; i++) {
-        for (let j = i + 1; j < resourceNodes.length; j++) {
-          const dx = resourceNodes[i].x - resourceNodes[j].x;
-          const dy = resourceNodes[i].y - resourceNodes[j].y;
-          expect(dx * dx + dy * dy).toBeGreaterThanOrEqual(
-            RESOURCE_MIN_NODE_DISTANCE ** 2,
-          );
+      const buckets = new Map<string, ResourceNode[]>();
+      for (const node of resourceNodes) {
+        const cellX = Math.floor(node.x / RESOURCE_MIN_NODE_DISTANCE);
+        const cellY = Math.floor(node.y / RESOURCE_MIN_NODE_DISTANCE);
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nearby = buckets.get(`${cellX + dx}:${cellY + dy}`) ?? [];
+            for (const other of nearby) {
+              const x = node.x - other.x;
+              const y = node.y - other.y;
+              expect(x * x + y * y).toBeGreaterThanOrEqual(
+                RESOURCE_MIN_NODE_DISTANCE ** 2,
+              );
+            }
+          }
         }
+        const key = `${cellX}:${cellY}`;
+        const bucket = buckets.get(key) ?? [];
+        bucket.push(node);
+        buckets.set(key, bucket);
       }
     }
   });

@@ -36,6 +36,7 @@ export const BUILD_CATEGORIES: readonly BuildCategory[] = [
       UnitType.Factory,
       UnitType.Mine,
       UnitType.Port,
+      UnitType.SupplyCenter,
       UnitType.VehicleFactory,
     ],
   },

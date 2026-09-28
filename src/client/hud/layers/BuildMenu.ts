@@ -21,17 +21,20 @@ import {
   MouseUpEvent,
   ShowBuildMenuEvent,
   ShowEmojiMenuEvent,
+  StartInfrastructureRouteEvent,
 } from "../../InputHandler";
 import { TransformHandler } from "../../TransformHandler";
 import {
   BuildTrenchIntentEvent,
   BuildUnitIntentEvent,
+  SendInfrastructureRouteIntentEvent,
   SendUpgradeStructureIntentEvent,
   StartTrenchBrushEvent,
 } from "../../Transport";
 import { UIState } from "../../UIState";
 import { renderNumber } from "../../Utils";
 import { GameView } from "../../view";
+import { UnitView } from "../../view/UnitView";
 const warshipIcon = assetUrl("images/BattleshipIconWhite.svg");
 const cityIcon = assetUrl("images/CityIconWhite.svg");
 const factoryIcon = assetUrl("images/FactoryIconWhite.svg");
@@ -135,6 +138,7 @@ export const buildTable: BuildItemDisplay[][] = [
     ...[
       [UnitType.Farm, "farm", "FarmIcon.svg"],
       [UnitType.Infrastructure, "infrastructure", "InfrastructureIcon.svg"],
+      [UnitType.SupplyCenter, "supply_center", "InfrastructureIcon.svg"],
       [UnitType.VehicleFactory, "vehicle_factory", "VehicleFactoryIcon.svg"],
       [UnitType.NuclearPlant, "nuclear_plant", "NuclearPlantIcon.svg"],
     ].map(([unitType, key, icon]) => ({
@@ -162,6 +166,8 @@ export class BuildMenu extends LitElement implements Controller {
   private drawingTrenchStroke = false;
   private lastBrushTile: TileRef | null = null;
   private trenchBrushTiles = new Set<TileRef>();
+  private infrastructureRouteMode = false;
+  private infrastructureRouteUnits: UnitView[] = [];
 
   @state()
   private trenchBrushCount = 0;
@@ -193,14 +199,23 @@ export class BuildMenu extends LitElement implements Controller {
       this.trenchBrushCount = 0;
       this.hideMenu();
     });
+    this.eventBus.on(StartInfrastructureRouteEvent, () => {
+      this.infrastructureRouteMode = true;
+      this.infrastructureRouteUnits = [];
+      if (this.uiState) this.uiState.infrastructureRouteMode = true;
+      this.hideMenu();
+      this.requestUpdate();
+    });
     this.eventBus.on(CloseViewEvent, () => {
       this.trenchBrushMode = false;
       if (this.uiState) this.uiState.trenchBrushMode = false;
       this.drawingTrenchStroke = false;
+      this.cancelInfrastructureRoute();
       this.hideMenu();
     });
     this.eventBus.on(ShowEmojiMenuEvent, () => this.hideMenu());
     this.eventBus.on(MouseDownEvent, (e) => {
+      if (this.infrastructureRouteMode) return;
       if (!this.trenchBrushMode) {
         this.hideMenu();
         return;
@@ -217,6 +232,10 @@ export class BuildMenu extends LitElement implements Controller {
       }
     });
     this.eventBus.on(MouseUpEvent, (e) => {
+      if (this.infrastructureRouteMode) {
+        this.selectInfrastructureNode(e.x, e.y);
+        return;
+      }
       if (!this.trenchBrushMode || !this.drawingTrenchStroke) return;
       this.addBrushTileAtScreen(e.x, e.y);
       const tiles = [...this.trenchBrushTiles].sort((a, b) => a - b);
@@ -461,8 +480,32 @@ export class BuildMenu extends LitElement implements Controller {
     if (this.game?.myPlayer() === null || this.playerBuildables === null) {
       return false;
     }
+    if (
+      item.unitType === UnitType.Infrastructure &&
+      this.game.config().strategicEconomy()
+    ) {
+      return this.canRouteInfrastructure();
+    }
     const unit = this.playerBuildables.find((u) => u.type === item.unitType);
     return unit ? unit.canBuild !== false || unit.canUpgrade !== false : false;
+  }
+
+  private canRouteInfrastructure(): boolean {
+    const player = this.game?.myPlayer();
+    return (
+      (player
+        ?.units()
+        .filter(
+          (unit) => this.game.unitInfo(unit.type()).logisticsNode === true,
+        ).length ?? 0) >= 2
+    );
+  }
+
+  private isInfrastructureRoute(type: UnitType): boolean {
+    return (
+      type === UnitType.Infrastructure &&
+      this.game?.config()?.strategicEconomy() === true
+    );
   }
 
   public cost(item: BuildItemDisplay): Gold {
@@ -484,6 +527,14 @@ export class BuildMenu extends LitElement implements Controller {
   }
 
   public sendBuildOrUpgrade(buildableUnit: BuildableUnit, tile: TileRef): void {
+    if (
+      buildableUnit.type === UnitType.Infrastructure &&
+      this.game?.config()?.strategicEconomy()
+    ) {
+      this.eventBus.emit(new StartInfrastructureRouteEvent());
+      this.hideMenu();
+      return;
+    }
     if (buildableUnit.canUpgrade !== false) {
       this.eventBus.emit(
         new SendUpgradeStructureIntentEvent(
@@ -504,8 +555,126 @@ export class BuildMenu extends LitElement implements Controller {
     this.hideMenu();
   }
 
+  private selectInfrastructureNode(screenX: number, screenY: number): void {
+    const player = this.game.myPlayer();
+    const cell = this.transformHandler.screenToWorldCoordinates(
+      screenX,
+      screenY,
+    );
+    if (!player || !this.game.isValidCoord(cell.x, cell.y)) return;
+    const clicked = this.game.ref(cell.x, cell.y);
+    const candidates = player
+      .units()
+      .filter(
+        (unit) =>
+          this.game.unitInfo(unit.type()).logisticsNode === true &&
+          unit.isActive() &&
+          !unit.isUnderConstruction(),
+      )
+      .map((unit) => ({
+        unit,
+        distance: Math.hypot(
+          this.game.x(unit.tile()) - this.game.x(clicked),
+          this.game.y(unit.tile()) - this.game.y(clicked),
+        ),
+      }))
+      .filter(({ distance }) => distance <= 7)
+      .sort((a, b) => a.distance - b.distance);
+    const selected = candidates[0]?.unit;
+    if (!selected) return;
+    const previousIndex = this.infrastructureRouteUnits.findIndex(
+      (unit) => unit.id() === selected.id(),
+    );
+    if (previousIndex >= 0) {
+      this.infrastructureRouteUnits.splice(previousIndex);
+    } else if (
+      this.infrastructureRouteUnits.length <
+      this.game.config().infrastructureRoute().maxNodes
+    ) {
+      this.infrastructureRouteUnits.push(selected);
+    }
+    this.requestUpdate();
+  }
+
+  private cancelInfrastructureRoute(): void {
+    this.infrastructureRouteMode = false;
+    this.infrastructureRouteUnits = [];
+    if (this.uiState) this.uiState.infrastructureRouteMode = false;
+    this.requestUpdate();
+  }
+
+  private confirmInfrastructureRoute(): void {
+    if (this.infrastructureRouteUnits.length < 2) return;
+    this.eventBus.emit(
+      new SendInfrastructureRouteIntentEvent(
+        this.infrastructureRouteUnits.map((unit) => unit.id()),
+      ),
+    );
+    this.cancelInfrastructureRoute();
+  }
+
   render() {
     return html`
+      ${this.infrastructureRouteMode
+        ? html`<svg
+            class="fixed inset-0 z-[9998] h-screen w-screen pointer-events-none"
+            aria-hidden="true"
+          >
+            <polyline
+              points=${this.infrastructureRouteUnits
+                .map((unit) => {
+                  const point = this.transformHandler.worldToScreenCoordinates(
+                    new Cell(
+                      this.game.x(unit.tile()),
+                      this.game.y(unit.tile()),
+                    ),
+                  );
+                  return `${point.x},${point.y}`;
+                })
+                .join(" ")}
+              fill="none"
+              stroke="#f2d58a"
+              stroke-width="3"
+              stroke-dasharray="6 5"
+            />
+          </svg>`
+        : ""}
+      ${this.infrastructureRouteMode
+        ? html`<div class="trench-brush-banner">
+            <span
+              >${translateText("infrastructure.route_hint", {
+                count: this.infrastructureRouteUnits.length,
+              })}</span
+            >
+            <button
+              class="border border-white/40 rounded px-2 py-1"
+              ?disabled=${this.infrastructureRouteUnits.length < 2}
+              @click=${() => this.confirmInfrastructureRoute()}
+            >
+              ${translateText("infrastructure.route_confirm")}
+            </button>
+            <button
+              class="border border-white/40 rounded px-2 py-1"
+              @click=${() => this.cancelInfrastructureRoute()}
+            >
+              ${translateText("build_menu.trench_brush_cancel")}
+            </button>
+          </div>`
+        : ""}
+      ${this.infrastructureRouteMode
+        ? this.infrastructureRouteUnits.map((unit, index) => {
+            const screen = this.transformHandler.worldToScreenCoordinates(
+              new Cell(this.game.x(unit.tile()), this.game.y(unit.tile())),
+            );
+            return html`<div
+              class="trench-brush-tile"
+              style="left:${screen.x}px;top:${screen.y}px"
+              title=${`${index + 1}. ${unit.type()}`}
+            >
+              ${index + 1}
+            </div>`;
+          })
+        : ""}
       ${this.trenchBrushMode
         ? html`<div class="trench-brush-banner">
             <span
@@ -553,9 +722,10 @@ export class BuildMenu extends LitElement implements Controller {
                 if (buildableUnit === undefined) {
                   return html``;
                 }
-                const enabled =
-                  buildableUnit.canBuild !== false ||
-                  buildableUnit.canUpgrade !== false;
+                const enabled = this.isInfrastructureRoute(item.unitType)
+                  ? this.canRouteInfrastructure()
+                  : buildableUnit.canBuild !== false ||
+                    buildableUnit.canUpgrade !== false;
                 return html`
                   <button
                     class="build-button"
@@ -584,9 +754,13 @@ export class BuildMenu extends LitElement implements Controller {
                       translateText(item.description)}</span
                     >
                     <span class="build-cost" translate="no">
-                      ${renderNumber(
-                        this.game && this.game.myPlayer() ? this.cost(item) : 0,
-                      )}
+                      ${this.isInfrastructureRoute(item.unitType)
+                        ? translateText("infrastructure.route_cost_variable")
+                        : renderNumber(
+                            this.game && this.game.myPlayer()
+                              ? this.cost(item)
+                              : 0,
+                          )}
                       <img
                         src=${goldCoinIcon}
                         alt="gold"

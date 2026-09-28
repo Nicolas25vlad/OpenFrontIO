@@ -41,6 +41,7 @@ export const otherUnits = [
   "infra",
   "vehicle",
   "plant",
+  "supc",
   "tank",
 ] as const;
 export const OtherUnitSchema = z.enum(otherUnits);
@@ -57,7 +58,8 @@ export type OtherUnitType =
   | UnitType.Farm
   | UnitType.Infrastructure
   | UnitType.VehicleFactory
-  | UnitType.NuclearPlant;
+  | UnitType.NuclearPlant
+  | UnitType.SupplyCenter;
 
 export const unitTypeToOtherUnit = {
   [UnitType.City]: "city",
@@ -72,6 +74,7 @@ export const unitTypeToOtherUnit = {
   [UnitType.Infrastructure]: "infra",
   [UnitType.VehicleFactory]: "vehicle",
   [UnitType.NuclearPlant]: "plant",
+  [UnitType.SupplyCenter]: "supc",
 } as const satisfies Record<OtherUnitType, OtherUnit>;
 
 // Attacks
