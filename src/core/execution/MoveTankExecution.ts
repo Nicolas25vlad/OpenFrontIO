@@ -165,9 +165,14 @@ export class MoveTankExecution implements Execution {
     allowHostileTraversal: boolean,
   ): Int32Array {
     const tileCount = mg.width() * mg.height();
+    const maxRange = STRATEGIC_COMBAT.tankMaxMovementRange;
     const nextTile = new Int32Array(tileCount);
     nextTile.fill(-2);
-    const queue = new Int32Array(tileCount);
+    // A cardinal BFS can visit at most this many tiles within maxRange. Keep
+    // the queue proportional to the order's reach instead of the whole map.
+    const maxReachableTiles = 2 * maxRange * (maxRange + 1) + 1;
+    const queue = new Int32Array(Math.min(tileCount, maxReachableTiles));
+    const neighborBuffer: TileRef[] = [0, 0, 0, 0];
     let head = 0;
     let tail = 1;
     let layerEnd = 1;
@@ -175,19 +180,21 @@ export class MoveTankExecution implements Execution {
     queue[0] = destination;
     nextTile[destination] = -1;
 
-    while (head < tail && distance < STRATEGIC_COMBAT.tankMaxMovementRange) {
+    while (head < tail && distance < maxRange) {
       while (head < layerEnd) {
         const current = queue[head++];
-        mg.forEachNeighbor(current, (neighbor) => {
+        const neighborCount = mg.neighbors4(current, neighborBuffer);
+        for (let index = 0; index < neighborCount; index++) {
+          const neighbor = neighborBuffer[index];
           if (
             nextTile[neighbor] !== -2 ||
             !this.isPassableLand(mg, neighbor, allowHostileTraversal)
           ) {
-            return;
+            continue;
           }
           nextTile[neighbor] = current;
           queue[tail++] = neighbor;
-        });
+        }
       }
       layerEnd = tail;
       distance++;

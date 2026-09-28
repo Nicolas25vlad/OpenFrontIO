@@ -142,6 +142,8 @@ trincheiras, dano determinístico aos tanques envolvidos e capturam cada tile
 alcançado. Tanques implantados também se enfrentam quando disputam o mesmo tile;
 tiles bloqueados por tanques aliados encerram a ordem sem sobreposição. O
 caminho é determinístico, limitado a 250 tiles e calculado uma vez por ordem.
+A busca usa o iterador cardinal com buffer reutilizado e limita a fila ao maior
+losango que cabe nesse alcance, em vez de reservar uma fila do tamanho do mapa.
 Updates de unidade sincronizam movimento e saúde entre clientes e replay. A IA
 de nações e tribos pode implantar e ordenar até dois tanques quando há estoque,
 mantendo uma unidade de reserva para os ataques legados. Unidades móveis recebem
