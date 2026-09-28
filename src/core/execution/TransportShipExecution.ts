@@ -12,7 +12,10 @@ import {
 import { TileRef } from "../game/GameMap";
 import { MotionPlanRecord } from "../game/MotionPlans";
 import { targetTransportTile } from "../game/TransportShipUtils";
-import { WaterPathFinder } from "../pathfinding/PathFinder";
+import {
+  nextWaterPathStagger,
+  WaterPathFinder,
+} from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { AttackExecution } from "./AttackExecution";
 
@@ -28,8 +31,6 @@ export class TransportShipExecution implements Execution {
   private mg: Game;
   private target: Player | TerraNullius;
   private pathFinder: WaterPathFinder;
-
-  private static _staggerCounter = 0;
 
   private dst: TileRef | null;
   private src: TileRef | null;
@@ -62,8 +63,7 @@ export class TransportShipExecution implements Execution {
     this.lastMove = ticks;
     this.mg = mg;
     this.target = mg.owner(this.ref);
-    const stagger =
-      TransportShipExecution._staggerCounter++ % WaterPathFinder.STAGGER_SPREAD;
+    const stagger = nextWaterPathStagger(mg);
     this.pathFinder = new WaterPathFinder(mg, stagger);
 
     if (

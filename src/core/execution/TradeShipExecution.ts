@@ -10,7 +10,10 @@ import {
 } from "../game/Game";
 import { TileRef } from "../game/GameMap";
 import { ProcessedResource as Product } from "../game/Resources";
-import { WaterPathFinder } from "../pathfinding/PathFinder";
+import {
+  nextWaterPathStagger,
+  WaterPathFinder,
+} from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { findClosestBy } from "../Util";
 
@@ -30,8 +33,6 @@ export class TradeShipExecution implements Execution {
     payment: bigint;
   };
 
-  private static _staggerCounter = 0;
-
   constructor(
     private origOwner: Player,
     private srcPort: Unit,
@@ -40,8 +41,7 @@ export class TradeShipExecution implements Execution {
 
   init(mg: Game, ticks: number): void {
     this.mg = mg;
-    const stagger =
-      TradeShipExecution._staggerCounter++ % WaterPathFinder.STAGGER_SPREAD;
+    const stagger = nextWaterPathStagger(mg);
     this.pathFinder = new WaterPathFinder(mg, stagger, true); // memoized: port tile to port tile repeats
   }
 

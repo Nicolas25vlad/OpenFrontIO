@@ -396,6 +396,12 @@ enfileirados. A regressão foi reproduzida e coberta em
 `tsc --noEmit`, `npm run lint`, `npm run build-dev`, Prettier e
 `git diff --check` também passaram.
 
+Os pathfinders marítimos agora recebem slots de reconstrução determinísticos por
+partida. O contador não é compartilhado entre jogos no mesmo processo, então a
+ordem de partidas anteriores não muda quando cada comboio recalcula sua rota.
+`tests/core/pathfinding/WaterPathStagger.test.ts` cobre isolamento entre jogos
+e retorno ao início ao atingir o limite do ciclo.
+
 ### Validação manual pendente no PC principal
 
 1. Rode `npm run dev:host`, inicie uma partida com `strategicEconomy` ligado e
@@ -440,8 +446,9 @@ nenhum update por tile ou mapa inteiro é criado. O painel econômico mostra a
 força naval estimada nos setores dos portos próprios e os comboios ativos
 relacionados ao jogador. A camada do mapa mostra a grade setorial e uma heatmap
 agregada estimada na água, sem substituir o bloqueio autoritativo do core. O
-jogador ainda não pode definir rotas. A validação visual em multiplayer/replay
-continua pendente no PC principal.
+jogador escolhe os portos de origem e destino no painel; o core valida a rota
+antes de criar o comboio. A validação visual em multiplayer/replay continua
+pendente no PC principal.
 
 ## Cancelamento de proposta de aliança — issue #8 (parcial)
 

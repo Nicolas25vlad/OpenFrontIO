@@ -304,6 +304,18 @@ export class WaterPathFinder implements SteppingPathFinder<TileRef> {
   }
 }
 
+const waterPathStaggerByGame = new WeakMap<Game, number>();
+
+/** Assigns stable stagger slots within a match without leaking across games. */
+export function nextWaterPathStagger(game: Game): number {
+  const stagger = waterPathStaggerByGame.get(game) ?? 0;
+  waterPathStaggerByGame.set(
+    game,
+    (stagger + 1) % WaterPathFinder.STAGGER_SPREAD,
+  );
+  return stagger;
+}
+
 function tileStepperConfig(game: Game): StepperConfig<TileRef> {
   return {
     equals: (a, b) => a === b,
