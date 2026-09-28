@@ -81,7 +81,9 @@ Arquivos: `src/core/game/Resources.ts`, `src/client/ResourceMap.ts` e
 `tests/core/game/Resources.test.ts`. A suíte testa determinismo e cache,
 independência das camadas, riqueza progressiva, regiões conectadas, áreas vazias,
 cobertura em múltiplas zonas de continente e exclusão de água/terreno
-intransitável. Uma regressão determinística também confirma que cinturões de
+intransitável. A integração adicional com o mapa real `World` confirma que os
+depósitos permanecem em terra passável e que cada continente grande tem várias
+regiões produtoras. Uma regressão determinística também confirma que cinturões de
 recursos diferentes se sobrepõem em algumas células e continuam exclusivos em
 outras. Também foram validados os fluxos de mineração, prioridades da IA,
 produção e replay: 30 testes passaram em 6 arquivos. A suíte completa passou
@@ -90,6 +92,8 @@ com 474 arquivos/5.611 testes; a suíte de servidor, com 63 arquivos/656 testes.
 passaram. Nesta revisão, os testes focados de geração, contorno visual e extração
 passaram em 3 arquivos/22 testes; ESLint, `tsc --noEmit`, build de desenvolvimento,
 Prettier e `git diff --check` também passaram.
+Em 2026-09-28, `Resources.test.ts` passou com 15 testes, incluindo a nova
+validação do mapa real `World`.
 
 ### Validação visual pendente no PC principal
 

@@ -5,10 +5,12 @@ import {
   RESOURCE_GENERATION_CONFIG,
   RESOURCE_MIN_NODE_DISTANCE,
   RESOURCE_NODE_CELL_SIZE,
+  ResourceContinentZone,
   ResourceNode,
   resourceNodesForMap,
   resourceTotalsForOwner,
 } from "../../../src/core/game/Resources";
+import { setup } from "../../util/Setup";
 
 function landMap(width = 1024, height = 1024) {
   return {
@@ -62,6 +64,28 @@ function resourceCellComponents(
   }
 
   return components;
+}
+
+function resourceRegionsInZone(
+  nodes: readonly ResourceNode[],
+  resource: NaturalResource,
+  zone: ResourceContinentZone,
+  width: number,
+  height: number,
+): number {
+  const minX = zone.minX * width;
+  const maxX = zone.maxX * width;
+  const minY = zone.minY * height;
+  const maxY = zone.maxY * height;
+  return resourceCellComponents(nodes, resource).filter((component) =>
+    component.some(([cellX, cellY]) => {
+      const centerX = (cellX + 0.5) * RESOURCE_NODE_CELL_SIZE;
+      const centerY = (cellY + 0.5) * RESOURCE_NODE_CELL_SIZE;
+      return (
+        centerX >= minX && centerX < maxX && centerY >= minY && centerY < maxY
+      );
+    }),
+  ).length;
 }
 
 describe("deterministic resource deposits", () => {
@@ -229,6 +253,56 @@ describe("deterministic resource deposits", () => {
       expect(
         new Set(zoneNodes.map((node) => node.resource)).size,
       ).toBeGreaterThan(1);
+    }
+  });
+
+  test("keeps deposits on passable land and multiple regions on the real world map", async () => {
+    const game = await setup("world", { strategicEconomy: true });
+    const nodes = game.resourceNodes();
+
+    expect(nodes.length).toBeGreaterThan(0);
+    expect(
+      nodes.every((node) => {
+        const tile = game.ref(node.x, node.y);
+        return game.isLand(tile) && !game.isImpassable(tile);
+      }),
+    ).toBe(true);
+
+    for (const [continent, zone] of Object.entries(RESOURCE_CONTINENT_ZONES)) {
+      const zoneNodes = nodes.filter(
+        (node) =>
+          node.x >= zone.minX * game.width() &&
+          node.x < zone.maxX * game.width() &&
+          node.y >= zone.minY * game.height() &&
+          node.y < zone.maxY * game.height(),
+      );
+      expect(zoneNodes.length, continent).toBeGreaterThan(1);
+      expect(
+        new Set(zoneNodes.map((node) => node.resource)).size,
+        continent,
+      ).toBeGreaterThan(1);
+    }
+
+    for (const continent of [
+      "NorthAmerica",
+      "SouthAmerica",
+      "Africa",
+      "Asia",
+    ]) {
+      const zone = RESOURCE_CONTINENT_ZONES[continent];
+      const regionCount = Object.values(NaturalResource).reduce(
+        (total, resource) =>
+          total +
+          resourceRegionsInZone(
+            nodes,
+            resource,
+            zone,
+            game.width(),
+            game.height(),
+          ),
+        0,
+      );
+      expect(regionCount, continent).toBeGreaterThan(2);
     }
   });
 
