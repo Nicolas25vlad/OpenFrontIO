@@ -1,4 +1,5 @@
 import { Config } from "../../src/core/configuration/Config";
+import { NAVAL_TRADE } from "../../src/core/configuration/StrategyConfig";
 import { DispatchTradeRouteExecution } from "../../src/core/execution/DispatchTradeRouteExecution";
 import {
   Game,
@@ -14,6 +15,8 @@ async function replayNavalTrade(): Promise<{
   hashes: number[];
   sellerFood: number;
   buyerFood: number;
+  sellerFuel: number;
+  buyerFuel: number;
   sellerGold: bigint;
   buyerGold: bigint;
 }> {
@@ -45,9 +48,22 @@ async function replayNavalTrade(): Promise<{
     seller.resourceAmount(ProcessedResource.Food),
   );
   seller.addResource(ProcessedResource.Food, 125);
+  seller.removeResource(
+    ProcessedResource.Fuel,
+    seller.resourceAmount(ProcessedResource.Fuel),
+  );
+  seller.addResource(
+    ProcessedResource.Fuel,
+    NAVAL_TRADE.exportReserve[ProcessedResource.Fuel] + NAVAL_TRADE.cargoUnits,
+  );
   buyer.removeResource(
     ProcessedResource.Food,
-    buyer.resourceAmount(ProcessedResource.Food),
+    buyer.resourceAmount(ProcessedResource.Food) -
+      (NAVAL_TRADE.importTarget[ProcessedResource.Food] - 60),
+  );
+  buyer.removeResource(
+    ProcessedResource.Fuel,
+    buyer.resourceAmount(ProcessedResource.Fuel),
   );
   const sourcePort = seller.buildUnit(UnitType.Port, sourceTile, {});
   const destinationPort = buyer.buildUnit(UnitType.Port, destinationTile, {});
@@ -77,21 +93,31 @@ async function replayNavalTrade(): Promise<{
     hashes,
     sellerFood: seller.resourceAmount(ProcessedResource.Food),
     buyerFood: buyer.resourceAmount(ProcessedResource.Food),
+    sellerFuel: seller.resourceAmount(ProcessedResource.Fuel),
+    buyerFuel: buyer.resourceAmount(ProcessedResource.Fuel),
     sellerGold: seller.gold(),
     buyerGold: buyer.gold(),
   };
 }
 
-test("strategic trade routes produce identical replay hashes and cargo", async () => {
+test("replays the most deficient strategic cargo identically", async () => {
   const first = await replayNavalTrade();
   const second = await replayNavalTrade();
 
   expect(first.hashes.length).toBeGreaterThan(0);
   expect(first.hashes).toEqual(second.hashes);
-  expect(first.buyerFood).toBe(5);
-  expect(first.sellerFood).toBe(120);
+  expect(first.buyerFuel).toBe(NAVAL_TRADE.cargoUnits);
+  expect(first.sellerFuel).toBe(
+    NAVAL_TRADE.exportReserve[ProcessedResource.Fuel],
+  );
+  expect(first.buyerFood).toBe(
+    NAVAL_TRADE.importTarget[ProcessedResource.Food] - 60,
+  );
+  expect(first.sellerFood).toBe(125);
   expect(first.buyerFood).toBe(second.buyerFood);
   expect(first.sellerFood).toBe(second.sellerFood);
+  expect(first.buyerFuel).toBe(second.buyerFuel);
+  expect(first.sellerFuel).toBe(second.sellerFuel);
   expect(first.sellerGold).toBe(second.sellerGold);
   expect(first.buyerGold).toBe(second.buyerGold);
 });
