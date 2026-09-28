@@ -1176,7 +1176,8 @@ Arquivos principais: `src/core/game/RailNetworkImpl.ts`,
 anexação automática, custos, rejeição de estruturas militares, bônus industrial,
 logística da capital, captura/remoção de nós, supply center, sequência de três
 prédios, IDs duplicados, limite de planejamento de 16 nós e aplicação dos eventos
-ferroviários pelo `RailroadCache` em atualização e replay.
+ferroviários pelo `RailroadCache` em atualização e replay. Reenviar uma rota já
+construída reutiliza os trilhos sem emitir eventos nem cobrar novamente.
 
 Validação no homelab: `npm test` passou em 490 arquivos/5.762 testes da suíte
 principal e 63 arquivos/656 testes da suíte de servidor; `npm run lint`,

@@ -230,6 +230,29 @@ test("connects three selected logistics nodes in the requested order", async () 
   for (const update of railroadUpdates) {
     expect(liveCache.getRailroads().get(update.id)).toEqual(update.tiles);
   }
+
+  const goldAfterFirstRoute = player.gold();
+  const steelAfterFirstRoute = player.resourceAmount(ProcessedResource.Steel);
+  game.addExecution(
+    new InfrastructureRouteExecution(player, [
+      city.id(),
+      farm.id(),
+      factory.id(),
+    ]),
+  );
+  const repeatedRouteUpdates: RailroadConstructionUpdate[] = [];
+  for (let i = 0; i < 2; i++) {
+    const updates = game.executeNextTick();
+    repeatedRouteUpdates.push(
+      ...updates[GameUpdateType.RailroadConstructionEvent],
+    );
+  }
+
+  expect(repeatedRouteUpdates).toHaveLength(0);
+  expect(player.gold()).toBe(goldAfterFirstRoute);
+  expect(player.resourceAmount(ProcessedResource.Steel)).toBe(
+    steelAfterFirstRoute,
+  );
 });
 
 test("rejects duplicate route nodes without charging or connecting buildings", async () => {
