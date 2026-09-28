@@ -44,7 +44,46 @@ describe("mine extraction", () => {
     for (let i = 0; i < 11; i++) game.executeNextTick();
 
     expect(player.units(UnitType.Mine)).toHaveLength(1);
-    expect(player.resourceAmount(node.resource)).toBe(node.richness * 2);
+    const mine = player.units(UnitType.Mine)[0];
+    const produced =
+      mine.toUpdate().production?.resourceOutputs?.[node.resource];
+    expect(produced).toBeGreaterThan(0);
+    expect(player.resourceAmount(node.resource)).toBe(produced);
+    expect(
+      mine.toUpdate().production?.depositConcentrations?.[node.resource],
+    ).toBe(node.concentration);
+  });
+
+  test("allows a mine anywhere inside a resource area, away from its marker", () => {
+    const markerTiles = new Set(
+      game.resourceNodes().map((node) => game.ref(node.x, node.y)),
+    );
+    let site: number | undefined;
+    for (let y = 0; y < game.height() && site === undefined; y++) {
+      for (let x = 0; x < game.width(); x++) {
+        const tile = game.ref(x, y);
+        if (
+          !markerTiles.has(tile) &&
+          game
+            .resourceDepositsAt(tile)
+            .some(
+              (deposit) => game.resourceRemaining(tile, deposit.resource) > 0,
+            )
+        ) {
+          site = tile;
+          break;
+        }
+      }
+    }
+    expect(site).toBeDefined();
+    player.conquer(site!);
+    expect(player.canBuild(UnitType.Mine, site!)).toBe(site);
+    game.addExecution(new ConstructionExecution(player, UnitType.Mine, site!));
+    for (let i = 0; i < 11; i++) game.executeNextTick();
+
+    const mine = player.units(UnitType.Mine)[0];
+    expect(mine.tile()).toBe(site);
+    expect(mine.toUpdate().production?.produced).toBeGreaterThan(0);
   });
 
   test("depletion persists through demolition and rebuilding", () => {
@@ -59,7 +98,7 @@ describe("mine extraction", () => {
     const mine = player.units(UnitType.Mine)[0];
     const execution = new MineExecution(mine);
     execution.init(game);
-    for (let i = 0; i < 1600; i++) execution.tick(i * 10);
+    for (let i = 0; i < 5000; i++) execution.tick(i * 10);
 
     expect(player.resourceAmount(node.resource)).toBe(reserve);
     expect(game.extractResource(tile, 1)).toBe(0);
@@ -97,8 +136,10 @@ describe("mine extraction", () => {
     execution.tick(10);
     execution.tick(10);
 
+    const concentration = node.concentration ?? node.richness * 25;
     expect(player.resourceAmount(node.resource) - before).toBe(
-      node.richness * 4,
+      Math.floor((concentration * 8) / 25) -
+        Math.floor((concentration * 4) / 25),
     );
   });
 });

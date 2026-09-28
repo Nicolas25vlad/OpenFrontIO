@@ -5,6 +5,7 @@ import {
   RESOURCE_GENERATION_CONFIG,
   RESOURCE_MIN_NODE_DISTANCE,
   RESOURCE_NODE_CELL_SIZE,
+  ResourceCatalog,
   ResourceContinentZone,
   ResourceNode,
   resourceNodesForMap,
@@ -323,6 +324,49 @@ describe("deterministic resource deposits", () => {
       expect(config.threshold).toBeLessThan(1);
       expect(config.abundance).toBeGreaterThan(0);
       expect(config.abundance).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test("finds local deposits away from visual markers and exposes overlaps", () => {
+    const map = landMap(2048, 1024);
+    const catalog = new ResourceCatalog(map, "mine-area-match");
+    const markerTiles = new Set(
+      catalog.nodes.map((node) => map.ref(node.x, node.y)),
+    );
+    let offMarkerDeposit: number | undefined;
+    let overlap: number | undefined;
+
+    for (let y = 0; y < map.height(); y += 8) {
+      for (let x = 0; x < map.width(); x += 8) {
+        const tile = map.ref(x, y);
+        const deposits = catalog.depositsAt(tile);
+        if (deposits.length > 1) overlap ??= tile;
+        if (deposits.length > 0 && !markerTiles.has(tile))
+          offMarkerDeposit ??= tile;
+        if (overlap !== undefined && offMarkerDeposit !== undefined) break;
+      }
+      if (overlap !== undefined && offMarkerDeposit !== undefined) break;
+    }
+
+    expect(offMarkerDeposit).toBeDefined();
+    expect(catalog.depositsAt(offMarkerDeposit!)).not.toHaveLength(0);
+    expect(catalog.remaining(offMarkerDeposit!)).toBeGreaterThan(0);
+    expect(overlap).toBeDefined();
+    const overlappingDeposits = catalog.depositsAt(overlap!);
+    expect(overlappingDeposits.length).toBeGreaterThan(1);
+    expect(
+      new Set(overlappingDeposits.map((deposit) => deposit.resource)).size,
+    ).toBe(overlappingDeposits.length);
+    expect(
+      overlappingDeposits.every(
+        (deposit) =>
+          deposit.concentration! >= 25 && deposit.concentration! <= 100,
+      ),
+    ).toBe(true);
+    for (const deposit of overlappingDeposits) {
+      const before = catalog.remaining(overlap!, deposit.resource);
+      expect(catalog.extract(overlap!, 1, deposit.resource)).toBe(1);
+      expect(catalog.remaining(overlap!, deposit.resource)).toBe(before - 1);
     }
   });
 

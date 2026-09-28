@@ -1,5 +1,6 @@
 import { vi } from "vitest";
 import { NAVAL_TRADE } from "../src/core/configuration/StrategyConfig";
+import { AllianceRequestExecution } from "../src/core/execution/alliance/AllianceRequestExecution";
 import { PortExecution } from "../src/core/execution/PortExecution";
 import {
   addTradeShipExecution,
@@ -12,7 +13,11 @@ import {
   PlayerType,
   UnitType,
 } from "../src/core/game/Game";
-import { ProcessedResource } from "../src/core/game/Resources";
+import {
+  NaturalResource,
+  ProcessedResource,
+  STOCK_RESOURCES,
+} from "../src/core/game/Resources";
 import { setup } from "./util/Setup";
 
 let game: Game;
@@ -206,5 +211,85 @@ describe("PortExecution", () => {
     expect(execution.shouldSpawnTradeShip()).toBe(false);
     expect(executions).not.toHaveBeenCalled();
     expect(spawnRate).not.toHaveBeenCalled();
+  });
+
+  test("imports only from a supplier and prioritizes an ally over a nearer vendor", async () => {
+    const tradeGame = await setup(
+      "half_land_half_ocean",
+      { instantBuild: true, strategicEconomy: true },
+      [
+        new PlayerInfo("buyer", PlayerType.Human, null, "buyer"),
+        new PlayerInfo("near supplier", PlayerType.Human, null, "near"),
+        new PlayerInfo("allied supplier", PlayerType.Human, null, "ally"),
+      ],
+    );
+    tradeGame.config().structureMinDist = () => 0;
+    const buyer = tradeGame.player("buyer");
+    const nearSeller = tradeGame.player("near");
+    const allySeller = tradeGame.player("ally");
+    for (const player of [buyer, nearSeller, allySeller])
+      player.addGold(1_000_000n);
+
+    const buyerTile = tradeGame.ref(7, 10);
+    const nearTile = tradeGame.ref(7, 9);
+    const allyTile = tradeGame.ref(7, 0);
+    for (const [player, tile] of [
+      [buyer, buyerTile],
+      [nearSeller, nearTile],
+      [allySeller, allyTile],
+    ] as const) {
+      player.conquer(tile);
+      player.addResource(ProcessedResource.Steel, 100);
+    }
+
+    for (const resource of STOCK_RESOURCES) {
+      const reserve = NAVAL_TRADE.exportReserve[resource];
+      const target = NAVAL_TRADE.importTarget[resource];
+      for (const seller of [nearSeller, allySeller]) {
+        const stock = seller.resourceAmount(resource);
+        if (stock > reserve) seller.removeResource(resource, stock - reserve);
+        if (stock < reserve) seller.addResource(resource, reserve - stock);
+      }
+      const buyerStock = buyer.resourceAmount(resource);
+      if (buyerStock > target)
+        buyer.removeResource(resource, buyerStock - target);
+      if (buyerStock < target) buyer.addResource(resource, target - buyerStock);
+    }
+    buyer.removeResource(
+      NaturalResource.Oil,
+      buyer.resourceAmount(NaturalResource.Oil),
+    );
+    const buyerPort = buyer.buildUnit(UnitType.Port, buyerTile, {});
+    const nearPort = nearSeller.buildUnit(UnitType.Port, nearTile, {});
+    const allyPort = allySeller.buildUnit(UnitType.Port, allyTile, {});
+    const execution = new PortExecution(buyerPort);
+    execution.init(tradeGame, tradeGame.ticks());
+    expect(execution.supplierPorts()).toEqual([]);
+
+    for (const seller of [nearSeller, allySeller])
+      seller.addResource(NaturalResource.Oil, NAVAL_TRADE.cargoUnits);
+    tradeGame.addExecution(
+      new AllianceRequestExecution(allySeller, buyer.id()),
+    );
+    tradeGame.executeNextTick();
+    tradeGame.addExecution(
+      new AllianceRequestExecution(buyer, allySeller.id()),
+    );
+    tradeGame.executeNextTick();
+    expect(buyer.isAlliedWith(allySeller)).toBe(true);
+
+    expect(execution.supplierPorts()).toEqual([allyPort]);
+    expect(execution.supplierPorts()).not.toContain(nearPort);
+  });
+
+  test("blocks trade while either player has an active attack against the other", async () => {
+    const attacker = player;
+    const defender = other;
+    expect(attacker.canTrade(defender)).toBe(true);
+    const attack = attacker.createAttack(defender, 100, null, new Set());
+    expect(attacker.canTrade(defender)).toBe(false);
+    expect(defender.canTrade(attacker)).toBe(false);
+    attack.delete();
+    expect(attacker.canTrade(defender)).toBe(true);
   });
 });

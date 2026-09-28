@@ -490,6 +490,27 @@ export class ResourcePanel extends LitElement implements Controller {
                 `unit_type.${unit.type().toLowerCase().replace(/ /g, "_")}`,
               )}
               #${unit.id()}: ${status.efficiency}% · ${status.produced}
+              ${status.resourceOutputs &&
+              Object.keys(status.resourceOutputs).length > 0
+                ? html`<div class="text-gray-300">
+                      ${translateText("economy.extracting")}:
+                      ${Object.entries(status.resourceOutputs)
+                        .map(
+                          ([resource, amount]) =>
+                            `${translateText(`resource.${resource}`)}: +${amount}`,
+                        )
+                        .join(" · ")}
+                    </div>
+                    <div class="text-gray-400">
+                      ${translateText("economy.deposit_richness")}:
+                      ${Object.entries(status.depositConcentrations ?? {})
+                        .map(
+                          ([resource, concentration]) =>
+                            `${translateText(`resource.${resource}`)}: ${concentration}%`,
+                        )
+                        .join(" · ")}
+                    </div>`
+                : null}
               <span class="text-amber-300"
                 >${status.exhausted
                   ? translateText("economy.exhausted")

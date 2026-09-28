@@ -25,16 +25,36 @@ test("shows actual stocks and all production balances; map toggle changes no sto
   const rates = emptyResourceRates();
   rates.production.steel = 7;
   rates.consumption.steel = 3;
+  const mine = {
+    type: () => UnitType.Mine,
+    id: () => 9,
+    productionStatus: () => ({
+      efficiency: 100,
+      urbanBonus: 0,
+      infrastructureBonus: 0,
+      produced: 5,
+      shortage: false,
+      exhausted: false,
+      resourceOutputs: { iron: 3, coal: 2 },
+      depositConcentrations: { iron: 72, coal: 48 },
+    }),
+  };
   const panel = new ResourcePanel();
   panel.game = {
-    config: () => ({ strategicEconomy: () => true, navalSectorSize: () => 64 }),
-    units: () => [],
+    config: () => ({
+      strategicEconomy: () => true,
+      navalSectorSize: () => 64,
+      warshipVeterancyHealthBonus: () => 20,
+    }),
+    unitInfo: () => ({ maxHealth: 1000 }),
+    units: (type?: UnitType) => (type === UnitType.Mine ? [mine] : []),
     myPlayer: () => ({
       resourceAmount: (resource: keyof typeof stock) => stock[resource],
       resourceRates: () => rates,
       supplyStatus: () => FULL_SUPPLY,
       tanks: () => 0,
-      units: () => [],
+      units: (type?: UnitType) =>
+        type === undefined || type === UnitType.Mine ? [mine] : [],
     }),
   } as unknown as GameView;
   panel.eventBus = new EventBus();
@@ -42,6 +62,11 @@ test("shows actual stocks and all production balances; map toggle changes no sto
   panel.init();
   await panel.updateComplete;
   expect(panel.textContent).toContain("321");
+  expect(panel.textContent).toContain("economy.extracting");
+  expect(panel.textContent).toContain("resource.iron: +3");
+  expect(panel.textContent).toContain("resource.coal: +2");
+  expect(panel.textContent).toContain("resource.iron: 72%");
+  expect(panel.textContent).toContain("resource.coal: 48%");
   expect(panel.querySelectorAll("tbody tr")).toHaveLength(
     STOCK_RESOURCES.length,
   );

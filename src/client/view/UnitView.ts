@@ -1,3 +1,4 @@
+import { cloneProductionStatus } from "../../core/game/Economy";
 import {
   NukeState,
   Tick,
@@ -48,7 +49,7 @@ function unitStateFromUpdate(u: UnitUpdate): UnitState {
   return {
     id: u.id,
     unitType: u.unitType,
-    production: u.production ? { ...u.production } : undefined,
+    production: u.production ? cloneProductionStatus(u.production) : undefined,
     ownerID: u.ownerID,
     lastOwnerID: u.lastOwnerID ?? null,
     pos: u.pos,
@@ -84,7 +85,9 @@ function unitStateFromUpdate(u: UnitUpdate): UnitState {
 function applyUpdateInPlace(target: UnitState, u: UnitUpdate): void {
   target.ownerID = u.ownerID;
   target.unitType = u.unitType;
-  target.production = u.production ? { ...u.production } : undefined;
+  target.production = u.production
+    ? cloneProductionStatus(u.production)
+    : undefined;
   target.lastOwnerID = u.lastOwnerID ?? null;
   target.pos = u.pos;
   target.lastPos = u.lastPos;

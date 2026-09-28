@@ -1049,3 +1049,50 @@ opcional no PC principal é iniciar partidas em inglês e pt-BR e receber cada u
 dos quatro alertas; cada mensagem deve aparecer traduzida e manter o nome do
 atacante e, na invasão naval, a quantidade de tropas. Um cliente sem o campo de
 localização deve continuar exibindo o texto legado em inglês.
+
+### Depósitos distribuídos e comércio automático
+
+As minas agora consultam depósitos em qualquer tile terrestre válido, usando
+campos de noise determinísticos pré-calculados ao carregar o mapa. Camadas
+independentes por recurso permitem sobreposição; thresholds e concentração
+definem existência, riqueza e taxa de extração. O painel mostra os recursos
+extraídos e a riqueza local. O comércio automático estratégico busca portos
+fornecedores pela disponibilidade e diplomacia, envia recursos brutos e
+processados conforme déficit, reserva, estoque e ouro, e não negocia durante
+guerra ativa. A carga em trânsito também conta como importação reservada.
+
+Arquivos alterados nesta etapa: `src/core/game/Resources.ts`,
+`src/core/game/Economy.ts`, `src/core/game/UnitImpl.ts`,
+`src/core/game/PlayerImpl.ts`, `src/core/configuration/StrategyConfig.ts`,
+`src/core/execution/MineExecution.ts`, `src/core/execution/PortExecution.ts`,
+`src/core/execution/TradeShipExecution.ts`, `src/client/view/UnitView.ts`,
+`src/client/hud/layers/ResourcePanel.ts`, traduções em
+`resources/lang/en.json` e `resources/lang/pt-BR.json`, além dos testes de
+recursos, mineração, comércio, portos, painel e snapshot econômico.
+
+Validação no homelab: 89 testes direcionados passaram; `tsc --noEmit`,
+`npm run lint`, `npm run build-dev`, ordenação de `en.json`, Prettier e
+`git diff --check` passaram. Na suíte geral, 487 de 489 arquivos passaram
+(5.750 de 5.752 testes); as duas falhas eram a ordenação das novas chaves e o
+snapshot econômico alterado pelo novo fluxo. A ordenação foi corrigida e o
+snapshot atualizado; a simulação de 20 minutos passou novamente sem atualização,
+confirmando o resultado determinístico. A suíte geral não foi repetida por
+inteiro após esses ajustes.
+
+Validação manual pendente no PC principal:
+
+1. Rode `npm run dev:host` e inicie uma partida com `strategicEconomy` ativado.
+2. Explore uma área grande e confira que cada recurso aparece em cinturões
+   irregulares, com zonas vazias, concentrações distintas e sobreposições
+   ocasionais. Reinicie a mesma partida/seed e confira que o mapa se repete.
+3. Construa uma mina em um tile terrestre válido distante de qualquer ícone de
+   depósito. Ela deve detectar todos os recursos na área, exibir saídas e
+   riqueza no painel, e extrair mais rapidamente de depósitos mais ricos.
+4. Construa portos conectados ao mesmo mar e deixe uma nação com déficit de um
+   recurso e outra com excedente. Um comboio automático deve escolher a
+   fornecedora elegível, respeitar as reservas/metas e transferir carga e
+   pagamento; valide também recursos brutos e processados.
+5. Repita com dois fornecedores, nenhum excedente, embargo e guerra ativa. A
+   escolha deve priorizar relações aliadas/amigáveis entre fornecedores aptos;
+   sem fornecedor elegível, sem excedente ou durante guerra, nenhum comboio
+   automático novo deve ser enviado.

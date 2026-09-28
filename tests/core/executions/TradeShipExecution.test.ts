@@ -1,5 +1,8 @@
 import { NAVAL_TRADE } from "../../../src/core/configuration/StrategyConfig";
-import { TradeShipExecution } from "../../../src/core/execution/TradeShipExecution";
+import {
+  selectStrategicCargo,
+  TradeShipExecution,
+} from "../../../src/core/execution/TradeShipExecution";
 import {
   Game,
   MessageType,
@@ -9,7 +12,12 @@ import {
   Unit,
   UnitType,
 } from "../../../src/core/game/Game";
-import { ProcessedResource } from "../../../src/core/game/Resources";
+import {
+  NaturalResource,
+  ProcessedResource,
+  ResourceType,
+  STOCK_RESOURCES,
+} from "../../../src/core/game/Resources";
 import { PathStatus } from "../../../src/core/pathfinding/types";
 import { setup } from "../../util/Setup";
 
@@ -213,6 +221,35 @@ describe("TradeShipExecution", () => {
 });
 
 describe("strategic trade cargo", () => {
+  async function tradeFixture() {
+    const game = await setup(
+      "big_plains",
+      { strategicEconomy: true, infiniteGold: false, instantBuild: true },
+      [
+        new PlayerInfo("seller", PlayerType.Human, null, "seller"),
+        new PlayerInfo("buyer", PlayerType.Human, null, "buyer"),
+      ],
+    );
+    const seller = game.player("seller");
+    const buyer = game.player("buyer");
+    buyer.addGold(100_000n);
+    return {
+      game,
+      seller,
+      buyer,
+    };
+  }
+
+  function setResourceAmount(
+    player: Player,
+    resource: ResourceType,
+    amount: number,
+  ) {
+    const current = player.resourceAmount(resource);
+    if (current > amount) player.removeResource(resource, current - amount);
+    else if (current < amount) player.addResource(resource, amount - current);
+  }
+
   it.each(NAVAL_TRADE.cargoOrder)(
     "honors export reserves and import targets for %s",
     async (resource) => {
@@ -386,6 +423,10 @@ describe("strategic trade cargo", () => {
       [ProcessedResource.Fuel]: 30,
       [ProcessedResource.Steel]: 40,
     };
+    for (const resource of NAVAL_TRADE.cargoOrder) {
+      setResourceAmount(seller, resource, NAVAL_TRADE.exportReserve[resource]);
+      setResourceAmount(buyer, resource, NAVAL_TRADE.importTarget[resource]);
+    }
     const tradedResources: (
       | ProcessedResource.Food
       | ProcessedResource.Fuel
@@ -520,5 +561,78 @@ describe("strategic trade cargo", () => {
     );
     expect(seller.resourceAmount(ProcessedResource.Food)).toBe(120);
     expect(seller.gold()).toBe(sellerGoldBeforeCapture);
+  });
+
+  test("reports no deficit, no supplier stock, and insufficient buyer funds", async () => {
+    const { seller, buyer } = await tradeFixture();
+    for (const resource of STOCK_RESOURCES) {
+      setResourceAmount(seller, resource, NAVAL_TRADE.exportReserve[resource]);
+      setResourceAmount(buyer, resource, NAVAL_TRADE.importTarget[resource]);
+    }
+    expect(selectStrategicCargo(seller, buyer)).toEqual({
+      kind: "unavailable",
+      reason: "no-deficit",
+    });
+
+    for (const resource of STOCK_RESOURCES)
+      setResourceAmount(buyer, resource, 0);
+    expect(selectStrategicCargo(seller, buyer)).toEqual({
+      kind: "unavailable",
+      reason: "no-surplus",
+    });
+
+    for (const resource of NAVAL_TRADE.cargoOrder) {
+      setResourceAmount(
+        seller,
+        resource,
+        NAVAL_TRADE.exportReserve[resource] + NAVAL_TRADE.cargoUnits,
+      );
+    }
+    buyer.removeGold(buyer.gold());
+    expect(selectStrategicCargo(seller, buyer)).toEqual({
+      kind: "unavailable",
+      reason: "insufficient-funds",
+    });
+  });
+
+  test("caps cargo at available export stock and supports raw and processed goods", async () => {
+    const { seller, buyer } = await tradeFixture();
+    for (const resource of STOCK_RESOURCES) {
+      setResourceAmount(seller, resource, NAVAL_TRADE.exportReserve[resource]);
+      setResourceAmount(buyer, resource, NAVAL_TRADE.importTarget[resource]);
+    }
+    setResourceAmount(buyer, NaturalResource.Oil, 0);
+    setResourceAmount(
+      seller,
+      NaturalResource.Oil,
+      NAVAL_TRADE.exportReserve[NaturalResource.Oil] + 2,
+    );
+    const rawOffer = selectStrategicCargo(seller, buyer);
+    expect(rawOffer.kind).toBe("available");
+    if (rawOffer.kind !== "available") throw new Error("raw offer missing");
+    expect(rawOffer.resource).toBe(NaturalResource.Oil);
+    expect(rawOffer.amount).toBe(2);
+
+    setResourceAmount(
+      seller,
+      NaturalResource.Oil,
+      NAVAL_TRADE.exportReserve[NaturalResource.Oil],
+    );
+    setResourceAmount(
+      buyer,
+      NaturalResource.Oil,
+      NAVAL_TRADE.importTarget[NaturalResource.Oil],
+    );
+    setResourceAmount(buyer, ProcessedResource.Circuits, 0);
+    setResourceAmount(
+      seller,
+      ProcessedResource.Circuits,
+      NAVAL_TRADE.exportReserve[ProcessedResource.Circuits] + 4,
+    );
+    const processedOffer = selectStrategicCargo(seller, buyer);
+    expect(processedOffer.kind).toBe("available");
+    if (processedOffer.kind !== "available")
+      throw new Error("processed offer missing");
+    expect(processedOffer.resource).toBe(ProcessedResource.Circuits);
   });
 });

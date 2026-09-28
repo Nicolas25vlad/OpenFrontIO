@@ -2,6 +2,7 @@ import { ECONOMY, ResourceAmounts } from "../configuration/StrategyConfig";
 import { Game, Player, Unit, UnitType } from "./Game";
 import {
   emptyResourceStock,
+  NaturalResource,
   ResourceStock,
   resourceStockEqual,
   ResourceType,
@@ -64,6 +65,47 @@ export interface ProductionStatus {
   produced: number;
   shortage: boolean;
   exhausted?: boolean;
+  /** Per-period output by natural resource for mines. */
+  resourceOutputs?: Partial<Record<NaturalResource, number>>;
+  /** Current local deposit concentration, from 25 to 100. */
+  depositConcentrations?: Partial<Record<NaturalResource, number>>;
+}
+
+export function cloneProductionStatus(
+  status: ProductionStatus,
+): ProductionStatus {
+  return {
+    ...status,
+    resourceOutputs: status.resourceOutputs
+      ? { ...status.resourceOutputs }
+      : undefined,
+    depositConcentrations: status.depositConcentrations
+      ? { ...status.depositConcentrations }
+      : undefined,
+  };
+}
+
+export function productionStatusEqual(
+  a: ProductionStatus,
+  b: ProductionStatus,
+): boolean {
+  if (
+    a.efficiency !== b.efficiency ||
+    a.urbanBonus !== b.urbanBonus ||
+    a.infrastructureBonus !== b.infrastructureBonus ||
+    a.produced !== b.produced ||
+    a.shortage !== b.shortage ||
+    a.exhausted !== b.exhausted
+  ) {
+    return false;
+  }
+  return Object.values(NaturalResource).every(
+    (resource) =>
+      (a.resourceOutputs?.[resource] ?? 0) ===
+        (b.resourceOutputs?.[resource] ?? 0) &&
+      (a.depositConcentrations?.[resource] ?? 0) ===
+        (b.depositConcentrations?.[resource] ?? 0),
+  );
 }
 
 export function emptyResourceRates(): ResourceRates {

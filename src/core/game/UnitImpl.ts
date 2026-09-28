@@ -1,6 +1,10 @@
 import { STRATEGIC_COMBAT } from "../configuration/StrategyConfig";
 import { simpleHash, toInt, withinInt } from "../Util";
-import { ProductionStatus } from "./Economy";
+import {
+  cloneProductionStatus,
+  ProductionStatus,
+  productionStatusEqual,
+} from "./Economy";
 import {
   AllUnitParams,
   MessageType,
@@ -146,16 +150,8 @@ export class UnitImpl implements Unit {
 
   setProductionStatus(status: ProductionStatus): void {
     const previous = this._production;
-    if (
-      previous &&
-      Object.keys(status).every(
-        (key) =>
-          previous[key as keyof ProductionStatus] ===
-          status[key as keyof ProductionStatus],
-      )
-    )
-      return;
-    this._production = { ...status };
+    if (previous && productionStatusEqual(previous, status)) return;
+    this._production = cloneProductionStatus(status);
     this.touch();
   }
   setTileTarget(tile: TileRef | undefined): void {

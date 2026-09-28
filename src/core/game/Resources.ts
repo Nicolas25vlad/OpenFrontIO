@@ -60,8 +60,10 @@ export function resourceStockEqual(
 
 export interface ResourceDeposit {
   resource: NaturalResource;
-  /** Integer richness tier. Higher tiers support more extraction later. */
+  /** Integer richness tier from 1 (edge) to 4 (very rich). */
   richness: number;
+  /** Local concentration on a 25–100 scale. */
+  concentration?: number;
 }
 
 export interface ResourceNode extends ResourceDeposit {
@@ -97,6 +99,7 @@ export interface ResourceContinentZone {
 export const RESOURCE_NODE_CELL_SIZE = 48;
 const MIN_RESOURCE_NODE_CELL_SIZE = 32;
 const RESOURCE_NOISE_REFERENCE_SIZE = 1024;
+export const RESOURCE_FIELD_CELL_SIZE = 8;
 export const RESOURCE_NODE_MARGIN = 8;
 export const RESOURCE_MIN_NODE_DISTANCE = RESOURCE_NODE_MARGIN * 2 + 1;
 
@@ -189,11 +192,19 @@ const NOISE_OCTAVES = 4;
 const NOISE_PERSISTENCE = 0.5;
 const NOISE_WARP_FREQUENCY = 0.38;
 const NOISE_WARP_STRENGTH = 0.18;
-const RICHNESS_THRESHOLDS = [0, 0.08, 0.18, 0.3];
-const RESOURCE_CACHE = new WeakMap<
-  object,
-  Map<string, readonly ResourceNode[]>
->();
+interface ResourceNoiseField {
+  values: Uint8Array;
+  cellsWide: number;
+  cellsHigh: number;
+  threshold: number;
+}
+
+interface ResourceDistribution {
+  nodes: readonly ResourceNode[];
+  fields: Readonly<Record<NaturalResource, ResourceNoiseField>>;
+}
+
+const RESOURCE_CACHE = new WeakMap<object, Map<string, ResourceDistribution>>();
 
 function seedNumber(seed: ResourceSeed): number {
   if (typeof seed === "number") return seed >>> 0;
@@ -298,29 +309,48 @@ function cacheKey(seed: ResourceSeed): string {
   return `${typeof seed}:${seed}`;
 }
 
-function richnessForNoise(noise: number, threshold: number): number {
-  const remainingNoise = Math.max(0, 1 - threshold);
-  let richness = 0;
-  for (const band of RICHNESS_THRESHOLDS) {
-    if (noise >= threshold + remainingNoise * band) richness++;
-  }
-  return richness;
+/**
+ * Samples a cached low-resolution noise field at any map position. Bilinear
+ * interpolation keeps concentration changes gradual without storing a value
+ * for every map tile.
+ */
+function noiseFieldAt(field: ResourceNoiseField, x: number, y: number): number {
+  const gridX = clamp(x / RESOURCE_FIELD_CELL_SIZE, 0, field.cellsWide - 1);
+  const gridY = clamp(y / RESOURCE_FIELD_CELL_SIZE, 0, field.cellsHigh - 1);
+  const x0 = Math.floor(gridX);
+  const y0 = Math.floor(gridY);
+  const x1 = Math.min(field.cellsWide - 1, x0 + 1);
+  const y1 = Math.min(field.cellsHigh - 1, y0 + 1);
+  const tx = gridX - x0;
+  const ty = gridY - y0;
+  const at = (sampleX: number, sampleY: number) =>
+    field.values[sampleY * field.cellsWide + sampleX] / 255;
+  const top = at(x0, y0) * (1 - tx) + at(x1, y0) * tx;
+  const bottom = at(x0, y1) * (1 - tx) + at(x1, y1) * tx;
+  return top * (1 - ty) + bottom * ty;
 }
 
-/**
- * Generates a cached, deterministic resource catalog for a match.
- *
- * Each resource gets an independent fractal-noise layer. A fine candidate
- * lattice samples the broad field densely enough for deposits and their visual
- * contours to connect into resource belts instead of isolated points.
- */
-export function resourceNodesForMap(
+function concentrationAtNoise(
+  noise: number,
+  threshold: number,
+): number | undefined {
+  if (noise < threshold) return undefined;
+  const concentration =
+    25 + (75 * (noise - threshold)) / Math.max(Number.EPSILON, 1 - threshold);
+  return Math.max(25, Math.min(100, Math.round(concentration)));
+}
+
+function resourceRichness(concentration: number): number {
+  return Math.max(1, Math.min(4, Math.ceil(concentration / 25)));
+}
+
+function resourceDistributionForMap(
   map: ResourceMapLike,
   matchSeed: ResourceSeed,
-): readonly ResourceNode[] {
+): ResourceDistribution {
   const mapCache =
     RESOURCE_CACHE.get(map as object) ??
-    new Map<string, readonly ResourceNode[]>();
+    new Map<string, ResourceDistribution>();
   RESOURCE_CACHE.set(map as object, mapCache);
 
   const key = cacheKey(matchSeed);
@@ -328,7 +358,6 @@ export function resourceNodesForMap(
   if (cached) return cached;
 
   const seed = seedNumber(matchSeed);
-  const nodes: ResourceNode[] = [];
   const cellSize = resourceNodeCellSizeForMap(map);
   const margin = Math.min(RESOURCE_NODE_MARGIN, Math.floor(cellSize / 4));
   const mapScale = Math.max(
@@ -338,13 +367,43 @@ export function resourceNodesForMap(
       Math.min(map.width(), map.height()) / RESOURCE_NOISE_REFERENCE_SIZE,
     ),
   );
+  const fields = {} as Record<NaturalResource, ResourceNoiseField>;
+
+  RESOURCE_VALUES.forEach((resource, resourceIndex) => {
+    const config = RESOURCE_GENERATION_CONFIG[resource];
+    const threshold = clamp(
+      config.threshold - (config.abundance - 0.5) * 0.1,
+      0.05,
+      0.95,
+    );
+    const cellsWide =
+      Math.ceil(Math.max(0, map.width() - 1) / RESOURCE_FIELD_CELL_SIZE) + 1;
+    const cellsHigh =
+      Math.ceil(Math.max(0, map.height() - 1) / RESOURCE_FIELD_CELL_SIZE) + 1;
+    const values = new Uint8Array(cellsWide * cellsHigh);
+    const resourceSeed = hash(seed, resourceIndex, 0, 0x3c6ef372);
+    const noiseConfig = {
+      ...config,
+      scale: config.scale * mapScale,
+    };
+
+    for (let gridY = 0; gridY < cellsHigh; gridY++) {
+      const y = Math.min(map.height() - 1, gridY * RESOURCE_FIELD_CELL_SIZE);
+      for (let gridX = 0; gridX < cellsWide; gridX++) {
+        const x = Math.min(map.width() - 1, gridX * RESOURCE_FIELD_CELL_SIZE);
+        values[gridY * cellsWide + gridX] = Math.round(
+          warpedFractalNoise(resourceSeed, x, y, noiseConfig) * 255,
+        );
+      }
+    }
+    fields[resource] = { values, cellsWide, cellsHigh, threshold };
+  });
+
+  const nodes: ResourceNode[] = [];
   const cellsWide = Math.ceil(map.width() / cellSize);
   const cellsHigh = Math.ceil(map.height() / cellSize);
-  // Several resource layers can select the same lattice cell. Cache its
-  // passable land candidates so ocean cells are scanned once, not once per
-  // resource layer (and never repeatedly by the sampled lookup plus fallback).
+  // Cache passable land candidates for cells selected by any resource layer.
   const landTilesByCell = new Map<number, readonly TileRef[]>();
-
   const landTilesInCell = (
     cellX: number,
     cellY: number,
@@ -368,18 +427,8 @@ export function resourceNodesForMap(
     return tiles;
   };
 
-  RESOURCE_VALUES.forEach((resource, resourceIndex) => {
-    const config = {
-      ...RESOURCE_GENERATION_CONFIG[resource],
-      scale: RESOURCE_GENERATION_CONFIG[resource].scale * mapScale,
-    };
-    const resourceSeed = hash(seed, resourceIndex, 0, 0x3c6ef372);
-    const threshold = clamp(
-      config.threshold - (config.abundance - 0.5) * 0.1,
-      0.05,
-      0.95,
-    );
-
+  RESOURCE_VALUES.forEach((resource) => {
+    const field = fields[resource];
     for (let cellY = 0; cellY < cellsHigh; cellY++) {
       for (let cellX = 0; cellX < cellsWide; cellX++) {
         const originX = cellX * cellSize;
@@ -394,15 +443,12 @@ export function resourceNodesForMap(
           continue;
         }
 
-        const sampleX = originX + cellSize / 2;
-        const sampleY = originY + cellSize / 2;
-        const noise = warpedFractalNoise(
-          resourceSeed,
-          sampleX,
-          sampleY,
-          config,
+        const centerNoise = noiseFieldAt(
+          field,
+          originX + cellSize / 2,
+          originY + cellSize / 2,
         );
-        if (noise < threshold) continue;
+        if (centerNoise < field.threshold) continue;
 
         const minX = originX + margin;
         const maxX = endX - margin;
@@ -410,18 +456,32 @@ export function resourceNodesForMap(
         const maxY = endY - margin;
         const landTiles = landTilesInCell(cellX, cellY, minX, maxX, minY, maxY);
         if (landTiles.length === 0) continue;
-        const tile =
-          landTiles[
-            hash(resourceSeed, cellX, cellY, 0x243f6a88) % landTiles.length
-          ];
-
-        const x = map.x(tile);
-        const y = map.y(tile);
+        const start = hash(
+          seed,
+          cellX,
+          cellY,
+          RESOURCE_VALUES.indexOf(resource),
+        );
+        let selected: TileRef | undefined;
+        let concentration: number | undefined;
+        for (let offset = 0; offset < landTiles.length; offset++) {
+          const candidate = landTiles[(start + offset) % landTiles.length];
+          const candidateConcentration = concentrationAtNoise(
+            noiseFieldAt(field, map.x(candidate), map.y(candidate)),
+            field.threshold,
+          );
+          if (candidateConcentration === undefined) continue;
+          selected = candidate;
+          concentration = candidateConcentration;
+          break;
+        }
+        if (selected === undefined || concentration === undefined) continue;
         nodes.push({
-          x,
-          y,
+          x: map.x(selected),
+          y: map.y(selected),
           resource,
-          richness: richnessForNoise(noise, threshold),
+          richness: resourceRichness(concentration),
+          concentration,
         });
       }
     }
@@ -433,11 +493,20 @@ export function resourceNodesForMap(
       a.x - b.x ||
       RESOURCE_VALUES.indexOf(a.resource) - RESOURCE_VALUES.indexOf(b.resource),
   );
-  const immutableNodes = Object.freeze(
-    nodes.map((node) => Object.freeze({ ...node })),
-  );
-  mapCache.set(key, immutableNodes);
-  return immutableNodes;
+  const distribution: ResourceDistribution = {
+    nodes: Object.freeze(nodes.map((node) => Object.freeze({ ...node }))),
+    fields,
+  };
+  mapCache.set(key, distribution);
+  return distribution;
+}
+
+/** Generates a cached, deterministic resource catalog for a match. */
+export function resourceNodesForMap(
+  map: ResourceMapLike,
+  matchSeed: ResourceSeed,
+): readonly ResourceNode[] {
+  return resourceDistributionForMap(map, matchSeed).nodes;
 }
 
 export function resourceTotalsForOwner(
@@ -461,26 +530,46 @@ export function resourceTotalsForOwner(
 export class ResourceCatalog {
   private readonly reserves = new Map<TileRef, Map<NaturalResource, number>>();
   private readonly nodesByTile = new Map<TileRef, readonly ResourceNode[]>();
+  private readonly depositsByTile = new Map<TileRef, readonly ResourceNode[]>();
   private depletedHash = 0;
+  private readonly fields: Readonly<
+    Record<NaturalResource, ResourceNoiseField>
+  >;
+  private readonly useNoiseField: boolean;
 
   readonly nodes: readonly ResourceNode[];
 
   constructor(
     private readonly map: ResourceMapLike,
     matchSeed: ResourceSeed,
-    nodes: readonly ResourceNode[] = resourceNodesForMap(map, matchSeed),
+    nodes?: readonly ResourceNode[],
   ) {
-    this.nodes = Object.freeze(nodes.map((node) => Object.freeze({ ...node })));
+    this.useNoiseField = nodes === undefined;
+    const distribution = nodes
+      ? undefined
+      : resourceDistributionForMap(map, matchSeed);
+    this.fields =
+      distribution?.fields ??
+      (Object.fromEntries(
+        RESOURCE_VALUES.map((resource) => [
+          resource,
+          {
+            values: new Uint8Array(0),
+            cellsWide: 0,
+            cellsHigh: 0,
+            threshold: 1,
+          },
+        ]),
+      ) as Record<NaturalResource, ResourceNoiseField>);
+    this.nodes = Object.freeze(
+      (nodes ?? distribution!.nodes).map((node) => Object.freeze({ ...node })),
+    );
     for (const node of this.nodes) {
       const tile = map.ref(node.x, node.y);
       this.nodesByTile.set(
         tile,
         Object.freeze([...(this.nodesByTile.get(tile) ?? []), node]),
       );
-      const reserves =
-        this.reserves.get(tile) ?? new Map<NaturalResource, number>();
-      reserves.set(node.resource, resourceReserveFor(node.richness));
-      this.reserves.set(tile, reserves);
     }
   }
 
@@ -490,7 +579,33 @@ export class ResourceCatalog {
 
   depositsAt(tile: TileRef): readonly ResourceNode[] {
     if (!this.map.isLand(tile) || this.map.isImpassable?.(tile)) return [];
-    return this.nodesByTile.get(tile) ?? [];
+    const cached = this.depositsByTile.get(tile);
+    if (cached) return cached;
+    if (!this.useNoiseField) return this.nodesByTile.get(tile) ?? [];
+
+    const deposits: ResourceNode[] = [];
+    const x = this.map.x(tile);
+    const y = this.map.y(tile);
+    for (const resource of RESOURCE_VALUES) {
+      const field = this.fields[resource];
+      const concentration = concentrationAtNoise(
+        noiseFieldAt(field, x, y),
+        field.threshold,
+      );
+      if (concentration === undefined) continue;
+      deposits.push({
+        x,
+        y,
+        resource,
+        richness: resourceRichness(concentration),
+        concentration,
+      });
+    }
+    const immutableDeposits = Object.freeze(
+      deposits.map((deposit) => Object.freeze(deposit)),
+    );
+    this.depositsByTile.set(tile, immutableDeposits);
+    return immutableDeposits;
   }
 
   extract(
@@ -522,9 +637,18 @@ export class ResourceCatalog {
   }
 
   remaining(tile: TileRef, resource = this.nodeAt(tile)?.resource): number {
-    return resource === undefined
-      ? 0
-      : (this.reserves.get(tile)?.get(resource) ?? 0);
+    if (resource === undefined) return 0;
+    const deposit = this.depositsAt(tile).find(
+      (candidate) => candidate.resource === resource,
+    );
+    if (deposit === undefined) return 0;
+    const tileReserves =
+      this.reserves.get(tile) ?? new Map<NaturalResource, number>();
+    if (!this.reserves.has(tile)) this.reserves.set(tile, tileReserves);
+    if (!tileReserves.has(resource)) {
+      tileReserves.set(resource, resourceReserveFor(deposit.richness));
+    }
+    return tileReserves.get(resource)!;
   }
 
   hash(): number {

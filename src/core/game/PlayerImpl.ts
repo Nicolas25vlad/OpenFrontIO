@@ -1245,7 +1245,14 @@ export class PlayerImpl implements Player {
   canTrade(other: Player): boolean {
     const embargo =
       other.hasEmbargoAgainst(this) || this.hasEmbargoAgainst(other);
-    return !embargo && other.id() !== this.id();
+    const atWar =
+      this.outgoingAttacks().some(
+        (attack) => attack.isActive() && attack.target() === other,
+      ) ||
+      other
+        .outgoingAttacks()
+        .some((attack) => attack.isActive() && attack.target() === this);
+    return !embargo && !atWar && other.id() !== this.id();
   }
 
   getEmbargoes(): Embargo[] {

@@ -1,6 +1,7 @@
 import { ECONOMY } from "../configuration/StrategyConfig";
 import { productionBudget, productionEfficiency } from "../game/Economy";
 import { Execution, Game, Unit } from "../game/Game";
+import { NaturalResource } from "../game/Resources";
 
 export class MineExecution implements Execution {
   private game: Game;
@@ -23,11 +24,16 @@ export class MineExecution implements Execution {
       return;
     const status = productionEfficiency(this.game, this.mine);
     const deposits = this.game.resourceDepositsAt(this.mine.tile());
+    const resourceOutputs: Partial<Record<NaturalResource, number>> = {};
+    const depositConcentrations: Partial<Record<NaturalResource, number>> = {};
     for (const node of deposits) {
+      const concentration = node.concentration ?? node.richness * 25;
+      const extractionRate =
+        ECONOMY.mineOutputPerRichness * (concentration / 25);
       const extracted = this.game.extractResource(
         this.mine.tile(),
         productionBudget(
-          node.richness * ECONOMY.mineOutputPerRichness,
+          extractionRate,
           this.mine.level(),
           status.efficiency,
           Math.floor(ticks / ECONOMY.periodTicks),
@@ -36,7 +42,11 @@ export class MineExecution implements Execution {
       );
       this.mine.owner().addResource(node.resource, extracted);
       status.produced += extracted;
+      resourceOutputs[node.resource] = extracted;
+      depositConcentrations[node.resource] = concentration;
     }
+    status.resourceOutputs = resourceOutputs;
+    status.depositConcentrations = depositConcentrations;
     status.exhausted = deposits.every(
       (node) =>
         this.game.resourceRemaining(this.mine.tile(), node.resource) === 0,

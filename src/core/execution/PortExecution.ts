@@ -5,6 +5,7 @@ import { PseudoRandom } from "../PseudoRandom";
 import {
   activeTradeRouteCount,
   addTradeShipExecution,
+  selectStrategicCargo,
   TradeShipExecution,
 } from "./TradeShipExecution";
 import { TrainStationExecution } from "./TrainStationExecution";
@@ -54,16 +55,21 @@ export class PortExecution implements Execution {
       return;
     }
 
-    const ports = this.tradingPorts();
-
-    if (ports.length === 0) {
+    if (this.mg.config().strategicEconomy()) {
+      const supplier = this.supplierPorts()[0];
+      if (supplier === undefined) return;
+      addTradeShipExecution(
+        this.mg,
+        new TradeShipExecution(supplier.owner(), supplier, this.port, true),
+      );
       return;
     }
 
-    const port = this.random.randElement(ports);
+    const destination = this.random.randElement(this.tradingPorts());
+    if (destination === undefined) return;
     addTradeShipExecution(
       this.mg,
-      new TradeShipExecution(this.port.owner(), this.port, port),
+      new TradeShipExecution(this.port.owner(), this.port, destination),
     );
   }
 
@@ -136,13 +142,37 @@ export class PortExecution implements Execution {
       .filter(
         (port) =>
           !this.mg.config().strategicEconomy() ||
+          selectStrategicCargo(this.port!.owner(), port.owner()).kind ===
+            "available",
+      )
+      .filter(
+        (port) =>
+          !this.mg.config().strategicEconomy() ||
           !isNavalSectorBlockaded(this.mg, port),
       )
       .sort((p1, p2) => {
-        return (
+        const owner = this.port!.owner();
+        const p1Allied = owner.isAlliedWith(p1.owner()) ? 1 : 0;
+        const p2Allied = owner.isAlliedWith(p2.owner()) ? 1 : 0;
+        if (p1Allied !== p2Allied) return p2Allied - p1Allied;
+        const p1Friendly = owner.isFriendly(p1.owner()) ? 1 : 0;
+        const p2Friendly = owner.isFriendly(p2.owner()) ? 1 : 0;
+        if (p1Friendly !== p2Friendly) return p2Friendly - p1Friendly;
+        const relationDiff =
+          p2.owner().relation(owner) - p1.owner().relation(owner);
+        if (relationDiff !== 0) return relationDiff;
+        const proximityDiff =
           this.mg.manhattanDist(this.port!.tile(), p1.tile()) -
-          this.mg.manhattanDist(this.port!.tile(), p2.tile())
-        );
+          this.mg.manhattanDist(this.port!.tile(), p2.tile());
+        if (proximityDiff !== 0) return proximityDiff;
+        if (this.mg.config().strategicEconomy()) {
+          const p1Cargo = selectStrategicCargo(owner, p1.owner());
+          const p2Cargo = selectStrategicCargo(owner, p2.owner());
+          const p1Available = p1Cargo.kind === "available" ? p1Cargo.amount : 0;
+          const p2Available = p2Cargo.kind === "available" ? p2Cargo.amount : 0;
+          if (p1Available !== p2Available) return p2Available - p1Available;
+        }
+        return p2.level() - p1.level();
       });
 
     const weightedPorts: Unit[] = [];
@@ -165,5 +195,70 @@ export class PortExecution implements Execution {
       }
     }
     return weightedPorts;
+  }
+
+  /** Best eligible supplier for this importing port, with explicit priorities. */
+  supplierPorts(): Unit[] {
+    const buyer = this.port.owner();
+    if (
+      !this.mg.config().strategicEconomy() ||
+      !this.port.isActive() ||
+      this.port.isUnderConstruction() ||
+      isNavalSectorBlockaded(this.mg, this.port)
+    ) {
+      return [];
+    }
+
+    const destinationComponents = new Set<number>();
+    for (const neighbor of this.mg.neighbors(this.port.tile())) {
+      if (!this.mg.isWater(neighbor)) continue;
+      const component = this.mg.getWaterComponent(neighbor);
+      if (component !== null) destinationComponents.add(component);
+    }
+
+    return this.mg
+      .players()
+      .filter((seller) => buyer.canTrade(seller))
+      .flatMap((seller) => seller.units(UnitType.Port))
+      .filter((source) => {
+        if (
+          !source.isActive() ||
+          source.isUnderConstruction() ||
+          source.isMarkedForDeletion() ||
+          isNavalSectorBlockaded(this.mg, source) ||
+          source.owner().canBuild(UnitType.TradeShip, source.tile()) ===
+            false ||
+          selectStrategicCargo(source.owner(), buyer).kind !== "available"
+        ) {
+          return false;
+        }
+        return [...destinationComponents].some((component) =>
+          this.mg.hasWaterComponent(source.tile(), component),
+        );
+      })
+      .sort((sourceA, sourceB) => {
+        const sellerA = sourceA.owner();
+        const sellerB = sourceB.owner();
+        const alliedDiff =
+          Number(buyer.isAlliedWith(sellerB)) -
+          Number(buyer.isAlliedWith(sellerA));
+        if (alliedDiff !== 0) return alliedDiff;
+        const friendlyDiff =
+          Number(buyer.isFriendly(sellerB)) - Number(buyer.isFriendly(sellerA));
+        if (friendlyDiff !== 0) return friendlyDiff;
+        const relationDiff = buyer.relation(sellerB) - buyer.relation(sellerA);
+        if (relationDiff !== 0) return relationDiff;
+        const distanceDiff =
+          this.mg.manhattanDist(this.port.tile(), sourceA.tile()) -
+          this.mg.manhattanDist(this.port.tile(), sourceB.tile());
+        if (distanceDiff !== 0) return distanceDiff;
+        const offerA = selectStrategicCargo(sellerA, buyer);
+        const offerB = selectStrategicCargo(sellerB, buyer);
+        const availableA = offerA.kind === "available" ? offerA.amount : 0;
+        const availableB = offerB.kind === "available" ? offerB.amount : 0;
+        if (availableA !== availableB) return availableB - availableA;
+        return sourceB.level() - sourceA.level() || sourceA.id() - sourceB.id();
+      })
+      .slice(0, 1);
   }
 }
