@@ -33,7 +33,12 @@ export class MoveTankExecution implements Execution {
 
   init(mg: Game, _ticks: number): void {
     this.game = mg;
-    if (!mg.isValidRef(this.destination)) return;
+    if (
+      !mg.isValidRef(this.destination) ||
+      this.unitIds.length > STRATEGIC_COMBAT.maxDeployedTanksPerPlayer
+    ) {
+      return;
+    }
     const allowHostileTraversal = mg.owner(this.destination) !== this.player;
     if (!this.isPassableLand(mg, this.destination, allowHostileTraversal)) {
       return;
@@ -42,11 +47,13 @@ export class MoveTankExecution implements Execution {
     const tanks = new Map(
       this.player.units(UnitType.Tank).map((tank) => [tank.id(), tank]),
     );
-    const paths = this.findPathsTo(mg, this.destination, allowHostileTraversal);
-    for (const unitID of new Set(this.unitIds)) {
-      const tank = tanks.get(unitID);
-      if (!tank?.isActive()) continue;
+    const orderedTanks = [...new Set(this.unitIds)]
+      .map((unitID) => tanks.get(unitID))
+      .filter((tank): tank is Unit => tank !== undefined && tank.isActive());
+    if (orderedTanks.length === 0) return;
 
+    const paths = this.findPathsTo(mg, this.destination, allowHostileTraversal);
+    for (const tank of orderedTanks) {
       const path = this.pathFromSource(mg, paths, tank.tile());
       if (path === null) continue;
 

@@ -154,6 +154,9 @@ quanto a tabela de predecessores à área alcançável. A tabela ocupa no máxim
 retângulo de 501×501 tiles para o alcance atual, em vez de alocar um inteiro por
 tile do mapa. `tests/TankDeployment.test.ts` simula um mapa de 2 milhões de tiles
 e confirma o limite de memória temporária, além de validar o caminho calculado.
+O core valida os IDs selecionados antes da busca e descarta ordens sem tanques
+ativos ou acima do limite configurado, evitando trabalho de caminho em intents
+inválidos.
 Updates de unidade sincronizam movimento e saúde entre clientes e replay. A IA
 de nações e tribos pode implantar e ordenar até dois tanques quando há estoque,
 mantendo uma unidade de reserva para os ataques legados. Unidades móveis recebem
@@ -176,9 +179,9 @@ também passa pelo intent `move_tank` no `Executor`, com ticks reais confirmando
 que a ordem move o tanque selecionado sem alterar a infantaria; testes na
 fronteira de 250/251 tiles validam o limite de alcance do core.
 Revalidação focada de implantação, alcance, movimento, seleção e wire passou em
-3 arquivos/51 testes; o teste adicional da busca espacial passou junto com os
-11 testes de `TankDeployment.test.ts`. `tsc --noEmit`, ESLint, Prettier e `git diff --check`
-também passaram.
+3 arquivos/51 testes; os testes adicionais de alcance, memória e intents inválidos
+passaram com os 11 casos de `TankDeployment.test.ts` (14 no total). `tsc --noEmit`,
+ESLint, Prettier e `git diff --check` também passaram.
 `tests/AiTankBehavior.test.ts` também exercita as execuções completas de nação e
 tribo: ambas implantam uma unidade móvel a partir da reserva e preservam um
 tanque legado.

@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { STRATEGIC_COMBAT } from "../src/core/configuration/StrategyConfig";
 import { ConstructionExecution } from "../src/core/execution/ConstructionExecution";
 import { Executor } from "../src/core/execution/ExecutionManager";
@@ -225,6 +226,44 @@ describe("independent tank deployment", () => {
     expect(tree.nextTile.length).toBeLessThan(width * height);
     expect(path).toHaveLength(6);
     expect(path[path.length - 1]).toBe(destination);
+
+    const edgeDestination = map.ref(1, 1);
+    const edgeExecution = new MoveTankExecution(player, [], edgeDestination);
+    const edgeTree = (edgeExecution as any).findPathsTo(
+      map,
+      edgeDestination,
+      false,
+    ) as { nextTile: Int32Array };
+    const edgePath = (edgeExecution as any).pathFromSource(
+      map,
+      edgeTree,
+      map.ref(0, 0),
+    ) as number[];
+    const edgeBoundsSize = STRATEGIC_COMBAT.tankMaxMovementRange + 2;
+
+    expect(edgeTree.nextTile.length).toBe(edgeBoundsSize ** 2);
+    expect(edgePath).toHaveLength(3);
+    expect(edgePath[edgePath.length - 1]).toBe(edgeDestination);
+  });
+
+  test.each([
+    ["unknown tanks", [999_999]],
+    [
+      "oversized order",
+      Array(STRATEGIC_COMBAT.maxDeployedTanksPerPlayer + 1).fill(1),
+    ],
+  ])("skips pathfinding for %s", async (_case, unitIds) => {
+    const game = await tankGame();
+    const player = game.player("army");
+    const destination = game.ref(50, 50);
+    player.conquer(destination);
+    const execution = new MoveTankExecution(player, unitIds, destination);
+    const findPathsTo = vi.spyOn(execution as any, "findPathsTo");
+
+    execution.init(game, 0);
+
+    expect(findPathsTo).not.toHaveBeenCalled();
+    expect(execution.isActive()).toBe(false);
   });
 
   test("moves only the selected tank through the normal move_tank intent", async () => {
