@@ -132,6 +132,8 @@ export const NAVAL_SUPREMACY = {
 export const NAVAL_TRADE = {
   cargoUnits: 5,
   cargoPricePerUnit: 100n,
+  /** Manual route orders share one small cap per player to bound active work. */
+  manualRouteLimitPerPlayer: 3,
   exportReserve: {
     [Product.Food]: 120,
     [Product.Fuel]: 30,

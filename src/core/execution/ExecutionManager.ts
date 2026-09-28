@@ -12,6 +12,7 @@ import { BoatRetreatExecution } from "./BoatRetreatExecution";
 import { BuildTrenchExecution } from "./BuildTrenchExecution";
 import { ConstructionExecution } from "./ConstructionExecution";
 import { DeleteUnitExecution } from "./DeleteUnitExecution";
+import { DispatchTradeRouteExecution } from "./DispatchTradeRouteExecution";
 import { DonateGoldExecution } from "./DonateGoldExecution";
 import { DonateTroopsExecution } from "./DonateTroopExecution";
 import { EmbargoAllExecution } from "./EmbargoAllExecution";
@@ -73,6 +74,12 @@ export class Executor {
         return new BoatRetreatExecution(player, intent.unitID);
       case "move_warship":
         return new MoveWarshipExecution(player, intent.unitIds, intent.tile);
+      case "dispatch_trade_route":
+        return new DispatchTradeRouteExecution(
+          player,
+          intent.sourcePortID,
+          intent.destinationPortID,
+        );
       case "spawn":
         // fromIntent: this one came off the wire, so it is subject to the
         // spawn-phase gate that internal spawns are not.

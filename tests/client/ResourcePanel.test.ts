@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { ResourcePanel } from "../../src/client/hud/layers/ResourcePanel";
 import { ToggleNavalSectorMapEvent } from "../../src/client/InputHandler";
+import { DispatchTradeRouteIntentEvent } from "../../src/client/Transport";
 import { GameView } from "../../src/client/view";
 import { EventBus } from "../../src/core/EventBus";
 import { emptyResourceRates, FULL_SUPPLY } from "../../src/core/game/Economy";
@@ -64,6 +65,7 @@ test("shows owned-port sectors and active trade routes", async () => {
     isMe: () => true,
     isFriendly: () => false,
     displayName: () => "Me",
+    hasEmbargo: () => false,
   };
   const trader = {
     isMe: () => false,
@@ -72,9 +74,28 @@ test("shows owned-port sectors and active trade routes", async () => {
   };
   const port = {
     type: () => UnitType.Port,
+    id: () => 6,
     isActive: () => true,
+    isUnderConstruction: () => false,
+    isMarkedForDeletion: () => false,
+    markedForDeletion: () => false,
     tile: () => 10,
     owner: () => me,
+  };
+  const destinationPort = {
+    type: () => UnitType.Port,
+    id: () => 7,
+    isActive: () => true,
+    isUnderConstruction: () => false,
+    isMarkedForDeletion: () => false,
+    markedForDeletion: () => false,
+    tile: () => 75,
+    owner: () => trader,
+  };
+  const playerPort = {
+    ...port,
+    id: () => 8,
+    tile: () => 18,
   };
   const warship = (
     owner: unknown,
@@ -93,11 +114,12 @@ test("shows owned-port sectors and active trade routes", async () => {
     veterancy: () => veterancy,
   });
   const tradeShip = {
-    targetUnitId: () => 7,
+    targetUnitId: () => 8,
     owner: () => trader,
   };
   const player = {
     units: (type?: UnitType) => (type === UnitType.Port ? [port] : []),
+    hasEmbargo: () => false,
     resourceAmount: () => 0,
     resourceRates: () => emptyResourceRates(),
     supplyStatus: () => FULL_SUPPLY,
@@ -115,21 +137,27 @@ test("shows owned-port sectors and active trade routes", async () => {
     y: () => 0,
     unitInfo: () => ({ maxHealth: 1000 }),
     units: (type: UnitType) =>
-      type === UnitType.Warship
-        ? [
-            warship(me, 12, 600, 2, 1),
-            warship(trader, 20, 1000, 2),
-            warship(trader, 70, 1000, 5),
-          ]
-        : type === UnitType.TradeShip
-          ? [tradeShip]
-          : [],
-    unit: (id: number) => (id === 7 ? port : undefined),
+      type === UnitType.Port
+        ? [port, destinationPort, playerPort]
+        : type === UnitType.Warship
+          ? [
+              warship(me, 12, 600, 2, 1),
+              warship(trader, 20, 1000, 2),
+              warship(trader, 70, 1000, 5),
+            ]
+          : type === UnitType.TradeShip
+            ? [tradeShip]
+            : [],
+    unit: (id: number) => (id === 8 ? playerPort : undefined),
   } as unknown as GameView;
   panel.eventBus = new EventBus();
   const navalMapToggle = vi.fn();
+  const dispatchedRoute = vi.fn();
   panel.eventBus.on(ToggleNavalSectorMapEvent, (event) =>
     navalMapToggle(event.visible),
+  );
+  panel.eventBus.on(DispatchTradeRouteIntentEvent, (event) =>
+    dispatchedRoute(event.sourcePortID, event.destinationPortID),
   );
   document.body.append(panel);
   panel.init();
@@ -142,6 +170,7 @@ test("shows owned-port sectors and active trade routes", async () => {
   expect(panel.textContent).not.toContain("5.0−");
   expect(panel.textContent?.replace(/\s+/g, " ")).toContain("Trader → Me");
   expect(panel.textContent).toContain("economy.in_transit");
+  expect(panel.textContent).toContain("naval_map.dispatch_route");
 
   const toggle = panel.querySelector<HTMLButtonElement>(
     'button[aria-label="naval_map.button"]',
@@ -151,4 +180,15 @@ test("shows owned-port sectors and active trade routes", async () => {
   expect(toggle.getAttribute("aria-pressed")).toBe("true");
   expect(panel.textContent).toContain("naval_map.legend");
   expect(navalMapToggle).toHaveBeenCalledWith(true);
+
+  const routeDetails = [...panel.querySelectorAll("details")].find((item) =>
+    item.textContent?.includes("naval_map.dispatch_route"),
+  )!;
+  (routeDetails.querySelector("summary") as HTMLElement).click();
+  await panel.updateComplete;
+  const dispatchButton = [...routeDetails.querySelectorAll("button")].find(
+    (button) => button.textContent?.includes("naval_map.dispatch"),
+  )!;
+  dispatchButton.click();
+  expect(dispatchedRoute).toHaveBeenCalledWith(6, 7);
 });

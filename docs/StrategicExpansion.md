@@ -349,6 +349,24 @@ regressões focadas passaram em 4 arquivos/7 testes. A heatmap atualiza a textur
 quando força/setor muda e mantém a imagem quando os dados são iguais.
 `npm run build-dev`, lint direcionado, Prettier e `git diff --check` passaram.
 
+O painel econômico agora permite escolher um porto próprio de origem e um porto
+de destino negociável, e solicitar um comboio direto. O core valida novamente
+propriedade e estado dos portos, autorização de comércio, capacidade de
+construção do navio, limite de três comboios ativos por jogador, bloqueio do
+porto e conexão pela mesma massa d'água antes de iniciar a viagem. O intent é
+validado por schema e passa pelo fluxo normal de turnos; a UI não cria unidades
+nem decide o resultado. A viagem usa carga, pagamento, captura e interceptação
+já existentes. A rota manual só aparece na economia estratégica.
+
+Arquivos desta etapa: `src/core/Schemas.ts`,
+`src/core/configuration/StrategyConfig.ts`,
+`src/core/execution/ExecutionManager.ts`,
+`src/core/execution/DispatchTradeRouteExecution.ts`, `src/client/Transport.ts`,
+`src/client/hud/layers/ResourcePanel.ts`, traduções em `resources/lang/`, e
+testes em `tests/DispatchTradeRouteExecution.test.ts`,
+`tests/client/ResourcePanel.test.ts`,
+`tests/client/TransportSendPaths.test.ts` e `tests/zbin/wire.test.ts`.
+
 ### Validação manual pendente no PC principal
 
 1. Rode `npm run dev:host`, inicie uma partida com `strategicEconomy` ligado e
@@ -373,9 +391,16 @@ quando força/setor muda e mantém a imagem quando os dados são iguais.
    rotas marítimas” no painel econômico. Mova ou retire navios aliados/inimigos,
    danifique um navio e melhore outro; a força estimada deve acompanhar saúde,
    nível e veterania. Navios em outro setor não devem entrar na conta.
+7. Com a economia estratégica ligada, abra “Despachar rota comercial”, escolha
+   dois portos conectados ao mesmo mar e despache. O comboio deve sair do porto
+   escolhido e seguir ao destino escolhido, usando as regras existentes de
+   carga e pagamento. Tente também destino bloqueado, sem ligação marítima ou
+   sob embargo: nenhum comboio deve ser criado. Faça três comboios ativos e
+   confirme que o botão fica desabilitado até um deles deixar de estar ativo.
+   Com a economia estratégica desligada, essa seção não deve aparecer.
    Observe um comboio próprio ou aliado e confira o dono do porto de destino e
    as coordenadas do setor. Repita em replay e multiplayer.
-7. Clique em “Setores marítimos”. Confira as bordas e coordenadas da grade sobre
+8. Clique em “Setores marítimos”. Confira as bordas e coordenadas da grade sobre
    a água, compare `x,y` com as coordenadas exibidas no painel e confira a
    heatmap: vantagem aliada verde, equilíbrio amarelo, vantagem hostil vermelha.
    Mova, danifique ou retire navios; a cor/intensidade deve acompanhar os valores

@@ -1473,7 +1473,12 @@
   },
   "naval_map": {
     "button": "Sea sectors",
+    "destination_port": "Destination port",
+    "dispatch": "Dispatch convoy",
+    "dispatch_route": "Choose a trade route",
     "legend": "Estimated sector strength: green friendly, yellow balanced, red hostile. Blockade checks also require connected water.",
+    "route_limit": "At most {limit} convoys per player can be active.",
+    "source_port": "Source port",
     "toggle": "Toggle naval sectors"
   },
   "new_lobby_prompt": {

@@ -1391,7 +1391,12 @@
   },
   "naval_map": {
     "button": "Setores marítimos",
+    "destination_port": "Porto de destino",
+    "dispatch": "Enviar comboio",
+    "dispatch_route": "Escolher rota comercial",
     "legend": "Força estimada: verde aliada, amarelo equilibrada, vermelho hostil. Bloqueios também exigem água conectada.",
+    "route_limit": "No máximo {limit} comboios por jogador podem ficar ativos.",
+    "source_port": "Porto de origem",
     "toggle": "Alternar setores marítimos"
   },
   "new_lobby_prompt": {

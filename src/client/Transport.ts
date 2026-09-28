@@ -215,6 +215,13 @@ export class MoveWarshipIntentEvent implements GameEvent {
   ) {}
 }
 
+export class DispatchTradeRouteIntentEvent implements GameEvent {
+  constructor(
+    public readonly sourcePortID: number,
+    public readonly destinationPortID: number,
+  ) {}
+}
+
 export class SendKickPlayerIntentEvent implements GameEvent {
   constructor(public readonly target: string) {}
 }
@@ -345,6 +352,13 @@ export class Transport {
 
     this.eventBus.on(MoveWarshipIntentEvent, (e) => {
       this.onMoveWarshipEvent(e);
+    });
+    this.eventBus.on(DispatchTradeRouteIntentEvent, (e) => {
+      this.sendIntent({
+        type: "dispatch_trade_route",
+        sourcePortID: e.sourcePortID,
+        destinationPortID: e.destinationPortID,
+      });
     });
 
     this.eventBus.on(SendDeleteUnitIntentEvent, (e) =>
