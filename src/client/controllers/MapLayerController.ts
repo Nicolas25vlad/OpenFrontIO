@@ -6,6 +6,7 @@
  * so the game starts without blocking on layer PNGs.
  */
 
+import { NAVAL_SUPREMACY } from "../../core/configuration/StrategyConfig";
 import { GameMapSize, GameMapType } from "../../core/game/Game";
 import { GameMapLoader } from "../../core/game/GameMapLoader";
 import {
@@ -14,7 +15,12 @@ import {
 } from "../../core/game/TerrainMapLoader";
 import { UserSettings } from "../../core/game/UserSettings";
 import { Controller } from "../Controller";
-import { createResourceMapImage, RESOURCE_MAP_LAYER_ID } from "../ResourceMap";
+import {
+  createNavalSectorMapImage,
+  createResourceMapImage,
+  NAVAL_SECTOR_MAP_LAYER_ID,
+  RESOURCE_MAP_LAYER_ID,
+} from "../ResourceMap";
 import { MapRenderer } from "../render/gl";
 
 export class MapLayerController implements Controller {
@@ -75,11 +81,31 @@ export class MapLayerController implements Controller {
     } catch (e) {
       console.warn("[MapLayerController] Failed to create resource map:", e);
     }
+    try {
+      images.set(
+        NAVAL_SECTOR_MAP_LAYER_ID,
+        await createNavalSectorMapImage(
+          this.gameMap.gameMap,
+          NAVAL_SUPREMACY.sectorSize,
+        ),
+      );
+      layers.push({
+        id: NAVAL_SECTOR_MAP_LAYER_ID,
+        placement: "water",
+        alpha: 0.8,
+      });
+    } catch (e) {
+      console.warn(
+        "[MapLayerController] Failed to create naval sector map:",
+        e,
+      );
+    }
     if (this.abortSignal.aborted) return;
     this.view.setMapLayers(layers, images);
     this.applyVisibility(layers);
     this.applyAlpha(layers);
     this.view.setLayerVisible(RESOURCE_MAP_LAYER_ID, false);
+    this.view.setLayerVisible(NAVAL_SECTOR_MAP_LAYER_ID, false);
   }
 
   private applyVisibility(layers: NonNullable<TerrainMapData["layers"]>) {

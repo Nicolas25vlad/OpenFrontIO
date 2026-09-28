@@ -10,7 +10,10 @@ import {
   STOCK_RESOURCES,
 } from "../../../core/game/Resources";
 import { Controller } from "../../Controller";
-import { ToggleResourceMapEvent } from "../../InputHandler";
+import {
+  ToggleNavalSectorMapEvent,
+  ToggleResourceMapEvent,
+} from "../../InputHandler";
 import { RESOURCE_COLORS, resourceIconUrl } from "../../ResourceMap";
 import { renderNumber, translateText } from "../../Utils";
 import { GameView } from "../../view";
@@ -32,6 +35,7 @@ export class ResourcePanel extends LitElement implements Controller {
   public game!: GameView;
   public eventBus!: EventBus;
   @state() private mapVisible = false;
+  @state() private navalMapVisible = false;
 
   createRenderRoot() {
     return this;
@@ -40,6 +44,9 @@ export class ResourcePanel extends LitElement implements Controller {
   init() {
     this.eventBus.on(ToggleResourceMapEvent, (event) => {
       this.mapVisible = event.visible;
+    });
+    this.eventBus.on(ToggleNavalSectorMapEvent, (event) => {
+      this.navalMapVisible = event.visible;
     });
     this.tick();
   }
@@ -151,22 +158,38 @@ export class ResourcePanel extends LitElement implements Controller {
       class="w-fit min-w-[14rem] max-w-[21rem] p-2 bg-gray-950/95 shadow-xs rounded-lg text-white text-xs"
       @contextmenu=${(e: Event) => e.preventDefault()}
     >
-      <div class="flex items-center justify-between gap-3 mb-1">
+      <div class="flex items-center justify-between gap-2 mb-1">
         <span class="text-[10px] uppercase tracking-wide text-gray-300"
           >${translateText("economy.stock")}</span
         >
-        <button
-          class="border rounded-sm px-2 py-1 ${this.mapVisible
-            ? "bg-emerald-400/20 border-emerald-300"
-            : "border-emerald-700 hover:bg-gray-700"}"
-          aria-label=${translateText("resource_map.button")}
-          aria-pressed=${this.mapVisible}
-          title=${translateText("resource_map.toggle")}
-          @click=${() =>
-            this.eventBus.emit(new ToggleResourceMapEvent(!this.mapVisible))}
-        >
-          ◎ ${translateText("resource_map.button")}
-        </button>
+        <div class="flex items-center gap-1">
+          <button
+            class="border rounded-sm px-2 py-1 ${this.mapVisible
+              ? "bg-emerald-400/20 border-emerald-300"
+              : "border-emerald-700 hover:bg-gray-700"}"
+            aria-label=${translateText("resource_map.button")}
+            aria-pressed=${this.mapVisible}
+            title=${translateText("resource_map.toggle")}
+            @click=${() =>
+              this.eventBus.emit(new ToggleResourceMapEvent(!this.mapVisible))}
+          >
+            ◎ ${translateText("resource_map.button")}
+          </button>
+          <button
+            class="border rounded-sm px-2 py-1 ${this.navalMapVisible
+              ? "bg-sky-400/20 border-sky-300"
+              : "border-sky-800 hover:bg-gray-700"}"
+            aria-label=${translateText("naval_map.button")}
+            aria-pressed=${this.navalMapVisible}
+            title=${translateText("naval_map.toggle")}
+            @click=${() =>
+              this.eventBus.emit(
+                new ToggleNavalSectorMapEvent(!this.navalMapVisible),
+              )}
+          >
+            ⚓ ${translateText("naval_map.button")}
+          </button>
+        </div>
       </div>
       <div class="grid grid-cols-2 gap-x-3 gap-y-1">
         ${compact.map(

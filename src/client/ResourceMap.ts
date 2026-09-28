@@ -6,6 +6,7 @@ import {
 } from "../core/game/Resources";
 
 export const RESOURCE_MAP_LAYER_ID = "openfront-resource-map";
+export const NAVAL_SECTOR_MAP_LAYER_ID = "openfront-naval-sectors";
 
 export const RESOURCE_COLORS: Record<NaturalResource, string> = {
   [NaturalResource.Oil]: "#ef4444",
@@ -245,6 +246,47 @@ export async function createResourceMapImage(
 
   for (const node of nodes) {
     drawResourcePixelIcon(context, node.resource, node.x, node.y);
+  }
+
+  return createImageBitmap(canvas);
+}
+
+/** Build a static grid texture; MapLayerPass clips it to water tiles. */
+export async function createNavalSectorMapImage(
+  map: GameMap,
+  sectorSize: number,
+): Promise<ImageBitmap> {
+  if (!Number.isInteger(sectorSize) || sectorSize <= 0) {
+    throw new Error("naval sector size must be a positive integer");
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = map.width();
+  canvas.height = map.height();
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("naval sector map canvas is unavailable");
+
+  const fontSize = Math.max(8, Math.min(16, sectorSize * 0.18));
+  context.font = `600 ${fontSize}px monospace`;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+
+  for (let y = 0; y < map.height(); y += sectorSize) {
+    for (let x = 0; x < map.width(); x += sectorSize) {
+      const width = Math.min(sectorSize, map.width() - x);
+      const height = Math.min(sectorSize, map.height() - y);
+      context.fillStyle = "rgba(14, 116, 144, 0.10)";
+      context.fillRect(x, y, width, height);
+      context.strokeStyle = "rgba(56, 189, 248, 0.72)";
+      context.lineWidth = 1.5;
+      context.strokeRect(x + 0.75, y + 0.75, width - 1.5, height - 1.5);
+      context.fillStyle = "rgba(224, 242, 254, 0.9)";
+      context.fillText(
+        `${x / sectorSize},${y / sectorSize}`,
+        x + width / 2,
+        y + height / 2,
+        Math.max(0, width - 8),
+      );
+    }
   }
 
   return createImageBitmap(canvas);

@@ -1,5 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { ResourcePanel } from "../../src/client/hud/layers/ResourcePanel";
+import { ToggleNavalSectorMapEvent } from "../../src/client/InputHandler";
 import { GameView } from "../../src/client/view";
 import { EventBus } from "../../src/core/EventBus";
 import { emptyResourceRates, FULL_SUPPLY } from "../../src/core/game/Economy";
@@ -108,6 +109,10 @@ test("shows owned-port sectors and active trade routes", async () => {
     unit: (id: number) => (id === 7 ? port : undefined),
   } as unknown as GameView;
   panel.eventBus = new EventBus();
+  const navalMapToggle = vi.fn();
+  panel.eventBus.on(ToggleNavalSectorMapEvent, (event) =>
+    navalMapToggle(event.visible),
+  );
   document.body.append(panel);
   panel.init();
   await panel.updateComplete;
@@ -118,4 +123,12 @@ test("shows owned-port sectors and active trade routes", async () => {
   expect(panel.textContent).toContain("1−");
   expect(panel.textContent?.replace(/\s+/g, " ")).toContain("Trader → Me");
   expect(panel.textContent).toContain("economy.in_transit");
+
+  const toggle = panel.querySelector<HTMLButtonElement>(
+    'button[aria-label="naval_map.button"]',
+  )!;
+  toggle.click();
+  await panel.updateComplete;
+  expect(toggle.getAttribute("aria-pressed")).toBe("true");
+  expect(navalMapToggle).toHaveBeenCalledWith(true);
 });

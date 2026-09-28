@@ -1385,6 +1385,10 @@
     "title": "Menu da conta",
     "view_account": "Ver conta"
   },
+  "naval_map": {
+    "button": "Setores marítimos",
+    "toggle": "Alternar setores marítimos"
+  },
   "new_lobby_prompt": {
     "confirm": "Começar um novo lobby? Todos os jogadores serão convidados a se juntarem.",
     "dismiss": "Ignorar",

@@ -112,6 +112,10 @@ export class ToggleResourceMapEvent implements GameEvent {
   constructor(public readonly visible: boolean) {}
 }
 
+export class ToggleNavalSectorMapEvent implements GameEvent {
+  constructor(public readonly visible: boolean) {}
+}
+
 export class ConfirmGhostStructureEvent implements GameEvent {}
 
 export class SwapRocketDirectionEvent implements GameEvent {

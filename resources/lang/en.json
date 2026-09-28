@@ -1467,6 +1467,10 @@
     "title": "Account menu",
     "view_account": "View account"
   },
+  "naval_map": {
+    "button": "Sea sectors",
+    "toggle": "Toggle naval sectors"
+  },
   "new_lobby_prompt": {
     "confirm": "Start a new lobby? All players will be invited to join.",
     "dismiss": "Dismiss",
