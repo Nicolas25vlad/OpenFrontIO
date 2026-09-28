@@ -459,7 +459,9 @@ contrapressão de escolta e perdas.
 
 Arquivos desta etapa: `src/core/configuration/StrategyConfig.ts`,
 `src/core/configuration/Config.ts`, `src/core/game/NavalSupremacy.ts`,
-`src/core/execution/PortExecution.ts`, `src/core/execution/TradeShipExecution.ts`,
+`src/core/execution/PortExecution.ts`,
+`src/core/execution/DispatchTradeRouteExecution.ts`,
+`src/core/execution/TradeShipExecution.ts`,
 `src/client/controllers/MapLayerController.ts`,
 `src/client/controllers/ResourceMapController.ts`,
 `src/client/render/gl/passes/MapLayerPass.ts`, `src/client/ResourceMap.ts`,
@@ -475,6 +477,11 @@ do setor; o filtro por massa d'água permanece na decisão autoritativa de bloqu
 no core. A seção de comboios lista navios ativos ligados ao jogador ou a um
 aliado, indicando os donos do navio/destino e o setor do porto de destino. Essa
 leitura usa os updates de unidades existentes e não altera as regras do core.
+
+O limite de três comboios manuais por jogador conta navios ativos e execuções
+que ainda aguardam o surgimento do navio. Execuções de comboios já representados
+por um navio ativo não são contadas novamente; o teste cobre duas rotas em curso,
+a vaga restante e o bloqueio ao atingir o limite.
 
 Também há uma camada visual opcional com a grade quadrada dos setores de 64
 tiles, coordenadas `x,y` e preenchimento azul translúcido. O renderer a recorta

@@ -309,4 +309,8 @@ export class TradeShipExecution implements Execution {
   originatingPlayer(): Player {
     return this.origOwner;
   }
+
+  hasSpawnedShip(): boolean {
+    return this.tradeShip !== undefined;
+  }
 }

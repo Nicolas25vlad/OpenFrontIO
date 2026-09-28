@@ -1,4 +1,5 @@
 import { DispatchTradeRouteExecution } from "../src/core/execution/DispatchTradeRouteExecution";
+import { TradeShipExecution } from "../src/core/execution/TradeShipExecution";
 import { PlayerInfo, PlayerType, UnitType } from "../src/core/game/Game";
 import { ProcessedResource } from "../src/core/game/Resources";
 import { setup } from "./util/Setup";
@@ -137,6 +138,50 @@ describe("DispatchTradeRouteExecution", () => {
     for (let tick = 0; tick < 6; tick++) game.executeNextTick();
 
     expect(sourceOwner.units(UnitType.TradeShip).length).toBeLessThanOrEqual(3);
+  });
+
+  test("does not count an active convoy twice against the route limit", async () => {
+    const { game, sourceOwner, sourcePort, destinationPort } =
+      await routeFixture();
+
+    for (let route = 0; route < 2; route++) {
+      const ship = sourceOwner.buildUnit(
+        UnitType.TradeShip,
+        sourcePort.tile(),
+        { targetUnit: destinationPort },
+      );
+      const execution = new TradeShipExecution(
+        sourceOwner,
+        sourcePort,
+        destinationPort,
+      );
+      execution.init(game, 0);
+      (execution as any).tradeShip = ship;
+      game.addExecution(execution);
+    }
+
+    const dispatch = new DispatchTradeRouteExecution(
+      sourceOwner,
+      sourcePort.id(),
+      destinationPort.id(),
+    );
+    expect((dispatch as any).hasRouteCapacity(game)).toBe(true);
+
+    const thirdShip = sourceOwner.buildUnit(
+      UnitType.TradeShip,
+      sourcePort.tile(),
+      { targetUnit: destinationPort },
+    );
+    const thirdExecution = new TradeShipExecution(
+      sourceOwner,
+      sourcePort,
+      destinationPort,
+    );
+    thirdExecution.init(game, 0);
+    (thirdExecution as any).tradeShip = thirdShip;
+    game.addExecution(thirdExecution);
+
+    expect((dispatch as any).hasRouteCapacity(game)).toBe(false);
   });
 
   test("rejects a destination port under naval blockade", async () => {

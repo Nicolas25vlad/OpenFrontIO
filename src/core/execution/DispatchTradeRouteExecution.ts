@@ -101,7 +101,8 @@ export class DispatchTradeRouteExecution implements Execution {
       (execution) =>
         execution instanceof TradeShipExecution &&
         execution.isActive() &&
-        execution.originatingPlayer() === this.owner,
+        execution.originatingPlayer() === this.owner &&
+        !execution.hasSpawnedShip(),
     ).length;
     return (
       this.owner.units(UnitType.TradeShip).length +
