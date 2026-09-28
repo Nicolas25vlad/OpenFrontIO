@@ -368,6 +368,9 @@ testes em `tests/DispatchTradeRouteExecution.test.ts`,
 `tests/client/TransportSendPaths.test.ts` e `tests/zbin/wire.test.ts`.
 Os testes de execução também confirmam a rejeição de uma origem alheia, da
 economia legada, do limite atingido e de um porto bloqueado.
+Na revalidação do despacho, `tests/DispatchTradeRouteExecution.test.ts` e
+`tests/PortExecution.test.ts` passaram com 10 testes; `tsc --noEmit`, Oxlint,
+ESLint, Prettier e `git diff --check` também passaram.
 
 ### Validação manual pendente no PC principal
 
@@ -481,6 +484,9 @@ enviar a oferta. A seleção usa o intent e o planejador territorial existentes;
 o limite do core continua aceitando apenas percentuais inteiros até 50%.
 `tests/client/graphics/layers/PlayerPanelActions.test.ts` confirma que o valor
 selecionado chega ao evento.
+Os testes focados de painel, proposta, cancelamento, transferência territorial e
+comportamento dos bots passaram em 5 arquivos/30 testes. `npm run build-dev`,
+`tsc --noEmit`, Oxlint, ESLint, Prettier e `git diff --check` passaram.
 
 Arquivos desta etapa: `src/core/game/TerritoryTransfer.ts`,
 `src/core/game/GameImpl.ts`, `src/core/game/AllianceImpl.ts`,
@@ -572,6 +578,8 @@ ganhou um teste focado.
 A prioridade de comida também aguarda uma fazenda em construção terminar antes
 de pedir outra. Isso evita que as chamadas frequentes da IA empilhem construções
 quando a reserva ainda está baixa e a demanda exige várias fazendas.
+Após essa correção, 4 arquivos/78 testes de comportamento estrutural e benchmark
+dos bots passaram; `tsc --noEmit`, Oxlint e ESLint também passaram.
 
 Arquivos desta etapa: `src/core/execution/nation/NationStructureBehavior.ts` e
 `tests/economy/NationVehicleFactoryPriority.test.ts`,
