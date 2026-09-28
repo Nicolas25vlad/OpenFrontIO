@@ -282,6 +282,14 @@ de volta. Sem porto alcançável ou se o navio for afundado, carga e depósito s
 perdidos. Valores, reservas, alvos e ordem ficam centralizados em
 `NAVAL_TRADE`.
 
+A consulta de supremacia agora cobre a diagonal completa do setor quadrado antes
+de filtrar os navios pela coordenada exata. Assim, uma frota no canto oposto ao
+porto não fica invisível para o bloqueio; navios no setor adjacente e em outra
+massa d'água continuam sem influenciar o resultado. A regressão
+`tests/core/game/NavalSupremacy.test.ts` cobre os dois limites espaciais, e
+`tests/PortExecution.test.ts` confirma o bloqueio de novas rotas após presença,
+contrapressão de escolta e perdas.
+
 Arquivos desta etapa: `src/core/configuration/StrategyConfig.ts`,
 `src/core/configuration/Config.ts`, `src/core/game/NavalSupremacy.ts`,
 `src/core/execution/PortExecution.ts`, `src/core/execution/TradeShipExecution.ts`,

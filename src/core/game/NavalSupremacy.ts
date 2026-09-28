@@ -19,9 +19,13 @@ export function isNavalSectorBlockaded(game: Game, port: Unit): boolean {
 
   let hostileStrength = 0;
   let friendlyStrength = 0;
+  // The farthest two tiles in one square sector are separated by its
+  // diagonal. Query that enclosing radius, then retain the exact sector filter
+  // below so ships in neighboring sectors never affect this port.
+  const sectorSearchRadius = Math.ceil(sectorSize * Math.SQRT2);
   for (const { unit } of game.nearbyUnits(
     port.tile(),
-    sectorSize,
+    sectorSearchRadius,
     UnitType.Warship,
   )) {
     if (
