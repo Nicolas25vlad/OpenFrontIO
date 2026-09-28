@@ -82,10 +82,13 @@ describe("nation response to naval blockades", () => {
     const addExecution = vi.spyOn(game, "addExecution");
 
     behavior.counterWarshipInfestation();
+    behavior.counterWarshipInfestation();
 
-    expect(addExecution).toHaveBeenCalledWith(
-      expect.any(ConstructionExecution),
-    );
+    expect(
+      addExecution.mock.calls
+        .flat()
+        .filter((execution) => execution instanceof ConstructionExecution),
+    ).toHaveLength(1);
   });
 
   it("keeps the blockade response disabled in legacy economy", async () => {

@@ -27,6 +27,7 @@ export class NationWarshipBehavior {
   private trackedIncomingTransportShips: Set<Unit> = new Set();
   // Track incoming transport ships we have dealt with
   private dealtWithTransportShip: Set<Unit> = new Set();
+  private lastWarshipOrderTick: number | null = null;
 
   constructor(
     private random: PseudoRandom,
@@ -40,6 +41,7 @@ export class NationWarshipBehavior {
     if (this.game.config().isUnitDisabled(UnitType.Warship)) {
       return false;
     }
+    if (this.hasWarshipOrderThisTick()) return false;
     if (!this.random.chance(50)) {
       return false;
     }
@@ -63,6 +65,7 @@ export class NationWarshipBehavior {
       this.game.addExecution(
         new ConstructionExecution(this.player, UnitType.Warship, targetTile),
       );
+      this.lastWarshipOrderTick = this.game.ticks();
       return true;
     }
     return false;
@@ -231,6 +234,7 @@ export class NationWarshipBehavior {
     if (enemy === this.player) {
       return;
     }
+    if (this.hasWarshipOrderThisTick()) return;
 
     // Don't send too many warships
     if (this.player.units(UnitType.Warship).length >= 10) {
@@ -255,6 +259,7 @@ export class NationWarshipBehavior {
       this.game.addExecution(
         new ConstructionExecution(this.player, UnitType.Warship, tile),
       );
+      this.lastWarshipOrderTick = this.game.ticks();
       this.emojiBehavior.maybeSendEmoji(enemy, EMOJI_WARSHIP_RETALIATION);
       this.player.updateRelation(enemy, reason === "trade" ? -7.5 : -15);
     }
@@ -368,6 +373,7 @@ export class NationWarshipBehavior {
       !this.game.config().isUnitDisabled(UnitType.Warship) &&
       this.cost(UnitType.Warship) <= this.player.gold() &&
       this.canAffordWarship() &&
+      !this.hasWarshipOrderThisTick() &&
       this.player.units(UnitType.Port).length > 0 &&
       this.player.units(UnitType.Warship).length < 10
     );
@@ -503,6 +509,7 @@ export class NationWarshipBehavior {
         target.warship.tile(),
       ),
     );
+    this.lastWarshipOrderTick = this.game.ticks();
     this.emojiBehavior.sendEmoji(AllPlayers, EMOJI_WARSHIP_RETALIATION);
   }
 
@@ -519,5 +526,9 @@ export class NationWarshipBehavior {
         this.game.config().resourceCost(UnitType.Warship),
       )
     );
+  }
+
+  private hasWarshipOrderThisTick(): boolean {
+    return this.lastWarshipOrderTick === this.game.ticks();
   }
 }

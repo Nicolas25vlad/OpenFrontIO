@@ -483,6 +483,7 @@ ao bloqueador mais próximo no mesmo setor e massa d'água. A prioridade respeit
 limite de frota, unidade desativada, ouro, aço e combustível. As prioridades
 existentes de criação inicial e retaliação naval também verificam os insumos
 antes de enfileirar a execução, evitando falhas de construção por estoque baixo.
+O bot limita a uma ordem naval por tick para não duplicar um navio ainda pendente.
 `tests/economy/NationBlockadeResponse.test.ts` cobre a resposta, a compatibilidade
 com a economia legada e a ausência de intent sem os insumos.
 Os testes focados de resposta a bloqueio e infestação naval passaram em 2
