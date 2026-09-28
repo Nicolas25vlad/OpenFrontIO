@@ -1,8 +1,14 @@
 import { vi } from "vitest";
+import { RailroadCache } from "../../src/client/render/frame/RailroadCache";
 import { ConstructionExecution } from "../../src/core/execution/ConstructionExecution";
 import { InfrastructureRouteExecution } from "../../src/core/execution/InfrastructureRouteExecution";
 import { productionEfficiency } from "../../src/core/game/Economy";
 import { PlayerInfo, PlayerType, UnitType } from "../../src/core/game/Game";
+import {
+  GameUpdateType,
+  GameUpdateViewData,
+  RailroadConstructionUpdate,
+} from "../../src/core/game/GameUpdates";
 import { ProcessedResource } from "../../src/core/game/Resources";
 import { setup } from "../util/Setup";
 
@@ -182,6 +188,7 @@ test("connects three selected logistics nodes in the requested order", async () 
   );
   const goldBefore = player.gold();
   const steelBefore = player.resourceAmount(ProcessedResource.Steel);
+  const railroadUpdates: RailroadConstructionUpdate[] = [];
 
   game.addExecution(
     new InfrastructureRouteExecution(player, [
@@ -190,7 +197,10 @@ test("connects three selected logistics nodes in the requested order", async () 
       factory.id(),
     ]),
   );
-  for (let i = 0; i < 2; i++) game.executeNextTick();
+  for (let i = 0; i < 2; i++) {
+    const updates = game.executeNextTick();
+    railroadUpdates.push(...updates[GameUpdateType.RailroadConstructionEvent]);
+  }
 
   const manager = game.railNetwork().stationManager();
   const cityStation = manager.findStation(city)!;
@@ -203,6 +213,23 @@ test("connects three selected logistics nodes in the requested order", async () 
   expect(steelBefore - player.resourceAmount(ProcessedResource.Steel)).toBe(
     expectedSteel,
   );
+
+  const updateData = {
+    updates: {
+      [GameUpdateType.RailroadConstructionEvent]: railroadUpdates,
+    },
+  } as unknown as GameUpdateViewData;
+  const liveCache = new RailroadCache(game.width(), game.height());
+  const replayCache = new RailroadCache(game.width(), game.height());
+  liveCache.apply(updateData);
+  replayCache.apply(updateData);
+  expect(railroadUpdates).toHaveLength(2);
+  expect([...liveCache.getRailroads()]).toEqual([
+    ...replayCache.getRailroads(),
+  ]);
+  for (const update of railroadUpdates) {
+    expect(liveCache.getRailroads().get(update.id)).toEqual(update.tiles);
+  }
 });
 
 test("rejects duplicate route nodes without charging or connecting buildings", async () => {

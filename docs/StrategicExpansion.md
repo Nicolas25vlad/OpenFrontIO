@@ -1175,7 +1175,8 @@ Arquivos principais: `src/core/game/RailNetworkImpl.ts`,
 `tests/economy/Production.test.ts` e `tests/zbin/wire.test.ts` cobrem conexão,
 anexação automática, custos, rejeição de estruturas militares, bônus industrial,
 logística da capital, captura/remoção de nós, supply center, sequência de três
-prédios, IDs duplicados e limite de planejamento de 16 nós.
+prédios, IDs duplicados, limite de planejamento de 16 nós e aplicação dos eventos
+ferroviários pelo `RailroadCache` em atualização e replay.
 
 Validação no homelab: `npm test` passou em 490 arquivos/5.762 testes da suíte
 principal e 63 arquivos/656 testes da suíte de servidor; `npm run lint`,
@@ -1183,7 +1184,9 @@ principal e 63 arquivos/656 testes da suíte de servidor; `npm run lint`,
 de chunks acima de 500 kB e um aviso de depreciação do Node. A validação visual
 da seleção/confirmação de rota e da renderização ferroviária permanece pendente
 no PC principal. Após ampliar os casos de saldo e planejamento, `Infrastructure`
-e `RailNetwork` passaram juntos com 38 testes; `tsc --noEmit` passou novamente.
+e `RailNetwork` passaram juntos com 38 testes. O teste de rota também compara os
+eventos produzidos pelo core com a imagem do `RailroadCache` em dois clientes;
+`tsc --noEmit` passou novamente.
 
 Validação manual pendente no PC principal:
 
