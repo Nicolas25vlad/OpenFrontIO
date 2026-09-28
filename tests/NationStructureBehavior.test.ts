@@ -989,6 +989,7 @@ describe("NationStructureBehavior strategic food support", () => {
     troops: number;
     food: number;
     farmLevels?: number[];
+    farmUnderConstruction?: boolean;
     farmDisabled?: boolean;
   }) {
     const game = makeGame() as any;
@@ -1002,6 +1003,7 @@ describe("NationStructureBehavior strategic food support", () => {
     });
     const farms = (options.farmLevels ?? []).map((level) => ({
       level: () => level,
+      isUnderConstruction: () => options.farmUnderConstruction ?? false,
     }));
     const player = makePlayer(farms, []) as any;
     player.units = (type: UnitType) => (type === UnitType.Farm ? farms : []);
@@ -1051,6 +1053,18 @@ describe("NationStructureBehavior strategic food support", () => {
       troops: 50_000,
       food: 0,
       farmLevels: [2],
+    });
+
+    expect((behavior as any).tryBuildFoodFarm()).toBe(false);
+    expect(spawn).not.toHaveBeenCalled();
+  });
+
+  it("waits for a farm under construction before adding another", () => {
+    const { behavior, spawn } = foodBehavior({
+      troops: 100_000,
+      food: 0,
+      farmLevels: [1],
+      farmUnderConstruction: true,
     });
 
     expect((behavior as any).tryBuildFoodFarm()).toBe(false);

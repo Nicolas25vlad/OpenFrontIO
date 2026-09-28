@@ -560,6 +560,10 @@ construir fazendas, mas faltava um critério de posicionamento para `Farm`. A
 seleção agora espaça fazendas existentes e conclui a decisão sem erro; o caso
 ganhou um teste focado.
 
+A prioridade de comida também aguarda uma fazenda em construção terminar antes
+de pedir outra. Isso evita que as chamadas frequentes da IA empilhem construções
+quando a reserva ainda está baixa e a demanda exige várias fazendas.
+
 Arquivos desta etapa: `src/core/execution/nation/NationStructureBehavior.ts` e
 `tests/economy/NationVehicleFactoryPriority.test.ts`,
 `tests/economy/NationFarmPriority.test.ts` e

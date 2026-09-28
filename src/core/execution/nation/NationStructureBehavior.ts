@@ -693,12 +693,13 @@ export class NationStructureBehavior {
     );
     if (foodDemand <= 0) return false;
 
-    const farmCapacity = this.player
-      .units(UnitType.Farm)
-      .reduce(
-        (capacity, farm) => capacity + farm.level() * ECONOMY.farmFood,
-        0,
-      );
+    const farms = this.player.units(UnitType.Farm);
+    if (farms.some((farm) => farm.isUnderConstruction())) return false;
+
+    const farmCapacity = farms.reduce(
+      (capacity, farm) => capacity + farm.level() * ECONOMY.farmFood,
+      0,
+    );
     if (farmCapacity >= foodDemand) return false;
 
     const foodReserve = foodDemand * ECONOMY.foodReservePeriods;
