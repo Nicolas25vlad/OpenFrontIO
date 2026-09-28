@@ -661,6 +661,8 @@ escolher qualquer percentual inteiro de 1% a 50%. Ainda faltam outros termos e
 capitulação (acompanhada separadamente na
 [issue #12](https://github.com/Nicolas25vlad/OpenFrontIO/issues/12)) e validação
 visual em replay e multiplayer; a issue #8 permanece aberta.
+Na revisão de paz branca, `AllianceCancelExecution.test.ts` passou com 3 testes,
+incluindo cancelamento autorizado de uma proposta explícita de 0%.
 
 ### Oferta de paz com cessão territorial (parcial)
 

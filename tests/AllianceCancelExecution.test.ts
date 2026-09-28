@@ -65,4 +65,21 @@ describe("AllianceCancelExecution", () => {
     expect(request.status()).toBe("rejected");
     expect(requestor.outgoingAllianceRequests()).toHaveLength(0);
   });
+
+  it("allows the sender to cancel an explicit white peace request", () => {
+    game.addExecution(
+      new AllianceRequestExecution(requestor, recipient.id(), 0, "peace"),
+    );
+    game.executeNextTick();
+    const [request] = requestor.outgoingAllianceRequests();
+
+    game.addExecution(new AllianceCancelExecution(requestor, recipient.id()));
+    game.executeNextTick();
+    game.executeNextTick();
+
+    expect(request?.kind()).toBe("peace");
+    expect(request?.status()).toBe("canceled");
+    expect(requestor.outgoingAllianceRequests()).toHaveLength(0);
+    expect(recipient.incomingAllianceRequests()).toHaveLength(0);
+  });
 });
