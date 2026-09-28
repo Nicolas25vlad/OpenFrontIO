@@ -11,15 +11,17 @@ import { assertNever } from "../../Util";
 import { AllianceExtensionExecution } from "../alliance/AllianceExtensionExecution";
 import { AllianceRequestExecution } from "../alliance/AllianceRequestExecution";
 import {
+  hasTooManyAlliances,
+  isAlliancePartnerThreat,
+  shouldAcceptCapitulation,
+} from "./CapitulationPolicy";
+import {
   EMOJI_CONFUSED,
   EMOJI_HANDSHAKE,
   EMOJI_LOVE,
   EMOJI_SCARED_OF_THREAT,
   NationEmojiBehavior,
 } from "./NationEmojiBehavior";
-
-const CAPITULATION_TROOP_RATIO = 4;
-const CAPITULATION_TERRITORY_RATIO = 2;
 
 export class NationAllianceBehavior {
   constructor(
@@ -41,7 +43,7 @@ export class NationAllianceBehavior {
         continue;
       }
       if (req.kind() === "capitulation") {
-        if (this.shouldAcceptCapitulation(req.requestor())) {
+        if (shouldAcceptCapitulation(this.game, this.player, req.requestor())) {
           req.accept();
         } else {
           req.reject();
@@ -126,13 +128,13 @@ export class NationAllianceBehavior {
     }
     // Reject if otherPlayer has allied with a lot of players (Hard and Impossible only)
     // To make sure there are enough non-friendly players in the game to stop the crown with nukes
-    if (this.hasTooManyAlliances(otherPlayer)) {
+    if (hasTooManyAlliances(this.game, otherPlayer)) {
       return false;
     }
     // Before caring about the relation, first check if the otherPlayer is a threat
     // Easy (dumb) nations are blinded by hatred, they don't care about threats, they care about the relation
     // Impossible (smart) nations on the other hand are analyzing the facts
-    if (this.isAlliancePartnerThreat(otherPlayer)) {
+    if (isAlliancePartnerThreat(this.game, this.player, otherPlayer)) {
       if (!isResponse && this.random.chance(6)) {
         this.emojiBehavior.sendEmoji(otherPlayer, EMOJI_SCARED_OF_THREAT);
       }
@@ -181,51 +183,8 @@ export class NationAllianceBehavior {
     territoryPercent: number,
   ): boolean {
     if (territoryPercent > 10 || requestor.isTraitor()) return false;
-    if (this.hasTooManyAlliances(requestor)) return false;
-    return this.isAlliancePartnerThreat(requestor);
-  }
-
-  /**
-   * A capitulation ends the recipient's game, so only accept it when the
-   * requester is already a clear military and territorial dominant.
-   */
-  private shouldAcceptCapitulation(requestor: Player): boolean {
-    if (
-      requestor.isTraitor() ||
-      requestor.isFriendly(this.player) ||
-      this.hasTooManyAlliances(requestor) ||
-      !this.isAlliancePartnerThreat(requestor)
-    ) {
-      return false;
-    }
-
-    return (
-      requestor.troops() >
-        Math.max(1, this.player.troops()) * CAPITULATION_TROOP_RATIO &&
-      requestor.numTilesOwned() >
-        Math.max(1, this.player.numTilesOwned()) * CAPITULATION_TERRITORY_RATIO
-    );
-  }
-
-  private hasTooManyAlliances(otherPlayer: Player): boolean {
-    const { difficulty } = this.game.config().gameConfig();
-    if (
-      difficulty !== Difficulty.Hard &&
-      difficulty !== Difficulty.Impossible
-    ) {
-      return false;
-    }
-
-    const totalPlayers = this.game
-      .players()
-      .filter((p) => p.type() !== PlayerType.Bot).length;
-    const otherPlayerAlliances = otherPlayer.alliances().length;
-
-    if (difficulty === Difficulty.Hard) {
-      return otherPlayerAlliances >= totalPlayers * 0.5;
-    } else {
-      return otherPlayerAlliances >= totalPlayers * 0.25;
-    }
+    if (hasTooManyAlliances(this.game, requestor)) return false;
+    return isAlliancePartnerThreat(this.game, this.player, requestor);
   }
 
   private isConfused(): boolean {
@@ -272,40 +231,6 @@ export class NationAllianceBehavior {
           this.game.ticks() < 600 + spawnTicks &&
           this.random.nextInt(0, 100) >= 70
         );
-      default:
-        assertNever(difficulty);
-    }
-  }
-
-  private isAlliancePartnerThreat(otherPlayer: Player): boolean {
-    const { difficulty } = this.game.config().gameConfig();
-    switch (difficulty) {
-      case Difficulty.Easy:
-        // On easy we are very dumb, we don't see anybody as a threat
-        return false;
-      case Difficulty.Medium:
-        // On medium we just see players with much more troops as a threat
-        return otherPlayer.troops() > this.player.troops() * 2.5;
-      case Difficulty.Hard:
-        // On hard we are smarter, we check for maxTroops to see the actual strength
-        return (
-          otherPlayer.troops() > this.player.troops() &&
-          this.game.config().maxTroops(otherPlayer) >
-            this.game.config().maxTroops(this.player) * 2
-        );
-      case Difficulty.Impossible: {
-        // On impossible we check for multiple factors and try to not mess with stronger players (we want to steamroll over weaklings)
-        const otherHasMoreTroops =
-          otherPlayer.troops() > this.player.troops() * 1.5;
-        const otherHasMoreMaxTroops =
-          otherPlayer.troops() > this.player.troops() &&
-          this.game.config().maxTroops(otherPlayer) >
-            this.game.config().maxTroops(this.player) * 1.5;
-        const otherHasMoreTiles =
-          otherPlayer.troops() > this.player.troops() &&
-          otherPlayer.numTilesOwned() > this.player.numTilesOwned() * 1.5;
-        return otherHasMoreTroops || otherHasMoreMaxTroops || otherHasMoreTiles;
-      }
       default:
         assertNever(difficulty);
     }

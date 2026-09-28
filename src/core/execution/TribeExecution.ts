@@ -4,6 +4,7 @@ import { simpleHash } from "../Util";
 import { AllianceExtensionExecution } from "./alliance/AllianceExtensionExecution";
 import { DeleteUnitExecution } from "./DeleteUnitExecution";
 import { AiTankBehavior } from "./nation/AiTankBehavior";
+import { shouldAcceptCapitulation } from "./nation/CapitulationPolicy";
 import { AiAttackBehavior } from "./utils/AiAttackBehavior";
 
 export class TribeExecution implements Execution {
@@ -69,10 +70,23 @@ export class TribeExecution implements Execution {
   }
 
   private acceptAllAllianceRequests() {
-    // Accept all alliance requests
+    // Tribal bots accept ordinary alliance requests, but capitulation ends
+    // their game and must pass the same dominance checks as nation AI.
     for (const req of this.tribe.incomingAllianceRequests()) {
-      if (req.kind() === "capitulation") continue;
-      req.accept();
+      if (req.kind() === "capitulation") {
+        const createdDuringSpawn =
+          req.createdAt() <= this.mg.config().numSpawnPhaseTurns() + 1;
+        if (
+          !createdDuringSpawn &&
+          shouldAcceptCapitulation(this.mg, this.tribe, req.requestor())
+        ) {
+          req.accept();
+        } else {
+          req.reject();
+        }
+      } else {
+        req.accept();
+      }
     }
 
     // Accept all alliance extension requests

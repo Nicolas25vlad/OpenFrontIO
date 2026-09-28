@@ -855,12 +855,13 @@ Em ofertas de paz, o bot agora só cede até 10% do território quando o emissor
 uma ameaça pela heurística de dificuldade e não é traidor; pedidos maiores ou de
 atores que não são ameaça são recusados. `tests/NationAllianceBehavior.test.ts`
 cobre esses limites.
-Em pedidos explícitos de capitulação, o bot rejeita a proposta por padrão e só
-aceita quando o solicitante passa pela heurística de ameaça da dificuldade,
-tem mais de quatro vezes as tropas e mais que o dobro do território. Pedidos
-obsoletos do spawn são rejeitados antes da decisão. Os testes cobrem aceitação,
-rejeição por força insuficiente e o limite do spawn; `CapitulationExecution`
-continua responsável pela transferência e eliminação autoritativas.
+Em pedidos explícitos de capitulação, a IA de nações e tribos rejeita a proposta
+por padrão e só aceita quando o solicitante passa pela heurística de ameaça da
+dificuldade, tem mais de quatro vezes as tropas e mais que o dobro do território.
+Pedidos obsoletos do spawn são rejeitados antes da decisão. Testes cobrem ambos
+os fluxos e preservam a aceitação comum de alianças pelas tribos;
+`CapitulationExecution` continua responsável pela transferência e eliminação
+autoritativas.
 Os testes focados de resposta a bloqueio e infestação naval passaram em 2
 arquivos/5 testes; `npm run build-dev`, `tsc --noEmit`, Oxlint, ESLint,
 Prettier e `git diff --check` também passaram no homelab.
@@ -920,11 +921,11 @@ e passou em 485 arquivos/5.667 testes. `tsc --noEmit` e lint também passaram.
    uma nação implantar até dois tanques e enviar ordens contra uma fronteira
    hostil. Ela deve conservar um tanque para os ataques de infantaria. Com uma
    reserva ou economia legada, não deve implantar unidades independentes.
-9. Solicite capitulação a uma nação com forças próximas: ela deve recusar. Repita
-   quando o solicitante tiver mais de quatro vezes as tropas e mais que o dobro
-   do território da nação, atendendo também à heurística de ameaça da
-   dificuldade: ela deve aceitar e o core deve concluir a transferência. Uma
-   solicitação criada durante o spawn deve ser rejeitada.
+9. Solicite capitulação a uma nação e a uma tribo com forças próximas: ambas
+   devem recusar. Repita quando o solicitante tiver mais de quatro vezes as
+   tropas e mais que o dobro do território, atendendo também à heurística de
+   ameaça da dificuldade: ambas devem aceitar e o core deve concluir a
+   transferência. Uma solicitação criada durante o spawn deve ser rejeitada.
 
 Esperado: a nação tenta no máximo uma construção por vez, respeita o limite de
 reserva e continua a usar as regras de construção existentes. A issue permanece
