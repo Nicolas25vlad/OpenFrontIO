@@ -26,7 +26,8 @@ export class AllianceRejectExecution implements Execution {
       const request = requestor
         .outgoingAllianceRequests()
         .find(
-          (ar) => ar.recipient() === this.recipient && ar.kind() === "alliance",
+          (ar) =>
+            ar.recipient() === this.recipient && ar.kind() !== "capitulation",
         );
       if (request === undefined) {
         console.warn(

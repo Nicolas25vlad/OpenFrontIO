@@ -74,6 +74,21 @@ describe("AllianceRequestExecution", () => {
     expect(player1.outgoingAllianceRequests().length).toBe(0);
   });
 
+  test("can reject an explicit white peace request", () => {
+    game.addExecution(
+      new AllianceRequestExecution(player1, player2.id(), 0, "peace"),
+    );
+    game.executeNextTick();
+    const [request] = player1.outgoingAllianceRequests();
+
+    game.addExecution(new AllianceRejectExecution(player1.id(), player2));
+    game.executeNextTick();
+
+    expect(request?.status()).toBe("rejected");
+    expect(player1.outgoingAllianceRequests()).toHaveLength(0);
+    expect(player1.isAlliedWith(player2)).toBe(false);
+  });
+
   test("Alliance request expires", () => {
     game.config().allianceRequestDuration = () => 5;
     game.addExecution(new AllianceRequestExecution(player1, player2.id()));
