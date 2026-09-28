@@ -435,8 +435,10 @@ capturado pelo dono da origem, a rota é cancelada e carga e depósito retornam
 aos donos originais. Quando o próprio comboio é capturado, ele redireciona para
 um porto ativo do captor: a carga é entregue ali e o comprador recebe o depósito
 de volta. Sem porto alcançável ou se o navio for afundado, carga e depósito são
-perdidos. Valores, reservas, alvos e ordem ficam centralizados em
-`NAVAL_TRADE`.
+perdidos. Quando vários produtos estão disponíveis, o comboio carrega aquele
+com maior déficit proporcional ao alvo de importação; `NAVAL_TRADE.cargoOrder`
+resolve empates de forma determinística. Valores, reservas, alvos, preço e
+capacidade ficam centralizados em `NAVAL_TRADE`.
 
 A consulta de supremacia agora cobre a diagonal completa do setor quadrado antes
 de filtrar os navios pela coordenada exata. Assim, uma frota no canto oposto ao

@@ -295,6 +295,74 @@ describe("strategic trade cargo", () => {
     },
   );
 
+  test("ships the proportionally scarcer resource before the configured tie-break order", async () => {
+    const game = await setup(
+      "big_plains",
+      { strategicEconomy: true, infiniteGold: true, instantBuild: true },
+      [
+        new PlayerInfo("seller", PlayerType.Human, null, "seller"),
+        new PlayerInfo("buyer", PlayerType.Human, null, "buyer"),
+      ],
+    );
+    const seller = game.player("seller");
+    const buyer = game.player("buyer");
+    const sourceTile = game.ref(10, 10);
+    const destinationTile = game.ref(150, 150);
+    seller.conquer(sourceTile);
+    buyer.conquer(destinationTile);
+    seller.addGold(100_000n);
+    buyer.addGold(100_000n);
+
+    for (const resource of NAVAL_TRADE.cargoOrder) {
+      seller.removeResource(resource, seller.resourceAmount(resource));
+      buyer.removeResource(resource, buyer.resourceAmount(resource));
+      seller.addResource(resource, NAVAL_TRADE.exportReserve[resource]);
+      buyer.addResource(resource, NAVAL_TRADE.importTarget[resource]);
+    }
+    seller.addResource(ProcessedResource.Food, NAVAL_TRADE.cargoUnits);
+    seller.addResource(ProcessedResource.Fuel, NAVAL_TRADE.cargoUnits);
+    buyer.removeResource(
+      ProcessedResource.Food,
+      buyer.resourceAmount(ProcessedResource.Food) -
+        (NAVAL_TRADE.importTarget[ProcessedResource.Food] - 60),
+    );
+    buyer.removeResource(
+      ProcessedResource.Fuel,
+      buyer.resourceAmount(ProcessedResource.Fuel),
+    );
+
+    const sourcePort = seller.buildUnit(UnitType.Port, sourceTile, {});
+    const destinationPort = buyer.buildUnit(UnitType.Port, destinationTile, {});
+    const execution = new TradeShipExecution(
+      seller,
+      sourcePort,
+      destinationPort,
+    );
+    execution.init(game, 0);
+    execution["pathFinder"] = {
+      next: vi.fn(() => ({
+        status: PathStatus.COMPLETE,
+        node: destinationTile,
+      })),
+    } as any;
+
+    execution.tick(1);
+
+    expect(seller.resourceAmount(ProcessedResource.Fuel)).toBe(
+      NAVAL_TRADE.exportReserve[ProcessedResource.Fuel],
+    );
+    expect(buyer.resourceAmount(ProcessedResource.Fuel)).toBe(
+      NAVAL_TRADE.cargoUnits,
+    );
+    expect(seller.resourceAmount(ProcessedResource.Food)).toBe(
+      NAVAL_TRADE.exportReserve[ProcessedResource.Food] +
+        NAVAL_TRADE.cargoUnits,
+    );
+    expect(buyer.resourceAmount(ProcessedResource.Food)).toBe(
+      NAVAL_TRADE.importTarget[ProcessedResource.Food] - 60,
+    );
+  });
+
   test("moves scarce supplies and pays the exporter when the convoy arrives", async () => {
     const game = await setup(
       "big_plains",

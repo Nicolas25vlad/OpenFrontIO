@@ -236,9 +236,18 @@ export class TradeShipExecution implements Execution {
     if (!this.mg.config().strategicEconomy() || seller === buyer) return;
     const pricePerUnit = NAVAL_TRADE.cargoPricePerUnit;
     const affordableUnits = Number(buyer.gold() / pricePerUnit);
+    let cargo:
+      | {
+          resource: Product;
+          amount: number;
+          shortage: number;
+          target: number;
+        }
+      | undefined;
+
     for (const resource of NAVAL_TRADE.cargoOrder) {
-      const shortage =
-        NAVAL_TRADE.importTarget[resource] - buyer.resourceAmount(resource);
+      const target = NAVAL_TRADE.importTarget[resource];
+      const shortage = target - buyer.resourceAmount(resource);
       const surplus =
         seller.resourceAmount(resource) - NAVAL_TRADE.exportReserve[resource];
       const amount = Math.min(
@@ -249,17 +258,33 @@ export class TradeShipExecution implements Execution {
       );
       if (amount <= 0) continue;
 
-      const payment = BigInt(amount) * pricePerUnit;
-      const removed = seller.removeResource(resource, amount);
-      const paid = buyer.removeGold(payment);
-      if (removed !== amount || paid !== payment) {
-        if (removed > 0) seller.addResource(resource, removed);
-        if (paid > 0n) buyer.addGold(paid);
-        return;
+      // Prioritize the resource furthest below its configured import target.
+      // Cross multiplication avoids floating-point ratios; ties keep the
+      // stable order in NAVAL_TRADE.cargoOrder.
+      if (
+        cargo === undefined ||
+        shortage * cargo.target > cargo.shortage * target
+      ) {
+        cargo = { resource, amount, shortage, target };
       }
-      this.cargo = { resource, amount, buyer, payment };
+    }
+
+    if (cargo === undefined) return;
+
+    const payment = BigInt(cargo.amount) * pricePerUnit;
+    const removed = seller.removeResource(cargo.resource, cargo.amount);
+    const paid = buyer.removeGold(payment);
+    if (removed !== cargo.amount || paid !== payment) {
+      if (removed > 0) seller.addResource(cargo.resource, removed);
+      if (paid > 0n) buyer.addGold(paid);
       return;
     }
+    this.cargo = {
+      resource: cargo.resource,
+      amount: cargo.amount,
+      buyer,
+      payment,
+    };
   }
 
   private refundCargo(): void {
