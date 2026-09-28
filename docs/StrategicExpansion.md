@@ -861,9 +861,10 @@ Em pedidos explícitos de capitulação, a IA de nações e tribos rejeita a pro
 por padrão e só aceita quando o solicitante passa pela heurística de ameaça da
 dificuldade, tem mais de quatro vezes as tropas e mais que o dobro do território.
 Pedidos obsoletos do spawn são rejeitados antes da decisão. Testes cobrem ambos
-os fluxos e preservam a aceitação comum de alianças pelas tribos;
-`CapitulationExecution` continua responsável pela transferência e eliminação
-autoritativas.
+os fluxos e preservam a aceitação comum de alianças pelas tribos.
+`CapitulationPolicy.test.ts` cobre os ramos Easy, Medium, Hard e Impossible,
+incluindo a exceção de muitas alianças. `CapitulationExecution` continua
+responsável pela transferência e eliminação autoritativas.
 Os testes focados de resposta a bloqueio e infestação naval passaram em 2
 arquivos/5 testes; `npm run build-dev`, `tsc --noEmit`, Oxlint, ESLint,
 Prettier e `git diff --check` também passaram no homelab.
