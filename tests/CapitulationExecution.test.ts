@@ -1,10 +1,71 @@
 import { AttackExecution } from "../src/core/execution/AttackExecution";
+import { Executor } from "../src/core/execution/ExecutionManager";
 import { AllianceRequestExecution } from "../src/core/execution/alliance/AllianceRequestExecution";
 import { CapitulationExecution } from "../src/core/execution/alliance/CapitulationExecution";
-import { Game, Player, PlayerType, UnitType } from "../src/core/game/Game";
-import { GameUpdateType } from "../src/core/game/GameUpdates";
+import {
+  Game,
+  Player,
+  PlayerInfo,
+  PlayerType,
+  UnitType,
+} from "../src/core/game/Game";
+import { GameUpdateType, HashUpdate } from "../src/core/game/GameUpdates";
 import { NaturalResource, ProcessedResource } from "../src/core/game/Resources";
 import { playerInfo, setup } from "./util/Setup";
+
+async function deterministicCapitulationResult(): Promise<number[]> {
+  const game = await setup("plains", { infiniteGold: true }, [
+    new PlayerInfo("proposer", PlayerType.Human, "proposer-client", "proposer"),
+    new PlayerInfo(
+      "recipient",
+      PlayerType.Human,
+      "recipient-client",
+      "recipient",
+    ),
+  ]);
+  const proposer = game.player("proposer");
+  const recipient = game.player("recipient");
+  proposer.conquer(game.ref(20, 20));
+  recipient.conquer(game.ref(21, 20));
+  recipient.conquer(game.ref(22, 20));
+  recipient.setSpawnTile(game.ref(22, 20));
+  game.endSpawnPhase();
+
+  const executor = new Executor(game, "capitulation-replay", undefined);
+  game.addExecution(
+    executor.createExec({
+      type: "capitulation",
+      action: "propose",
+      player: recipient.id(),
+      clientID: "proposer-client",
+    }),
+  );
+  game.executeNextTick();
+  game.addExecution(
+    executor.createExec({
+      type: "capitulation",
+      action: "accept",
+      player: proposer.id(),
+      clientID: "recipient-client",
+    }),
+  );
+  const hashes: HashUpdate[] = [];
+  for (let tick = 0; tick < 10; tick++) {
+    const updates = game.executeNextTick();
+    hashes.push(
+      ...((updates[GameUpdateType.Hash] as HashUpdate[] | undefined) ?? []),
+    );
+  }
+
+  return [
+    ...hashes.map((update) => update.hash),
+    proposer.numTilesOwned(),
+    recipient.numTilesOwned(),
+    recipient.isAlive() ? 1 : 0,
+    recipient.outgoingAllianceRequests().length,
+    proposer.incomingAllianceRequests().length,
+  ];
+}
 
 describe("CapitulationExecution", () => {
   let game: Game;
@@ -108,6 +169,14 @@ describe("CapitulationExecution", () => {
     expect(recipient.numTilesOwned()).toBe(2);
   });
 
+  test("replays an accepted capitulation to the same synchronized state", async () => {
+    const first = await deterministicCapitulationResult();
+    const second = await deterministicCapitulationResult();
+
+    expect(first.length).toBeGreaterThan(5);
+    expect(first).toEqual(second);
+  });
+
   test("an ordinary counter-request does not accept capitulation", () => {
     const request = proposer.createAllianceRequest(
       recipient,
@@ -139,5 +208,24 @@ describe("CapitulationExecution", () => {
     );
     game.executeNextTick();
     expect(request?.status()).toBe("canceled");
+  });
+
+  test("ignores an accept intent after the capitulation request is stale", () => {
+    const request = proposer.createAllianceRequest(
+      recipient,
+      0,
+      "capitulation",
+    );
+    request?.reject();
+
+    game.addExecution(
+      new CapitulationExecution(recipient, "accept", proposer.id()),
+    );
+    game.executeNextTick();
+
+    expect(request?.status()).toBe("rejected");
+    expect(recipient.numTilesOwned()).toBe(2);
+    expect(proposer.numTilesOwned()).toBe(1);
+    expect(proposer.allianceWith(recipient)).toBeNull();
   });
 });
