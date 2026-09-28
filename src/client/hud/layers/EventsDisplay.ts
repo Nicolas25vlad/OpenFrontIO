@@ -180,15 +180,18 @@ export class EventsDisplay extends LitElement implements Controller {
       return;
     }
     this.addEvent({
-      description:
-        e.territoryPercent > 0
-          ? translateText("events_display.peace_offer_sent", {
+      description: e.peaceOffer
+        ? e.territoryPercent === 0
+          ? translateText("events_display.white_peace_sent", {
+              name: e.recipient.name(),
+            })
+          : translateText("events_display.peace_offer_sent", {
               name: e.recipient.name(),
               percent: e.territoryPercent,
             })
-          : translateText("events_display.alliance_request_sent", {
-              name: e.recipient.name(),
-            }),
+        : translateText("events_display.alliance_request_sent", {
+            name: e.recipient.name(),
+          }),
       type: MessageType.ALLIANCE_REQUEST,
       createdAt: this.game.ticks(),
     });
@@ -382,6 +385,27 @@ export class EventsDisplay extends LitElement implements Controller {
       update.request.recipientID,
     ) as PlayerView;
     const territoryPercent = update.request.territoryPercent ?? 0;
+    if (update.request.kind === "peace" && territoryPercent === 0) {
+      this.addEvent({
+        description: translateText("events_display.white_peace_status", {
+          name: recipient.displayName(),
+          status: update.accepted
+            ? translateText("events_display.alliance_accepted")
+            : translateText(
+                update.canceled
+                  ? "events_display.alliance_canceled"
+                  : "events_display.alliance_rejected",
+              ),
+        }),
+        type: update.accepted
+          ? MessageType.ALLIANCE_ACCEPTED
+          : MessageType.ALLIANCE_REJECTED,
+        highlight: true,
+        createdAt: this.game.ticks(),
+        focusID: update.request.recipientID,
+      });
+      return;
+    }
     if (update.request.kind === "capitulation") {
       this.addEvent({
         description: translateText("events_display.capitulation_status", {

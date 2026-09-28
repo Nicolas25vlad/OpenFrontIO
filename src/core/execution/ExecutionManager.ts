@@ -108,6 +108,7 @@ export class Executor {
           player,
           intent.recipient,
           intent.territoryPercent ?? 0,
+          intent.peaceOffer ? "peace" : "alliance",
         );
       case "capitulation":
         return new CapitulationExecution(player, intent.action, intent.player);

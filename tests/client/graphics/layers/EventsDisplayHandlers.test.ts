@@ -170,6 +170,25 @@ describe("EventsDisplay handlers", () => {
       );
       expect(events()[0].description).toContain("Stranger");
     });
+
+    it("records white peace status separately from an ordinary alliance", () => {
+      ed.onAllianceRequestReplyEvent({
+        type: GameUpdateType.AllianceRequestReply,
+        request: {
+          requestorID: 1,
+          recipientID: 3,
+          createdAt: 0,
+          kind: "peace",
+        },
+        accepted: true,
+      } as never);
+
+      expect(events()).toHaveLength(1);
+      expect(events()[0].description).toContain(
+        "events_display.white_peace_status",
+      );
+      expect(events()[0].description).toContain("Stranger");
+    });
   });
 
   describe("onBrokeAllianceEvent", () => {

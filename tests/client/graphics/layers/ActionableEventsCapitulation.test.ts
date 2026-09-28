@@ -23,7 +23,10 @@ vi.mock("lit/directives/unsafe-html.js", () => ({
 }));
 
 import { ActionableEvents } from "../../../../src/client/hud/layers/ActionableEvents";
-import { SendCapitulationIntentEvent } from "../../../../src/client/Transport";
+import {
+  SendAllianceRequestIntentEvent,
+  SendCapitulationIntentEvent,
+} from "../../../../src/client/Transport";
 
 describe("ActionableEvents capitulation feedback", () => {
   const me = {
@@ -107,5 +110,28 @@ describe("ActionableEvents capitulation feedback", () => {
     });
 
     expect((actionableEvents as any).events).toHaveLength(0);
+  });
+
+  it("labels white peace distinctly and accepts it without territory", () => {
+    const { actionableEvents, emittedEvents } = displayWithUpdates();
+    let sent: SendAllianceRequestIntentEvent | undefined;
+    emittedEvents.on(SendAllianceRequestIntentEvent, (event) => (sent = event));
+
+    (actionableEvents as any).onAllianceRequestEvent({
+      type: GameUpdateType.AllianceRequest,
+      requestorID: other.smallID(),
+      recipientID: me.smallID(),
+      createdAt: 10,
+      kind: "peace",
+    });
+
+    const card = (actionableEvents as any).events[0];
+    expect(card.description).toContain("events_display.request_white_peace");
+    expect(card.buttons[1].text).toContain("events_display.accept_white_peace");
+    card.buttons[1].action();
+
+    expect(sent).toBeInstanceOf(SendAllianceRequestIntentEvent);
+    expect(sent?.recipient).toBe(other);
+    expect(sent?.territoryPercent).toBe(0);
   });
 });

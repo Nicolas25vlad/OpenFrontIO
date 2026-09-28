@@ -77,6 +77,12 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     recipient: P3,
     territoryPercent: 10,
   },
+  {
+    type: "allianceRequest",
+    clientID: P1,
+    recipient: P3,
+    peaceOffer: true,
+  },
   { type: "allianceReject", clientID: P3, requestor: P1 },
   { type: "allianceCancel", clientID: P1, recipient: P3 },
   { type: "capitulation", clientID: P1, action: "propose", player: P3 },

@@ -655,8 +655,10 @@ export const AllianceRequestIntentSchema = z.object({
   type: z.literal("allianceRequest"),
   recipient: MappedID,
   // Positive values ask the recipient to cede this share of connected land
-  // as part of the peace agreement. Omitted/zero remains an ordinary alliance.
+  // as part of the peace agreement. peaceOffer also makes zero-percent offers
+  // explicit without changing older ordinary alliance intents.
   territoryPercent: zb.uint({ max: 50 }).optional(),
+  peaceOffer: z.boolean().optional(),
 });
 
 export const CapitulationIntentSchema = z.object({

@@ -1,6 +1,7 @@
 import { AllianceRejectExecution } from "../src/core/execution/alliance/AllianceRejectExecution";
 import { AllianceRequestExecution } from "../src/core/execution/alliance/AllianceRequestExecution";
 import { NukeExecution } from "../src/core/execution/NukeExecution";
+import { PEACE_TRUCE_DURATION_TICKS } from "../src/core/game/AllianceImpl";
 import { Game, Player, PlayerType, UnitType } from "../src/core/game/Game";
 import { playerInfo, setup } from "./util/Setup";
 import { constructionExecution } from "./util/utils";
@@ -37,6 +38,28 @@ describe("AllianceRequestExecution", () => {
 
     expect(player1.isAlliedWith(player2)).toBeTruthy();
     expect(player2.isAlliedWith(player1)).toBeTruthy();
+    expect(player1.allianceWith(player2)?.expiresAt()).toBe(
+      game.ticks() - 1 + game.config().allianceDuration(),
+    );
+  });
+
+  test("accepts white peace through a counter-request and uses truce duration", () => {
+    game.addExecution(
+      new AllianceRequestExecution(player1, player2.id(), 0, "peace"),
+    );
+    game.executeNextTick();
+    const [request] = player1.outgoingAllianceRequests();
+    expect(request?.kind()).toBe("peace");
+
+    game.addExecution(new AllianceRequestExecution(player2, player1.id()));
+    game.executeNextTick();
+
+    expect(request?.status()).toBe("accepted");
+    expect(player1.numTilesOwned()).toBe(1);
+    expect(player2.numTilesOwned()).toBe(1);
+    expect(player1.allianceWith(player2)?.expiresAt()).toBe(
+      game.ticks() - 1 + PEACE_TRUCE_DURATION_TICKS,
+    );
   });
 
   test("Can reject alliance request", () => {

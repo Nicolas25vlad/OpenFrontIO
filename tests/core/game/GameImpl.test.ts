@@ -124,6 +124,43 @@ describe("GameImpl", () => {
     );
   });
 
+  test("accepts white peace without transfer and starts a 180 second truce", async () => {
+    const peaceGame = await setup(
+      "plains",
+      { infiniteGold: true, instantBuild: true },
+      [],
+      undefined,
+      undefined,
+      false,
+    );
+    const requestor = peaceGame.addPlayer(
+      new PlayerInfo("requestor", PlayerType.Human, null, "requestor_id"),
+    );
+    const recipient = peaceGame.addPlayer(
+      new PlayerInfo("recipient", PlayerType.Human, null, "recipient_id"),
+    );
+    const requestorTile = peaceGame.ref(20, 20);
+    const recipientTile = peaceGame.ref(21, 20);
+    requestor.conquer(requestorTile);
+    recipient.conquer(recipientTile);
+    peaceGame.endSpawnPhase();
+
+    const addUpdate = vi.spyOn(peaceGame, "addUpdate");
+    const request = requestor.createAllianceRequest(recipient, 0, "peace");
+    expect(request?.kind()).toBe("peace");
+    expect(addUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "peace" }),
+    );
+    request?.accept();
+
+    expect(request?.status()).toBe("accepted");
+    expect(peaceGame.owner(requestorTile)).toBe(requestor);
+    expect(peaceGame.owner(recipientTile)).toBe(recipient);
+    expect(requestor.allianceWith(recipient)?.expiresAt()).toBe(
+      peaceGame.ticks() + PEACE_TRUCE_DURATION_TICKS,
+    );
+  });
+
   test("rejects stale peace terms without changing land or creating an alliance", async () => {
     const peaceGame = await setup(
       "plains",

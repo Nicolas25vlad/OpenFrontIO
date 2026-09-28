@@ -58,6 +58,7 @@ export class SendAllianceRequestIntentEvent implements GameEvent {
     public readonly requestor: PlayerView,
     public readonly recipient: PlayerView,
     public readonly territoryPercent = 0,
+    public readonly peaceOffer = false,
   ) {}
 }
 
@@ -735,6 +736,7 @@ export class Transport {
       ...(event.territoryPercent > 0
         ? { territoryPercent: event.territoryPercent }
         : {}),
+      ...(event.peaceOffer ? { peaceOffer: true } : {}),
     });
   }
 

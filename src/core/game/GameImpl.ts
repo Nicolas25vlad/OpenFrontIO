@@ -435,7 +435,7 @@ export class GameImpl implements Game {
     requestor: Player,
     recipient: Player,
     territoryPercent = 0,
-    kind: "alliance" | "capitulation" = "alliance",
+    kind: "alliance" | "peace" | "capitulation" = "alliance",
   ): AllianceRequest | null {
     if (
       !Number.isInteger(territoryPercent) ||
@@ -458,11 +458,12 @@ export class GameImpl implements Game {
       return null;
     }
     const correspondingReq =
-      kind === "alliance"
+      kind !== "capitulation"
         ? requestor
             .incomingAllianceRequests()
             .find(
-              (ar) => ar.requestor() === recipient && ar.kind() === "alliance",
+              (ar) =>
+                ar.requestor() === recipient && ar.kind() !== "capitulation",
             )
         : undefined;
     if (correspondingReq !== undefined) {
@@ -524,7 +525,9 @@ export class GameImpl implements Game {
       recipient as PlayerImpl,
       this._ticks,
       this.nextAllianceID++,
-      request.territoryPercent() > 0 ? PEACE_TRUCE_DURATION_TICKS : undefined,
+      request.kind() === "peace" || request.territoryPercent() > 0
+        ? PEACE_TRUCE_DURATION_TICKS
+        : undefined,
     );
     (alliance.requestor() as PlayerImpl)._alliances.push(alliance);
     (alliance.recipient() as PlayerImpl)._alliances.push(alliance);

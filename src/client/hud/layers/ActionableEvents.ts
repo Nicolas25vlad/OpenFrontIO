@@ -221,6 +221,7 @@ export class ActionableEvents extends LitElement implements Controller {
     ) as PlayerView;
     const territoryPercent = update.territoryPercent ?? 0;
     const isCapitulation = update.kind === "capitulation";
+    const isWhitePeace = update.kind === "peace" && territoryPercent === 0;
 
     if (!requestor.isAlliedWith(recipient)) {
       this.eventBus.emit(new PlaySoundEffectEvent("alliance-suggested"));
@@ -230,14 +231,18 @@ export class ActionableEvents extends LitElement implements Controller {
         ? translateText("events_display.capitulation_request", {
             name: requestor.displayName(),
           })
-        : territoryPercent > 0
-          ? translateText("events_display.request_peace_offer", {
+        : isWhitePeace
+          ? translateText("events_display.request_white_peace", {
               name: requestor.displayName(),
-              percent: territoryPercent,
             })
-          : translateText("events_display.request_alliance", {
-              name: requestor.displayName(),
-            }),
+          : territoryPercent > 0
+            ? translateText("events_display.request_peace_offer", {
+                name: requestor.displayName(),
+                percent: territoryPercent,
+              })
+            : translateText("events_display.request_alliance", {
+                name: requestor.displayName(),
+              }),
       buttons: [
         {
           text: translateText("events_display.focus"),
@@ -249,9 +254,11 @@ export class ActionableEvents extends LitElement implements Controller {
           text: translateText(
             isCapitulation
               ? "events_display.accept_capitulation"
-              : territoryPercent > 0
-                ? "events_display.accept_peace_offer"
-                : "events_display.accept_alliance",
+              : isWhitePeace
+                ? "events_display.accept_white_peace"
+                : territoryPercent > 0
+                  ? "events_display.accept_peace_offer"
+                  : "events_display.accept_alliance",
           ),
           className: "btn",
           action: () =>

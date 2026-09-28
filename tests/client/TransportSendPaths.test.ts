@@ -188,6 +188,14 @@ describe("Transport send paths", () => {
         new SendAllianceRequestIntentEvent(
           { id: () => "player01" } as unknown as PlayerView,
           { id: () => "player02" } as unknown as PlayerView,
+          0,
+          true,
+        ),
+      );
+      eventBus.emit(
+        new SendAllianceRequestIntentEvent(
+          { id: () => "player01" } as unknown as PlayerView,
+          { id: () => "player02" } as unknown as PlayerView,
         ),
       );
       eventBus.emit(
@@ -220,6 +228,14 @@ describe("Transport send paths", () => {
             type: "allianceRequest",
             recipient: "player02",
             territoryPercent: 10,
+          },
+        },
+        {
+          type: "intent",
+          intent: {
+            type: "allianceRequest",
+            recipient: "player02",
+            peaceOffer: true,
           },
         },
         {

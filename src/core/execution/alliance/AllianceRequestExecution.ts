@@ -18,6 +18,7 @@ export class AllianceRequestExecution implements Execution {
     private requestor: Player,
     private recipientID: PlayerID,
     private territoryPercent = 0,
+    private offerKind: "alliance" | "peace" = "alliance",
   ) {}
 
   init(mg: Game, ticks: number): void {
@@ -38,7 +39,8 @@ export class AllianceRequestExecution implements Execution {
       const incoming = recipient
         .outgoingAllianceRequests()
         .find(
-          (r) => r.recipient() === this.requestor && r.kind() === "alliance",
+          (r) =>
+            r.recipient() === this.requestor && r.kind() !== "capitulation",
         );
       if (incoming) {
         // If the recipient already has pending alliance request,
@@ -63,6 +65,7 @@ export class AllianceRequestExecution implements Execution {
         this.req = this.requestor.createAllianceRequest(
           recipient,
           this.territoryPercent,
+          this.offerKind,
         );
       }
     }

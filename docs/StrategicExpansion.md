@@ -688,9 +688,11 @@ ameaça segundo a heurística atual, não for traidor, não tiver alianças em e
 e pedir no máximo 10%; termos maiores ou sem ameaça são recusados.
 
 O painel do jogador agora permite escolher qualquer percentual inteiro de 1% a
-50% antes de enviar a oferta. A seleção usa o intent e o planejador territorial
-existentes; o limite do core continua aceitando apenas percentuais inteiros até
-50%.
+50% antes de enviar a oferta, ou 0% para propor paz branca. A paz branca usa o
+campo opcional `peaceOffer` e um tipo de pedido explícito, transfere zero tiles
+e inicia a trégua de 180 segundos; intents antigos de aliança sem esse campo
+mantêm a duração normal. Ofertas com cessão continuam usando o planejador
+territorial e aceitam apenas percentuais inteiros até 50%.
 `tests/client/graphics/layers/PlayerPanelActions.test.ts` confirma que o valor
 selecionado chega ao evento e que entradas são limitadas ao intervalo do core.
 A revalidação do painel, execução da proposta e planejador de transferência
@@ -702,6 +704,20 @@ comportamento dos bots passaram em 5 arquivos/30 testes. `npm run build-dev`,
 Em 2026-09-28, `tests/core/game/GameImpl.test.ts` passou com 5 testes incluindo
 a expiração automática da trégua pelo ciclo real da simulação; também passaram
 `tsc --noEmit`, ESLint, Prettier e `git diff --check`.
+
+Para a paz branca, a suíte focada passou em 7 arquivos/86 testes. Também
+passaram `npm run build-dev`, `tsc --noEmit`, ESLint, Prettier e
+`git diff --check`. O build reportou avisos de bundle acima de 500 kB e tempo
+de plugins; terminou com código 0. Esta etapa alterou `src/core/Schemas.ts`,
+`src/core/execution/ExecutionManager.ts`,
+`src/core/execution/alliance/AllianceRequestExecution.ts`,
+`src/core/game/AllianceRequestImpl.ts`, `src/core/game/Game.ts`,
+`src/core/game/GameImpl.ts`, `src/core/game/GameUpdates.ts`,
+`src/core/game/PlayerImpl.ts`, `src/client/Transport.ts`,
+`src/client/hud/layers/PlayerPanel.ts`,
+`src/client/hud/layers/ActionableEvents.ts`,
+`src/client/hud/layers/EventsDisplay.ts`, traduções EN/PT-BR e testes de
+core, transporte e HUD.
 
 Arquivos desta etapa: `src/core/game/TerritoryTransfer.ts`,
 `src/core/game/GameImpl.ts`, `src/core/game/AllianceImpl.ts`,
@@ -723,12 +739,14 @@ pendente.
 
 1. Rode `npm run dev:host`, inicie uma partida com dois jogadores em terra
    conectada e abra o painel do destinatário.
-2. No campo percentual, envie ofertas de 1%, 37% e 50%. O destinatário deve ver
-   a porcentagem correta e poder aceitar ou recusar; o remetente deve poder
-   cancelar enquanto estiver pendente.
+2. No campo percentual, envie uma oferta de 0% e ofertas de 1%, 37% e 50%. A de
+   0% deve ser identificada como paz branca; as demais mostram a cessão
+   solicitada. O destinatário deve poder aceitar ou recusar; o remetente deve
+   poder cancelar enquanto estiver pendente.
 3. Ao aceitar, confira que o destinatário cede uma região contígua junto à
    fronteira do solicitante, preserva seu tile de surgimento e ambos ficam em
-   trégua por 180 segundos. Durante a trégua, ataques entre eles devem ser
+   trégua por 180 segundos. A paz branca não transfere tiles. Durante a trégua,
+   ataques entre eles devem ser
    bloqueados; quebrá-la deve aplicar a penalidade normal de traição.
 4. Repita após uma terceira conquista separar os territórios ou deixar menos
    área conectada que a porcentagem solicitada. A proposta deve ser recusada sem

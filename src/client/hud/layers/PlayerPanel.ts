@@ -241,7 +241,12 @@ export class PlayerPanel extends LitElement implements Controller {
   ) {
     e.stopPropagation();
     this.eventBus.emit(
-      new SendAllianceRequestIntentEvent(myPlayer, other, territoryPercent),
+      new SendAllianceRequestIntentEvent(
+        myPlayer,
+        other,
+        territoryPercent,
+        true,
+      ),
     );
     this.hide();
   }
@@ -257,7 +262,7 @@ export class PlayerPanel extends LitElement implements Controller {
     const requested = Number(input.value);
     this.peaceOfferPercent = Math.min(
       MAX_PEACE_TERRITORY_PERCENT,
-      Math.max(1, Number.isFinite(requested) ? Math.round(requested) : 10),
+      Math.max(0, Number.isFinite(requested) ? Math.round(requested) : 10),
     );
   }
 
@@ -983,7 +988,7 @@ export class PlayerPanel extends LitElement implements Controller {
                             )}
                             class="w-full min-w-0 rounded-sm bg-gray-800 px-1 py-1 text-white"
                             type="number"
-                            min="1"
+                            min="0"
                             max=${MAX_PEACE_TERRITORY_PERCENT}
                             step="1"
                             .value=${String(this.peaceOfferPercent)}
@@ -997,8 +1002,16 @@ export class PlayerPanel extends LitElement implements Controller {
                             this.handlePeaceOfferClick(e, my, other),
                           icon: allianceIcon,
                           iconAlt: "Peace offer",
-                          title: translateText("player_panel.offer_peace"),
-                          label: translateText("player_panel.offer_peace"),
+                          title: translateText(
+                            this.peaceOfferPercent === 0
+                              ? "player_panel.offer_white_peace"
+                              : "player_panel.offer_peace",
+                          ),
+                          label: translateText(
+                            this.peaceOfferPercent === 0
+                              ? "player_panel.offer_white_peace"
+                              : "player_panel.offer_peace",
+                          ),
                           type: "green",
                         })}
                       </div>
