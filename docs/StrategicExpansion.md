@@ -794,10 +794,11 @@ esperado estão em [CapitulationDesign.md](CapitulationDesign.md).
 Validação no homelab: 35 testes focados passaram em seis arquivos, incluindo
 transferência do spawn, autorização, contraproposta, ataques ativos, estruturas,
 míssil e limpeza de estoques. Em 2026-09-28, `tests/CapitulationExecution.test.ts`
-passou com 9 testes, incluindo hash repetível após aceite por intents do
+passou com 10 testes, incluindo hash repetível após aceite por intents do
 `Executor`, tentativa de aceite depois da recusa, resolução dos pedidos
 diplomáticos de entrada/saída após a eliminação, remoção de trincheiras na
-transferência do território e compatibilidade com economia legada;
+transferência do território, descarte de uma construção já enfileirada para o
+jogador eliminado e compatibilidade com economia legada;
 `tests/AiTankBehavior.test.ts`
 passou com 5 testes, incluindo os ciclos integrados de nação e tribo. Também
 passaram `tsc --noEmit`, ESLint, Prettier e `git diff --check`. A conferência
@@ -817,7 +818,7 @@ distingui-la de um pedido comum, remover o cartão após resolução e registrar
 aceite como conquista. `ActionableEventsCapitulation`, `EventsDisplayHandlers`
 e `PlayerPanelActions` passaram em 3 arquivos/26 testes.
 O teste conjunto de `CapitulationExecution` e `BuildTrenchExecution` passou em
-2 arquivos/15 testes após cobrir essa transferência.
+2 arquivos/16 testes após cobrir a transferência e a construção enfileirada.
 
 ## Economia nuclear e Anti-ICBM — issue #9
 

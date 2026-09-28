@@ -1,4 +1,5 @@
 import { AttackExecution } from "../src/core/execution/AttackExecution";
+import { ConstructionExecution } from "../src/core/execution/ConstructionExecution";
 import { Executor } from "../src/core/execution/ExecutionManager";
 import { AllianceRequestExecution } from "../src/core/execution/alliance/AllianceRequestExecution";
 import { CapitulationExecution } from "../src/core/execution/alliance/CapitulationExecution";
@@ -158,6 +159,32 @@ describe("CapitulationExecution", () => {
     expect(recipient.resourceAmount(NaturalResource.Oil)).toBe(0);
     expect(recipient.resourceAmount(ProcessedResource.Food)).toBe(0);
     expect(game.trenchLevel(fortifiedTile)).toBe(0);
+  });
+
+  test("does not complete a queued construction for the eliminated player", () => {
+    const tile = game.ref(21, 20);
+    const construction = new ConstructionExecution(
+      recipient,
+      UnitType.City,
+      tile,
+    );
+    game.addExecution(construction);
+
+    const surrender = proposer.createAllianceRequest(
+      recipient,
+      0,
+      "capitulation",
+    );
+    surrender?.accept();
+    game.executeNextTick(); // initialize the already queued construction
+    game.executeNextTick(); // it must fail validation after elimination
+
+    expect(surrender?.status()).toBe("accepted");
+    expect(game.owner(tile)).toBe(proposer);
+    expect(game.units(UnitType.City).some((unit) => unit.tile() === tile)).toBe(
+      false,
+    );
+    expect(construction.isActive()).toBe(false);
   });
 
   test("resolves the eliminated player's other pending diplomatic requests", () => {
