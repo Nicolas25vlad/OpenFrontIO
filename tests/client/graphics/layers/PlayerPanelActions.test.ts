@@ -242,10 +242,10 @@ describe("PlayerPanel - action buttons follow PlayerActions capability flags", (
     expect(panel.isVisible).toBe(false);
   });
 
-  test("peace action can request a different supported percentage", () => {
+  test("peace action supports any integer percentage from 1 to 50", () => {
     const events: SendAllianceRequestIntentEvent[] = [];
     eventBus.on(SendAllianceRequestIntentEvent, (event) => events.push(event));
-    (panel as any).peaceOfferPercent = 25;
+    (panel as any).updatePeaceOfferPercent({ target: { value: "37" } });
 
     (panel as any).handlePeaceOfferClick(
       { stopPropagation: vi.fn() },
@@ -254,7 +254,15 @@ describe("PlayerPanel - action buttons follow PlayerActions capability flags", (
     );
 
     expect(events).toHaveLength(1);
-    expect(events[0].territoryPercent).toBe(25);
+    expect(events[0].territoryPercent).toBe(37);
+  });
+
+  test("clamps peace percentages to the core's accepted range", () => {
+    (panel as any).updatePeaceOfferPercent({ target: { value: "80" } });
+    expect((panel as any).peaceOfferPercent).toBe(50);
+
+    (panel as any).updatePeaceOfferPercent({ target: { value: "0" } });
+    expect((panel as any).peaceOfferPercent).toBe(1);
   });
 
   test("no capability flags renders only chat and the start-trade toggle", () => {

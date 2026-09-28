@@ -12,6 +12,7 @@ import {
   Relation,
 } from "../../../core/game/Game";
 import { TileRef } from "../../../core/game/GameMap";
+import { MAX_PEACE_TERRITORY_PERCENT } from "../../../core/game/TerritoryTransfer";
 import { Emoji, flattenedEmojiTable } from "../../../core/Util";
 import { fetchLobbyListed } from "../../Api";
 import { actionButton } from "../../components/ui/ActionButton";
@@ -242,6 +243,15 @@ export class PlayerPanel extends LitElement implements Controller {
       new SendAllianceRequestIntentEvent(myPlayer, other, territoryPercent),
     );
     this.hide();
+  }
+
+  private updatePeaceOfferPercent(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const requested = Number(input.value);
+    this.peaceOfferPercent = Math.min(
+      MAX_PEACE_TERRITORY_PERCENT,
+      Math.max(1, Number.isFinite(requested) ? Math.round(requested) : 10),
+    );
   }
 
   private handleBreakAllianceClick(
@@ -946,25 +956,22 @@ export class PlayerPanel extends LitElement implements Controller {
                         type: "indigo",
                       })}
                       <div class="flex min-w-0 flex-col gap-1">
-                        <select
-                          aria-label=${translateText(
-                            "player_panel.peace_offer_percent",
-                          )}
-                          class="min-w-0 rounded-sm bg-gray-800 px-1 py-1 text-white"
-                          .value=${String(this.peaceOfferPercent)}
-                          @change=${(e: Event) => {
-                            this.peaceOfferPercent = Number(
-                              (e.target as HTMLSelectElement).value,
-                            );
-                          }}
-                        >
-                          ${[10, 25, 50].map(
-                            (percent) =>
-                              html`<option value=${percent}>
-                                ${percent}%
-                              </option>`,
-                          )}
-                        </select>
+                        <label class="flex items-center gap-1 text-xs">
+                          <input
+                            aria-label=${translateText(
+                              "player_panel.peace_offer_percent",
+                            )}
+                            class="w-full min-w-0 rounded-sm bg-gray-800 px-1 py-1 text-white"
+                            type="number"
+                            min="1"
+                            max=${MAX_PEACE_TERRITORY_PERCENT}
+                            step="1"
+                            .value=${String(this.peaceOfferPercent)}
+                            @change=${(e: Event) =>
+                              this.updatePeaceOfferPercent(e)}
+                          />
+                          <span>%</span>
+                        </label>
                         ${actionButton({
                           onClick: (e: MouseEvent) =>
                             this.handlePeaceOfferClick(e, my, other),

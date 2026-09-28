@@ -457,8 +457,8 @@ testes de execução/wire.
 A validação automatizada desta etapa passou em 13 arquivos/122 testes e cobre
 autorização, cancelamento, estado terminal de propostas resolvidas, transferência
 territorial, duração da trégua, atualização sincronizada e codificação do intent.
-`tsc --noEmit`, lint e `npm run build-dev` passaram. O painel agora oferece
-cessões de 10%, 25% e 50%. Ainda faltam termos percentuais personalizados,
+`tsc --noEmit`, lint e `npm run build-dev` passaram. O painel agora permite
+escolher qualquer percentual inteiro de 1% a 50%. Ainda faltam outros termos e
 capitulação (acompanhada separadamente na
 [issue #12](https://github.com/Nicolas25vlad/OpenFrontIO/issues/12)) e validação
 visual em replay e multiplayer; a issue #8 permanece aberta.
@@ -485,11 +485,15 @@ clientes. Para bots, uma oferta de cessão só é aceita se o solicitante for um
 ameaça segundo a heurística atual, não for traidor, não tiver alianças em excesso
 e pedir no máximo 10%; termos maiores ou sem ameaça são recusados.
 
-O painel do jogador agora permite escolher cessões de 10%, 25% ou 50% antes de
-enviar a oferta. A seleção usa o intent e o planejador territorial existentes;
-o limite do core continua aceitando apenas percentuais inteiros até 50%.
+O painel do jogador agora permite escolher qualquer percentual inteiro de 1% a
+50% antes de enviar a oferta. A seleção usa o intent e o planejador territorial
+existentes; o limite do core continua aceitando apenas percentuais inteiros até
+50%.
 `tests/client/graphics/layers/PlayerPanelActions.test.ts` confirma que o valor
-selecionado chega ao evento.
+selecionado chega ao evento e que entradas são limitadas ao intervalo do core.
+A revalidação do painel, execução da proposta e planejador de transferência
+passou em 3 arquivos/19 testes; `tsc --noEmit`, Oxlint, ESLint, Prettier,
+`git diff --check` e `npm run build-dev` passaram.
 Os testes focados de painel, proposta, cancelamento, transferência territorial e
 comportamento dos bots passaram em 5 arquivos/30 testes. `npm run build-dev`,
 `tsc --noEmit`, Oxlint, ESLint, Prettier e `git diff --check` passaram.
@@ -514,7 +518,7 @@ pendente.
 
 1. Rode `npm run dev:host`, inicie uma partida com dois jogadores em terra
    conectada e abra o painel do destinatário.
-2. No seletor de paz, envie ofertas de 10%, 25% e 50%. O destinatário deve ver
+2. No campo percentual, envie ofertas de 1%, 37% e 50%. O destinatário deve ver
    a porcentagem correta e poder aceitar ou recusar; o remetente deve poder
    cancelar enquanto estiver pendente.
 3. Ao aceitar, confira que o destinatário cede uma região contígua junto à
@@ -528,8 +532,8 @@ pendente.
 
 Esperado: os mesmos tiles são transferidos em todos os clientes; uma oferta
 inválida não produz transferência nem trégua; pedidos comuns de aliança seguem
-com o comportamento anterior. A issue #8 continua aberta para exigências
-territoriais personalizadas e demais termos de paz; capitulação está na
+com o comportamento anterior. A issue #8 continua aberta para outros termos de
+paz; capitulação está na
 [issue #12](https://github.com/Nicolas25vlad/OpenFrontIO/issues/12).
 
 ## Economia nuclear e Anti-ICBM — issue #9
