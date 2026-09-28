@@ -82,8 +82,8 @@ describe("WarshipSelectionController", () => {
       view,
     );
     const units = [
-      { id: () => 1, isActive: () => true },
-      { id: () => 2, isActive: () => true },
+      { id: () => 1, isActive: () => true, type: () => "Warship" },
+      { id: () => 2, isActive: () => true, type: () => "Warship" },
     ];
     ui["onUnitSelection"]({
       isSelected: true,

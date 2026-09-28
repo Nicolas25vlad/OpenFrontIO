@@ -102,6 +102,7 @@ const SAMPLE_INTENTS: StampedIntent[] = [
   { type: "embargo", clientID: P1, targetID: P2, action: "start" },
   { type: "embargo_all", clientID: P1, action: "stop" },
   { type: "move_warship", clientID: P3, unitIds: [1, 2, 3], tile: 555 },
+  { type: "move_tank", clientID: P1, unitIds: [4, 5], tile: 556 },
   {
     type: "dispatch_trade_route",
     clientID: P3,

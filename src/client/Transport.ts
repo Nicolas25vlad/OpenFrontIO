@@ -224,6 +224,13 @@ export class MoveWarshipIntentEvent implements GameEvent {
   ) {}
 }
 
+export class MoveTankIntentEvent implements GameEvent {
+  constructor(
+    public readonly unitIds: number[],
+    public readonly tile: number,
+  ) {}
+}
+
 export class DispatchTradeRouteIntentEvent implements GameEvent {
   constructor(
     public readonly sourcePortID: number,
@@ -368,6 +375,13 @@ export class Transport {
 
     this.eventBus.on(MoveWarshipIntentEvent, (e) => {
       this.onMoveWarshipEvent(e);
+    });
+    this.eventBus.on(MoveTankIntentEvent, (e) => {
+      this.sendIntent({
+        type: "move_tank",
+        unitIds: e.unitIds,
+        tile: e.tile,
+      });
     });
     this.eventBus.on(DispatchTradeRouteIntentEvent, (e) => {
       this.sendIntent({

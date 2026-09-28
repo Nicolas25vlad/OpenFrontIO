@@ -42,7 +42,7 @@ export const BUILD_CATEGORIES: readonly BuildCategory[] = [
     translationKey: "build_category.military",
     icon: defensePostIcon,
     keybind: "buildCategoryMilitary",
-    unitTypes: [UnitType.DefensePost, UnitType.Warship],
+    unitTypes: [UnitType.DefensePost, UnitType.Warship, UnitType.Tank],
   },
   {
     id: "nuclear",

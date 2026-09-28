@@ -21,14 +21,15 @@ import {
 } from "../../InputHandler";
 import { TransformHandler } from "../../TransformHandler";
 import {
-  BuildUnitIntentEvent,
   BuildTrenchIntentEvent,
+  BuildUnitIntentEvent,
   SendUpgradeStructureIntentEvent,
 } from "../../Transport";
 import { UIState } from "../../UIState";
 import { renderNumber } from "../../Utils";
 import { GameView } from "../../view";
 const warshipIcon = assetUrl("images/BattleshipIconWhite.svg");
+const tankIcon = assetUrl("images/TankIcon.svg");
 const cityIcon = assetUrl("images/CityIconWhite.svg");
 const factoryIcon = assetUrl("images/FactoryIconWhite.svg");
 const mineIcon = assetUrl("images/MineIcon.svg");
@@ -77,6 +78,13 @@ export const buildTable: BuildItemDisplay[][] = [
       icon: warshipIcon,
       description: "build_menu.desc.warship",
       key: "unit_type.warship",
+      countable: true,
+    },
+    {
+      unitType: UnitType.Tank,
+      icon: tankIcon,
+      description: "build_menu.desc.tank",
+      key: "unit_type.tank",
       countable: true,
     },
     {
@@ -553,16 +561,25 @@ export class BuildMenu extends LitElement implements Controller {
         <button
           class="build-button"
           ?disabled=${!enabled}
-          title=${enabled ? "" : translateText("build_menu.trench_requirements")}
+          title=${enabled
+            ? ""
+            : translateText("build_menu.trench_requirements")}
           @click=${() => {
             this.eventBus.emit(new BuildTrenchIntentEvent(this.clickedTile));
             this.hideMenu();
           }}
         >
           <img src=${shieldIcon} alt="trincheira" width="40" height="40" />
-          <span class="build-name">${translateText("unit_type.trench")} ${this.game.trenchLevel(this.clickedTile)}/${maxLevel}</span>
-          <span class="build-description">${translateText("build_menu.desc.trench")}</span>
-          <span class="build-cost">${steelCost} ${translateText("resource.steel")}</span>
+          <span class="build-name"
+            >${translateText("unit_type.trench")}
+            ${this.game.trenchLevel(this.clickedTile)}/${maxLevel}</span
+          >
+          <span class="build-description"
+            >${translateText("build_menu.desc.trench")}</span
+          >
+          <span class="build-cost"
+            >${steelCost} ${translateText("resource.steel")}</span
+          >
         </button>
       </div>
     `;

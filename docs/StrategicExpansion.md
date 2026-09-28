@@ -122,9 +122,51 @@ opcional, limitada pela proporção infantaria/tanques e pelo estoque disponíve
 o pedido antigo sem o campo `tanks` continua enviando apenas infantaria. O navio
 mantém a carga sincronizada durante a rota e a transfere para o ataque ao chegar.
 A contagem viaja nos updates de unidade e no delta compacto de ataques; aparece
-no detalhe do transporte e nas listas/rótulos de ataques. Ainda faltam
-seleção/movimento de tanques como unidades independentes, acompanhados agora na
-[issue #13](https://github.com/Nicolas25vlad/OpenFrontIO/issues/13).
+no detalhe do transporte e nas listas/rótulos de ataques.
+
+### Tanques independentes — issue #13 (em andamento)
+
+Tanques produzidos continuam disponíveis no estoque estratégico e agora podem
+ser implantados como unidades móveis individuais. O core valida economia
+estratégica ativa, propriedade e terreno terrestre passável, reserva disponível
+e limite configurável de 24 tanques implantados por jogador. O cliente seleciona
+um tanque separadamente das tropas e aceita uma ordem de movimento até outra
+posição de terra própria passável. O caminho é determinístico, limitado a 250
+tiles e recalculado uma vez por ordem; a execução replica cada passo como update
+normal de unidade. Unidades móveis recebem sprite no carregamento do atlas, sem
+alterar o PNG compartilhado.
+
+O combate de tanques independentes, ordens para bots e captura/baixas ainda não
+estão implementados; a reserva antiga em ataques terrestres e comboios segue
+inalterada enquanto a issue permanece aberta.
+
+Arquivos desta etapa: `src/core/game/Game.ts`, `src/core/game/PlayerImpl.ts`,
+`src/core/game/UnitImpl.ts`, `src/core/configuration/Config.ts`,
+`src/core/configuration/StrategyConfig.ts`,
+`src/core/execution/ConstructionExecution.ts`,
+`src/core/execution/MoveTankExecution.ts`, `src/core/Schemas.ts`,
+`src/core/StatsSchemas.ts`, `src/client/controllers/TankSelectionController.ts`,
+`src/client/render/gl/passes/UnitPass.ts`, `resources/images/TankIcon.svg`,
+traduções e a tabela de estatísticas. Testes cobrem implantação, reserva,
+limite, economia legada, movimento determinístico, isolamento da infantaria e
+seleção/ordens próprias.
+
+### Validação manual pendente no PC principal
+
+1. Rode `npm run dev:host`, inicie uma partida com economia estratégica ativa e
+   produza tanques em uma Vehicle Factory.
+2. No menu Militar, implante um tanque em terra própria passável. Confirme que o
+   estoque cai em uma unidade, aparece o sprite do tanque e a unidade recebe
+   seleção independente.
+3. Clique em outra posição terrestre própria conectada. O tanque deve percorrer
+   o caminho tile a tile; tropas no território não devem se deslocar nem mudar.
+4. Tente implantar sem reserva, em terra alheia ou acima do limite. Nenhuma
+   unidade deve ser criada. Repita o movimento no replay e confirme a mesma
+   sequência de tiles.
+
+Esperado: implantação e movimento determinísticos em terra própria; ordens
+ilegais não alteram estoque ou posição. Teste de combate ainda não se aplica
+nesta etapa e será adicionado antes de fechar a issue.
 
 Agora a interface estratégica também oferece um controle de 0–100% para a
 quantidade de tanques que acompanha cada ataque terrestre, calculada sobre o

@@ -142,6 +142,7 @@
       "nuclear_plant": "Enriquece urânio consumindo combustível. Necessária para armas nucleares.",
       "port": "Envie navios de troca para gerar ouro",
       "sam_launcher": "Defende Contra Chegada de Bombas Nucleares",
+      "tank": "Implanta um tanque controlável usando seu estoque de reserva.",
       "trench": "Fortalece este tile da fronteira contra ataques terrestres.",
       "vehicle_factory": "Fabrica tanques usando aço e combustível.",
       "warship": "Capture navios comerciais, destrua navios e barcos"
@@ -1515,6 +1516,7 @@
     "sent": "Enviado",
     "ship_arrivals": "Chegada de Navios",
     "ship_type": "Tipo do Navio",
+    "tank_stats": "Estatísticas de Tanques",
     "trade": "Troca",
     "trains": "Trens",
     "trains_external": "Trens de outros",
@@ -1915,6 +1917,7 @@
     "sam_launcher": "Lançador de SAMs",
     "trench": "Trincheira",
     "vehicle_factory": "Fábrica de veículos",
+    "tank": "Tanque",
     "warship": "Navio de Guerra"
   },
   "user_setting": {

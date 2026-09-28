@@ -11,8 +11,8 @@ import { renderNumber, translateText } from "../../../Utils";
 // Display order for the buildings table. Declared as a Record rather than a
 // bare array so `satisfies` fails compilation when a structure is added to
 // `otherUnits` without being placed here — a standalone type-level assertion
-// would trip no-unused-vars. "wshp" is the one deliberate omission: warships
-// are not buildings and have their own section below.
+// would trip no-unused-vars. "wshp" and "tank" are deliberate omissions:
+// mobile units have their own sections below.
 const BUILDING_ORDER = {
   city: 1,
   port: 2,
@@ -26,7 +26,7 @@ const BUILDING_ORDER = {
   silo: 6,
   saml: 7,
 } as const satisfies Record<
-  Exclude<(typeof otherUnits)[number], "wshp">,
+  Exclude<(typeof otherUnits)[number], "wshp" | "tank">,
   number
 >;
 
@@ -48,6 +48,7 @@ const UNIT_LABEL_KEYS = {
   infra: "unit_type.infrastructure",
   vehicle: "unit_type.vehicle_factory",
   plant: "unit_type.nuclear_plant",
+  tank: "unit_type.tank",
   port: "unit_type.port",
   saml: "unit_type.sam_launcher",
   silo: "unit_type.missile_silo",
@@ -181,6 +182,9 @@ export class PlayerStatsTable extends LitElement {
         )}
         ${statsSection("player_stats_table.warship_stats", UNIT_COLUMNS, [
           { values: slots(stats?.units?.wshp, 4) },
+        ])}
+        ${statsSection("player_stats_table.tank_stats", UNIT_COLUMNS, [
+          { values: slots(stats?.units?.tank, 4) },
         ])}
         ${statsSection(
           "player_stats_table.ship_arrivals",

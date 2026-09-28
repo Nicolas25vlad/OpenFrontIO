@@ -51,6 +51,7 @@ import {
   UT_SAM_LAUNCHER,
   UT_SAM_MISSILE,
   UT_SHELL,
+  UT_TANK,
   UT_TRADE_SHIP,
   UT_TRANSPORT,
   UT_WARSHIP,
@@ -113,6 +114,7 @@ const ALL_MOBILE_UNIT_TYPES = [
   UT_SAM_MISSILE,
   UT_SHELL,
   UT_MIRV_WARHEAD,
+  UT_TANK,
 ];
 
 export class CosmeticPreviewRenderer {

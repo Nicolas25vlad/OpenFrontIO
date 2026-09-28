@@ -175,6 +175,7 @@
       "nuclear_plant": "Enriches uranium using fuel. Required for nuclear weapons.",
       "port": "Sends trade ships to generate gold",
       "sam_launcher": "Defends against incoming nukes",
+      "tank": "Deploys one independently controlled tank from your reserve.",
       "trench": "Fortifies this border tile against land attacks.",
       "vehicle_factory": "Manufactures tanks using steel and fuel.",
       "warship": "Captures trade ships, destroys ships and boats"
@@ -1605,6 +1606,7 @@
     "sent": "Sent",
     "ship_arrivals": "Ship Arrivals",
     "ship_type": "Ship Type",
+    "tank_stats": "Tank Statistics",
     "trade": "Trade",
     "trains": "Trains",
     "trains_external": "Others' Trains",
@@ -2081,6 +2083,7 @@
     "nuclear_plant": "Nuclear plant",
     "port": "Port",
     "sam_launcher": "SAM Launcher",
+    "tank": "Tank",
     "trench": "Trench",
     "vehicle_factory": "Vehicle factory",
     "warship": "Warship"

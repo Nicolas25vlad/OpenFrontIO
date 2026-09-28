@@ -113,6 +113,11 @@ export const STRATEGIC_COMBAT = {
   trenchSteelPerLevel: 3,
   /** One tank joins a land or naval attack for every 10,000 infantry sent. */
   infantryPerTank: 10_000,
+  /** Independently deployed tanks each occupy a unit slot up to this limit. */
+  maxDeployedTanksPerPlayer: 24,
+  tankUnitMaxHealth: 1_000,
+  tankMoveTicksPerTile: 2,
+  tankMaxMovementRange: 250,
   /** Combat strength contributed by one tank, measured in infantry equivalents. */
   tankCombatPower: 5_000,
   /** Tanks take casualties faster than infantry to keep them expendable. */

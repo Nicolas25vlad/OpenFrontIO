@@ -218,6 +218,7 @@ export enum UnitType {
   MIRV = "MIRV",
   MIRVWarhead = "MIRV Warhead",
   Train = "Train",
+  Tank = "Tank",
   Factory = "Factory",
   Mine = "Mine",
   Farm = "Farm",
@@ -263,6 +264,7 @@ export const Structures = unitTypeGroup([
 export const BuildMenus = unitTypeGroup([
   ...Structures.types,
   ...BuildableAttacks.types,
+  UnitType.Tank,
 ] as const);
 
 export const PlayerBuildable = unitTypeGroup([
@@ -329,6 +331,8 @@ export interface UnitParamsMap {
     targetUnit?: Unit;
     loaded?: boolean;
   };
+
+  [UnitType.Tank]: Record<string, never>;
 
   [UnitType.Factory]: Record<string, never>;
 
