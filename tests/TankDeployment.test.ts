@@ -235,6 +235,50 @@ describe("independent tank deployment", () => {
     );
   });
 
+  test.each([
+    { distance: STRATEGIC_COMBAT.tankMaxMovementRange, accepted: true },
+    { distance: STRATEGIC_COMBAT.tankMaxMovementRange + 1, accepted: false },
+  ])(
+    "enforces the $distance tile tank movement limit through the intent",
+    async ({ distance, accepted }) => {
+      const game = await tankGame();
+      const player = game.player("army");
+      const source = game.ref(0, 0);
+      const horizontalDistance = Math.min(distance, game.width() - 1);
+      const verticalDistance = distance - horizontalDistance;
+      for (let x = 0; x <= horizontalDistance; x++) {
+        player.conquer(game.ref(x, 0));
+      }
+      for (let y = 1; y <= verticalDistance; y++) {
+        player.conquer(game.ref(horizontalDistance, y));
+      }
+      const destination = game.ref(horizontalDistance, verticalDistance);
+      player.addTanks(1);
+      const deployment = new ConstructionExecution(
+        player,
+        UnitType.Tank,
+        source,
+      );
+      deployment.init(game, 0);
+      deployment.tick(0);
+      const tank = player.units(UnitType.Tank)[0];
+      const executor = new Executor(game, "tank-range-intent", undefined);
+      game.addExecution(
+        executor.createExec({
+          type: "move_tank",
+          unitIds: [tank.id()],
+          tile: destination,
+          clientID: "army-client",
+        }),
+      );
+
+      game.executeNextTick();
+
+      expect(tank.targetTile() === destination).toBe(accepted);
+      expect(tank.tile()).toBe(source);
+    },
+  );
+
   test("attacks and captures enemy land while applying territory casualties", async () => {
     const game = await setup(
       "big_plains",

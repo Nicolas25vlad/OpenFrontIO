@@ -156,7 +156,11 @@ captura/baixas, uso da reserva pela IA, isolamento da infantaria e seleção.
 Também há cobertura do fluxo normal de implantação pelo intent `build_unit` →
 `Executor` e do round-trip wire desse intent para a unidade Tank. O movimento
 também passa pelo intent `move_tank` no `Executor`, com ticks reais confirmando
-que a ordem move o tanque selecionado sem alterar a infantaria.
+que a ordem move o tanque selecionado sem alterar a infantaria; testes na
+fronteira de 250/251 tiles validam o limite de alcance do core.
+Revalidação focada de implantação, alcance, movimento, seleção e wire passou em
+3 arquivos/51 testes; `tsc --noEmit`, ESLint, Prettier e `git diff --check`
+também passaram.
 `tests/AiTankBehavior.test.ts` também exercita as execuções completas de nação e
 tribo: ambas implantam uma unidade móvel a partir da reserva e preservam um
 tanque legado.
