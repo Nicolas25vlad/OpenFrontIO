@@ -1037,3 +1037,11 @@ e 5.737 testes passaram, e a única falha foi a ordem dessas chaves, agora
 corrigida e validada pelo teste dedicado. A suíte do servidor passou em 63
 arquivos/656 testes. `tsc --noEmit`, ESLint, Prettier e `git diff --check`
 passaram nas alterações correspondentes.
+
+Revalidação completa em 2026-09-28 após a correção da limpeza de pedidos
+diplomáticos na conquista: a suíte principal passou em 492 arquivos/5.745
+testes e a suíte do servidor em 63 arquivos/656 testes. `npm run lint`,
+`npm run build-dev`, TypeScript, Prettier e `git diff --check` também passaram.
+O build manteve os avisos de chunks acima de 500 kB e tempo do plugin de assets;
+os testes emitiram avisos de navegação DOM não implementada e listeners, sem
+falhas.
