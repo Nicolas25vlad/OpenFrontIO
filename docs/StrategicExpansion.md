@@ -153,6 +153,9 @@ Arquivos desta etapa: `src/core/game/Game.ts`, `src/core/game/PlayerImpl.ts`,
 traduções e a tabela de estatísticas. Testes cobrem implantação, reserva,
 limite e ocupação, economia legada, movimento e combate determinísticos,
 captura/baixas, uso da reserva pela IA, isolamento da infantaria e seleção.
+`tests/AiTankBehavior.test.ts` também exercita as execuções completas de nação e
+tribo: ambas implantam uma unidade móvel a partir da reserva e preservam um
+tanque legado.
 
 ### Validação manual pendente no PC principal
 
@@ -692,11 +695,13 @@ esperado estão em [CapitulationDesign.md](CapitulationDesign.md).
 
 Validação no homelab: 35 testes focados passaram em seis arquivos, incluindo
 transferência do spawn, autorização, contraproposta, ataques ativos, estruturas,
-míssil e limpeza de estoques. Os testes de idioma/ordenação passaram em dois
-arquivos/4 testes; TypeScript, lint, Prettier, `git diff --check` e
-`npm run build-dev` também passaram. A conferência visual em dois clientes e
-replay ainda depende do PC principal; a issue #12 permanece aberta até essa
-etapa.
+míssil e limpeza de estoques. Em 2026-09-28, `tests/CapitulationExecution.test.ts`
+passou com 7 testes, incluindo hash repetível após aceite por intents do
+`Executor` e uma tentativa de aceite depois da recusa; `tests/AiTankBehavior.test.ts`
+passou com 5 testes, incluindo os ciclos integrados de nação e tribo. Também
+passaram `tsc --noEmit`, ESLint, Prettier e `git diff --check`. A conferência
+visual em dois clientes e replay ainda depende do PC principal; a issue #12
+permanece aberta até essa etapa.
 
 ## Economia nuclear e Anti-ICBM — issue #9
 
