@@ -1,6 +1,6 @@
 # Expansão estratégica
 
-Escopo: pedido original de 30 seções e issues #1–#11 de Nicolas25vlad/OpenFrontIO.
+Escopo: pedido original de 30 seções e issues #1–#12 de Nicolas25vlad/OpenFrontIO.
 Este documento acompanha a implementação completa; uma etapa verde não encerra o escopo.
 Antes de ativar ou alterar cada sistema, use o gate em
 [`StrategicCompatibilityChecklist.md`](StrategicCompatibilityChecklist.md).
@@ -457,9 +457,11 @@ testes de execução/wire.
 A validação automatizada desta etapa passou em 13 arquivos/122 testes e cobre
 autorização, cancelamento, estado terminal de propostas resolvidas, transferência
 territorial, duração da trégua, atualização sincronizada e codificação do intent.
-`tsc --noEmit`, lint e `npm run build-dev` passaram. Faltam a escolha de outros
-percentuais/termos, capitulação e validação visual em replay e multiplayer; a
-issue permanece aberta.
+`tsc --noEmit`, lint e `npm run build-dev` passaram. O painel agora oferece
+cessões de 10%, 25% e 50%. Ainda faltam termos percentuais personalizados,
+capitulação (acompanhada separadamente na
+[issue #12](https://github.com/Nicolas25vlad/OpenFrontIO/issues/12)) e validação
+visual em replay e multiplayer; a issue #8 permanece aberta.
 
 ### Oferta de paz com cessão territorial (parcial)
 
@@ -527,7 +529,8 @@ pendente.
 Esperado: os mesmos tiles são transferidos em todos os clientes; uma oferta
 inválida não produz transferência nem trégua; pedidos comuns de aliança seguem
 com o comportamento anterior. A issue #8 continua aberta para exigências
-territoriais configuráveis, capitulação e demais termos de paz.
+territoriais personalizadas e demais termos de paz; capitulação está na
+[issue #12](https://github.com/Nicolas25vlad/OpenFrontIO/issues/12).
 
 ## Economia nuclear e Anti-ICBM — issue #9
 
