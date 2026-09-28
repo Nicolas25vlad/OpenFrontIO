@@ -1080,7 +1080,16 @@ Validação no homelab: 89 testes direcionados passaram; `tsc --noEmit`,
 snapshot econômico alterado pelo novo fluxo. A ordenação foi corrigida e o
 snapshot atualizado; a simulação de 20 minutos passou novamente sem atualização,
 confirmando o resultado determinístico. A suíte geral não foi repetida por
-inteiro após esses ajustes.
+inteiro após esses ajustes. A regressão de integração em
+`tests/core/executions/TradeShipExecution.test.ts` também entrega petróleo por
+comboio a uma fábrica do comprador e confirma seu consumo para produzir
+combustível; `TradeShipExecution`, `Production` e `PortExecution` passaram juntos
+em 3 arquivos/43 testes.
+Na validação geral de 2026-09-28, 489/490 arquivos e 5.764/5.768 testes da
+suíte principal passaram; os quatro timeouts de `InventoryModal.test.ts`
+passaram ao repetir o arquivo isoladamente (28/28). A suíte de servidor passou
+em 63 arquivos/656 testes. Lint, `tsc --noEmit`, `npm run build-dev`, Prettier e
+`git diff --check` passaram.
 
 Validação manual pendente no PC principal:
 

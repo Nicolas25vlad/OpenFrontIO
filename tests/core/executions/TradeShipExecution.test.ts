@@ -1,4 +1,5 @@
 import { NAVAL_TRADE } from "../../../src/core/configuration/StrategyConfig";
+import { ProductionExecution } from "../../../src/core/execution/ProductionExecution";
 import {
   selectStrategicCargo,
   TradeShipExecution,
@@ -634,5 +635,75 @@ describe("strategic trade cargo", () => {
     if (processedOffer.kind !== "available")
       throw new Error("processed offer missing");
     expect(processedOffer.resource).toBe(ProcessedResource.Circuits);
+  });
+
+  test("imports raw materials that the buyer's factory can process", async () => {
+    const { game, seller, buyer } = await tradeFixture();
+    const sourceTile = game.ref(10, 10);
+    const destinationTile = game.ref(150, 150);
+    const factoryTile = game.ref(151, 150);
+    seller.conquer(sourceTile);
+    buyer.conquer(destinationTile);
+    buyer.conquer(factoryTile);
+    seller.addGold(10_000_000n);
+    buyer.addGold(10_000_000n);
+
+    for (const [owner, type] of [
+      [seller, UnitType.Port],
+      [buyer, UnitType.Port],
+      [buyer, UnitType.Factory],
+    ] as const) {
+      for (const [resource, amount] of Object.entries(
+        game.config().resourceCost(type),
+      )) {
+        owner.addResource(resource as ResourceType, amount);
+      }
+    }
+
+    const sourcePort = seller.buildUnit(UnitType.Port, sourceTile, {});
+    const destinationPort = buyer.buildUnit(UnitType.Port, destinationTile, {});
+    const factory = buyer.buildUnit(UnitType.Factory, factoryTile, {});
+    for (const resource of STOCK_RESOURCES) {
+      setResourceAmount(seller, resource, NAVAL_TRADE.exportReserve[resource]);
+      setResourceAmount(buyer, resource, NAVAL_TRADE.importTarget[resource]);
+    }
+    setResourceAmount(
+      seller,
+      NaturalResource.Oil,
+      NAVAL_TRADE.exportReserve[NaturalResource.Oil] + NAVAL_TRADE.cargoUnits,
+    );
+    setResourceAmount(buyer, NaturalResource.Oil, 0);
+
+    const trade = new TradeShipExecution(
+      seller,
+      sourcePort,
+      destinationPort,
+      true,
+    );
+    trade.init(game, 0);
+    trade["pathFinder"] = {
+      next: vi.fn(() => ({
+        status: PathStatus.COMPLETE,
+        node: destinationTile,
+      })),
+    } as any;
+
+    trade.tick(1);
+
+    expect(buyer.resourceAmount(NaturalResource.Oil)).toBe(
+      NAVAL_TRADE.cargoUnits,
+    );
+    expect(seller.resourceAmount(NaturalResource.Oil)).toBe(
+      NAVAL_TRADE.exportReserve[NaturalResource.Oil],
+    );
+
+    const production = new ProductionExecution(factory);
+    production.init(game);
+    production.tick(10);
+
+    expect(buyer.resourceAmount(NaturalResource.Oil)).toBe(3);
+    expect(buyer.resourceAmount(ProcessedResource.Fuel)).toBe(
+      NAVAL_TRADE.importTarget[ProcessedResource.Fuel] + 4,
+    );
   });
 });
