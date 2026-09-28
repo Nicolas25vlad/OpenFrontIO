@@ -538,7 +538,9 @@ também passaram após esta etapa.
 A UI e a camada passaram nos testes de `ResourcePanel`, `NavalSectorMap` e
 `ResourceMapController`: cobertura do botão, emissão de evento, desenho das
 coordenadas, grade parcial nas bordas do mapa e controle independente das duas
-camadas. A camada usa o placement `water` já suportado pelo renderer.
+camadas. `NavalSectorMap.test.ts` também confirma as cores verde, amarela e
+vermelha da estimativa, a intensidade proporcional e o recorte do setor parcial
+na borda do mapa. A camada usa o placement `water` já suportado pelo renderer.
 O painel também mostra força naval estimada, validada com navio danificado,
 nível, veterania e exclusão de navio fora dos setores com portos próprios. As
 regressões focadas passaram em 4 arquivos/7 testes. A heatmap atualiza a textura
