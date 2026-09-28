@@ -505,8 +505,11 @@ e retorno ao início ao atingir o limite do ciclo.
 Complemento em 2026-09-28: `tests/core/executions/TradeShipExecution.test.ts`
 passou com 12 testes, incluindo envio de comida, combustível e aço com as
 reservas e metas de importação configuradas. `tests/economy/NavalTradeReplay.test.ts`
-também passou, comparando hashes, carga e pagamentos em duas simulações; typecheck,
-lint, Prettier e `git diff --check` passaram.
+também passou, comparando hashes, carga e pagamentos em duas simulações. A
+revalidação conjunta de `NavalTradeReplay`, `DispatchTradeRouteExecution`,
+`PortExecution`, `ResourcePanel`, `ResourceMapController` e `NavalSectorMap`
+passou em 6 arquivos/19 testes; `tsc --noEmit`, ESLint, Prettier e
+`git diff --check` também passaram.
 
 ### Validação manual pendente no PC principal
 
