@@ -529,6 +529,9 @@ export class NationWarshipBehavior {
   }
 
   private hasWarshipOrderThisTick(): boolean {
-    return this.lastWarshipOrderTick === this.game.ticks();
+    return (
+      this.game.config().strategicEconomy() &&
+      this.lastWarshipOrderTick === this.game.ticks()
+    );
   }
 }

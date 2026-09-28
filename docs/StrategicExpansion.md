@@ -483,12 +483,18 @@ ao bloqueador mais próximo no mesmo setor e massa d'água. A prioridade respeit
 limite de frota, unidade desativada, ouro, aço e combustível. As prioridades
 existentes de criação inicial e retaliação naval também verificam os insumos
 antes de enfileirar a execução, evitando falhas de construção por estoque baixo.
-O bot limita a uma ordem naval por tick para não duplicar um navio ainda pendente.
+Na economia estratégica, o bot limita a uma ordem naval por tick para não
+duplicar um navio ainda pendente; partidas legadas preservam a cadência anterior.
 `tests/economy/NationBlockadeResponse.test.ts` cobre a resposta, a compatibilidade
 com a economia legada e a ausência de intent sem os insumos.
 Os testes focados de resposta a bloqueio e infestação naval passaram em 2
 arquivos/5 testes; `npm run build-dev`, `tsc --noEmit`, Oxlint, ESLint,
 Prettier e `git diff --check` também passaram no homelab.
+A suíte principal completa executou 478 arquivos/5.619 testes; 477 arquivos
+passaram. O único snapshot divergente identificou a mudança de cadência em modo
+legado; após limitar a trava à economia estratégica, o benchmark
+`NationGoldPerMinute` e os testes de bots passaram juntos em 3 arquivos/6 testes.
+A suíte de servidor passou em 63 arquivos/656 testes.
 
 ### Validação manual pendente no PC principal
 
