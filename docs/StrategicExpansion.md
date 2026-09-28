@@ -1104,20 +1104,26 @@ arrastar sobre a própria fronteira destaca os tiles selecionados e soltar envia
 um único intent em lote. O core valida cada tile no momento de execução, aumenta
 um nível e cobra o custo correspondente por tile; entradas antigas de tile
 único continuam válidas. Tile inválido, fora da fronteira, capturado ou no nível
-máximo é ignorado. A resolução de combate já aplica bônus defensivo e atraso de
-avanço, com desgaste ao conquistar o tile.
+máximo é ignorado. A resolução de combate aplica bônus defensivo e atraso de
+avanço ao atacar uma trincheira, com desgaste ao conquistar o tile. Iniciar um
+ataque terrestre a partir de uma linha fortificada também aumenta perdas e
+reduz o avanço; tanques abastecidos reduzem essa penalidade, e uma aproximação
+por um tile próprio sem trincheira evita o custo extra.
 
 Arquivos alterados: `src/core/Schemas.ts`, `src/core/execution/ExecutionManager.ts`,
-`src/core/execution/BuildTrenchExecution.ts`, `src/client/Transport.ts`,
+`src/core/execution/BuildTrenchExecution.ts`,
+`src/core/execution/AttackExecution.ts`, `src/core/configuration/Config.ts`,
+`src/core/configuration/StrategyConfig.ts`, `src/client/Transport.ts`,
 `src/client/UIState.ts`, `src/client/InputHandler.ts`,
 `src/client/hud/BuildCategories.ts`, `src/client/hud/layers/UnitDisplay.ts`,
 `src/client/hud/layers/BuildMenu.ts`, traduções em `resources/lang/` e testes
 de execução, wire, categoria e painel.
 
 Validação no homelab: os testes de trincheira, wire, categoria, pincel,
-`InputHandler` e ordenação de traduções passaram em 6 arquivos/115 testes;
-`tsc --noEmit`, `npm run lint`
-e Prettier passaram. A validação visual com WebGL permanece pendente no PC
+`InputHandler`, fórmula de combate, origem do ataque e ordenação de traduções
+passaram em 9 arquivos/128 testes; `tsc --noEmit`, `npm run lint`,
+`npm run build-dev`, Prettier e `git diff --check` passaram. O build conserva
+os avisos de chunks acima de 500 kB. A validação visual com WebGL permanece pendente no PC
 principal:
 
 1. Rode `npm run dev:host`, ative a economia estratégica e selecione a categoria
@@ -1128,6 +1134,9 @@ principal:
 3. Arraste também sobre água, território alheio e tiles no nível máximo; esses
    tiles não devem receber marcador nem trincheira. Use Cancelar no banner para
    encerrar o pincel sem enviar o intent.
-4. Envie tropas contra uma fronteira com trincheiras: o defensor deve resistir
-   melhor e o avanço deve ser mais lento. Tanques reduzem parte desse efeito e
-   cada tile conquistado perde um nível conforme o desgaste configurado.
+4. Ataque um tile inimigo entrincheirado e compare com um tile sem trincheiras:
+   o defensor deve resistir melhor e o avanço deve ser mais lento. Compare
+   também uma ofensiva iniciada de uma fronteira própria fortificada e uma
+   aberta; a primeira deve custar mais perdas e tempo. Tanques abastecidos
+   reduzem parte das penalidades, e cada tile conquistado perde um nível
+   conforme o desgaste configurado.

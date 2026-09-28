@@ -413,6 +413,7 @@ export class AttackExecution implements Execution {
         supply: this._owner.supplyStatus().infantry,
         logistics: this._owner.supplyStatus().logistics,
         tanks: this.attack?.tanks() ?? 0,
+        trenchLevel: this.attackerStagingTrenchLevel(tile),
       },
       defender:
         defender === null
@@ -434,6 +435,26 @@ export class AttackExecution implements Execution {
         : null,
       borderSize,
     };
+  }
+
+  /**
+   * Land attacks leaving a fortified border pay the offensive penalty. If a
+   * target tile touches both fortified and open attacker tiles, the attacker
+   * can choose the open approach; naval attacks have no land staging trench.
+   */
+  private attackerStagingTrenchLevel(tile: TileRef): number {
+    if (this.sourceTile !== null) return 0;
+    let minimumLevel: number = STRATEGIC_COMBAT.trenchMaxLevel;
+    let foundAttackerBorder = false;
+    const neighborCount = this.map.neighbors4(tile, this.nbuf);
+    for (let i = 0; i < neighborCount; i++) {
+      const neighbor = this.nbuf[i];
+      if (this.map.ownerID(neighbor) !== this.ownerSmallID) continue;
+      foundAttackerBorder = true;
+      minimumLevel = Math.min(minimumLevel, this.mg.trenchLevel(neighbor));
+      if (minimumLevel === 0) return 0;
+    }
+    return foundAttackerBorder ? minimumLevel : 0;
   }
 
   private tanksForRemainingForce(

@@ -92,6 +92,8 @@ export interface AttackLogicInput {
     logistics?: number;
     /** Tanks assigned to this land or naval attack. */
     tanks?: number;
+    /** Highest trench level on the land-attack staging border. */
+    trenchLevel?: number;
   };
   /** null when attacking terra nullius. */
   defender: {
@@ -953,6 +955,23 @@ export class Config {
       tileCost /= 1 + tankSpeedBonus / 100;
     }
 
+    let offensiveTrenchLossModifier = 1;
+    const attackerTrenchLevel = input.attacker.trenchLevel ?? 0;
+    if (this.strategicEconomy() && attackerTrenchLevel > 0) {
+      const tankBreakthrough = Math.min(
+        STRATEGIC_COMBAT.trenchTankCounterMax,
+        (attacker.tanks ?? 0) *
+          STRATEGIC_COMBAT.trenchTankCounterPerTank *
+          attackerSupply,
+      );
+      const effectiveTrenchLevel = attackerTrenchLevel * (1 - tankBreakthrough);
+      offensiveTrenchLossModifier +=
+        effectiveTrenchLevel * STRATEGIC_COMBAT.trenchOffensiveLossPerLevel;
+      tileCost *=
+        1 +
+        effectiveTrenchLevel * STRATEGIC_COMBAT.trenchOffensiveSlowdownPerLevel;
+    }
+
     const defensePostLevel =
       input.defenderDefensePostLevel ?? (input.defenderHasDefensePost ? 1 : 0);
     if (defender !== null && defensePostLevel > 0) {
@@ -981,7 +1000,9 @@ export class Config {
     if (defender === null) {
       const tickBudget = input.borderSize * 2;
       return {
-        attackerTroopLoss: mag / (attacker.type === PlayerType.Bot ? 10 : 5),
+        attackerTroopLoss:
+          (mag / (attacker.type === PlayerType.Bot ? 10 : 5)) *
+          offensiveTrenchLossModifier,
         defenderTroopLoss: 0,
         tickFraction:
           within(
@@ -1029,6 +1050,7 @@ export class Config {
     const troopRatio = defender.troops / attackTroops;
     const attackerTroopLoss =
       mag *
+      offensiveTrenchLossModifier *
       traitorLossMod *
       within(troopRatio, 0.6, 2) *
       (ATTACKER_LOSS_BASE * largeAttackerBonus * largeDefenderBonus +

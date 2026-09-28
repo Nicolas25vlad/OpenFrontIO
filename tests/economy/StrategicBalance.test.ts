@@ -75,6 +75,40 @@ test("Anti-ICBM range and throughput bonuses preserve all legacy levels", () => 
   );
   expect(levelThreeTrench.tickFraction).toBeGreaterThan(noTrench.tickFraction);
 
+  const entrenchedStaging = strategic.attackLogic({
+    ...attack,
+    defenderHasDefensePost: false,
+    defenderDefensePostLevel: 0,
+    attacker: { ...attack.attacker, trenchLevel: 3 },
+  });
+  expect(entrenchedStaging.attackerTroopLoss).toBeGreaterThan(
+    noTrench.attackerTroopLoss,
+  );
+  expect(entrenchedStaging.tickFraction).toBeGreaterThan(noTrench.tickFraction);
+
+  const tankBreakthroughBase = {
+    ...attack,
+    defenderHasDefensePost: false,
+    defenderDefensePostLevel: 0,
+    attacker: { ...attack.attacker, tanks: 100 },
+  };
+  const tankBreakthroughWithoutTrench =
+    strategic.attackLogic(tankBreakthroughBase);
+  const tankBreakthroughFromTrench = strategic.attackLogic({
+    ...tankBreakthroughBase,
+    attacker: { ...tankBreakthroughBase.attacker, trenchLevel: 3 },
+  });
+  expect(
+    tankBreakthroughFromTrench.attackerTroopLoss -
+      tankBreakthroughWithoutTrench.attackerTroopLoss,
+  ).toBeLessThan(
+    entrenchedStaging.attackerTroopLoss - noTrench.attackerTroopLoss,
+  );
+  expect(
+    tankBreakthroughFromTrench.tickFraction -
+      tankBreakthroughWithoutTrench.tickFraction,
+  ).toBeLessThan(entrenchedStaging.tickFraction - noTrench.tickFraction);
+
   const suppliedTankAttack: AttackLogicInput = {
     ...attack,
     defenderHasDefensePost: false,
@@ -108,6 +142,12 @@ test("Anti-ICBM range and throughput bonuses preserve all legacy levels", () => 
   expect(legacy.attackLogic({ ...attack, defenderTrenchLevel: 3 })).toEqual(
     legacy.attackLogic(attack),
   );
+  expect(
+    legacy.attackLogic({
+      ...attack,
+      attacker: { ...attack.attacker, trenchLevel: 3 },
+    }),
+  ).toEqual(legacy.attackLogic(attack));
 });
 
 test("strategic tanks improve land-attack advance speed up to the configured cap", () => {
