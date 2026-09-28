@@ -760,13 +760,16 @@ esperado estão em [CapitulationDesign.md](CapitulationDesign.md).
 Validação no homelab: 35 testes focados passaram em seis arquivos, incluindo
 transferência do spawn, autorização, contraproposta, ataques ativos, estruturas,
 míssil e limpeza de estoques. Em 2026-09-28, `tests/CapitulationExecution.test.ts`
-passou com 8 testes, incluindo hash repetível após aceite por intents do
-`Executor`, tentativa de aceite depois da recusa e resolução dos pedidos
-diplomáticos de entrada/saída após a eliminação; `tests/AiTankBehavior.test.ts`
+passou com 9 testes, incluindo hash repetível após aceite por intents do
+`Executor`, tentativa de aceite depois da recusa, resolução dos pedidos
+diplomáticos de entrada/saída após a eliminação e compatibilidade com economia
+legada; `tests/AiTankBehavior.test.ts`
 passou com 5 testes, incluindo os ciclos integrados de nação e tribo. Também
 passaram `tsc --noEmit`, ESLint, Prettier e `git diff --check`. A conferência
 visual em dois clientes e replay ainda depende do PC principal; a issue #12
 permanece aberta até essa etapa.
+O cenário de compatibilidade também confirma proposta, aceite e transferência
+com `strategicEconomy` desligada no mapa legado `plains`.
 O round-trip wire de `capitulation` também está incluído em
 `tests/zbin/wire.test.ts` junto com o novo caso de trincheira.
 Em 2026-09-28, a interface também ganhou cobertura para propor a capitulação,

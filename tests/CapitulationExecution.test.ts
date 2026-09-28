@@ -195,6 +195,44 @@ describe("CapitulationExecution", () => {
     expect(recipient.numTilesOwned()).toBe(2);
   });
 
+  test("keeps capitulation available in legacy economy matches", async () => {
+    const legacyGame = await setup(
+      "plains",
+      { strategicEconomy: false, infiniteGold: true },
+      [
+        playerInfo("legacy proposer", PlayerType.Human),
+        playerInfo("legacy recipient", PlayerType.Human),
+      ],
+    );
+    const legacyProposer = legacyGame.player("legacy proposer");
+    const legacyRecipient = legacyGame.player("legacy recipient");
+    const proposerTile = legacyGame.ref(20, 20);
+    const recipientTile = legacyGame.ref(21, 20);
+    legacyProposer.conquer(proposerTile);
+    legacyRecipient.conquer(recipientTile);
+
+    expect(legacyGame.config().strategicEconomy()).toBe(false);
+    legacyGame.addExecution(
+      new CapitulationExecution(
+        legacyProposer,
+        "propose",
+        legacyRecipient.id(),
+      ),
+    );
+    legacyGame.executeNextTick();
+    const [request] = legacyProposer.outgoingAllianceRequests();
+    expect(request?.status()).toBe("pending");
+
+    legacyGame.addExecution(
+      new CapitulationExecution(legacyRecipient, "accept", legacyProposer.id()),
+    );
+    legacyGame.executeNextTick();
+
+    expect(request?.status()).toBe("accepted");
+    expect(legacyGame.owner(recipientTile)).toBe(legacyProposer);
+    expect(legacyRecipient.numTilesOwned()).toBe(0);
+  });
+
   test("replays an accepted capitulation to the same synchronized state", async () => {
     const first = await deterministicCapitulationResult();
     const second = await deterministicCapitulationResult();
