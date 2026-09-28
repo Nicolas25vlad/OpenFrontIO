@@ -717,8 +717,9 @@ esperado estão em [CapitulationDesign.md](CapitulationDesign.md).
 Validação no homelab: 35 testes focados passaram em seis arquivos, incluindo
 transferência do spawn, autorização, contraproposta, ataques ativos, estruturas,
 míssil e limpeza de estoques. Em 2026-09-28, `tests/CapitulationExecution.test.ts`
-passou com 7 testes, incluindo hash repetível após aceite por intents do
-`Executor` e uma tentativa de aceite depois da recusa; `tests/AiTankBehavior.test.ts`
+passou com 8 testes, incluindo hash repetível após aceite por intents do
+`Executor`, tentativa de aceite depois da recusa e resolução dos pedidos
+diplomáticos de entrada/saída após a eliminação; `tests/AiTankBehavior.test.ts`
 passou com 5 testes, incluindo os ciclos integrados de nação e tribo. Também
 passaram `tsc --noEmit`, ESLint, Prettier e `git diff --check`. A conferência
 visual em dois clientes e replay ainda depende do PC principal; a issue #12

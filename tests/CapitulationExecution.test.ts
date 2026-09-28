@@ -157,6 +157,32 @@ describe("CapitulationExecution", () => {
     expect(recipient.resourceAmount(ProcessedResource.Food)).toBe(0);
   });
 
+  test("resolves the eliminated player's other pending diplomatic requests", () => {
+    const incoming = thirdParty.createAllianceRequest(
+      recipient,
+      0,
+      "capitulation",
+    );
+    const outgoing = recipient.createAllianceRequest(thirdParty);
+    const surrender = proposer.createAllianceRequest(
+      recipient,
+      0,
+      "capitulation",
+    );
+
+    expect(incoming?.status()).toBe("pending");
+    expect(outgoing?.status()).toBe("pending");
+    surrender?.accept();
+
+    expect(surrender?.status()).toBe("accepted");
+    expect(incoming?.status()).toBe("rejected");
+    expect(outgoing?.status()).toBe("rejected");
+    expect(recipient.incomingAllianceRequests()).toHaveLength(0);
+    expect(recipient.outgoingAllianceRequests()).toHaveLength(0);
+    expect(thirdParty.incomingAllianceRequests()).toHaveLength(0);
+    expect(thirdParty.outgoingAllianceRequests()).toHaveLength(0);
+  });
+
   test("proposal remains pending until the recipient explicitly accepts", () => {
     game.addExecution(
       new CapitulationExecution(proposer, "propose", recipient.id()),
