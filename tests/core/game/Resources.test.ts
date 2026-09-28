@@ -8,6 +8,7 @@ import {
   ResourceCatalog,
   ResourceContinentZone,
   ResourceNode,
+  resourceConcentrationAt,
   resourceNodesForMap,
   resourceTotalsForOwner,
 } from "../../../src/core/game/Resources";
@@ -368,6 +369,38 @@ describe("deterministic resource deposits", () => {
       expect(catalog.extract(overlap!, 1, deposit.resource)).toBe(1);
       expect(catalog.remaining(overlap!, deposit.resource)).toBe(before - 1);
     }
+  });
+
+  test("samples the same continuous field for gameplay and map overlays", () => {
+    const map = landMap(1024, 1024);
+    const seed = "shared-noise-field";
+    const nodes = resourceNodesForMap(map, seed);
+    const node = nodes[0];
+
+    expect(
+      resourceConcentrationAt(map, seed, node.resource, node.x, node.y),
+    ).toBe(node.concentration);
+    expect(
+      resourceConcentrationAt(map, seed, node.resource, -1, node.y),
+    ).toBeUndefined();
+    expect(
+      resourceConcentrationAt(
+        { ...map, isLand: () => false },
+        seed,
+        node.resource,
+        node.x,
+        node.y,
+      ),
+    ).toBeUndefined();
+    expect(
+      resourceConcentrationAt(
+        { ...map, isImpassable: () => true },
+        seed,
+        node.resource,
+        node.x,
+        node.y,
+      ),
+    ).toBeUndefined();
   });
 
   test("keeps nodes separated within and between zones", () => {

@@ -509,6 +509,30 @@ export function resourceNodesForMap(
   return resourceDistributionForMap(map, matchSeed).nodes;
 }
 
+/** Returns the cached local concentration for a valid land tile. */
+export function resourceConcentrationAt(
+  map: ResourceMapLike,
+  matchSeed: ResourceSeed,
+  resource: NaturalResource,
+  x: number,
+  y: number,
+): number | undefined {
+  if (
+    !Number.isFinite(x) ||
+    !Number.isFinite(y) ||
+    x < 0 ||
+    y < 0 ||
+    x >= map.width() ||
+    y >= map.height()
+  ) {
+    return undefined;
+  }
+  const tile = map.ref(Math.floor(x), Math.floor(y));
+  if (!map.isLand(tile) || map.isImpassable?.(tile)) return undefined;
+  const field = resourceDistributionForMap(map, matchSeed).fields[resource];
+  return concentrationAtNoise(noiseFieldAt(field, x, y), field.threshold);
+}
+
 export function resourceTotalsForOwner(
   map: ResourceOwnerMapLike,
   nodes: readonly ResourceNode[],

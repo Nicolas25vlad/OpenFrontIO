@@ -1,7 +1,8 @@
 import type { GameMap } from "../core/game/GameMap";
 import {
   NaturalResource,
-  resourceNodeCellSizeForMap,
+  RESOURCE_FIELD_CELL_SIZE,
+  resourceConcentrationAt,
   resourceNodesForMap,
 } from "../core/game/Resources";
 
@@ -204,85 +205,81 @@ export function drawResourcePixelIcon(
   }
 }
 
-function colorWithAlpha(color: string, alpha: number): string {
-  return `${color}${Math.round(alpha * 255)
-    .toString(16)
-    .padStart(2, "0")}`;
+function resourceColorChannels(
+  resource: NaturalResource,
+): [number, number, number] {
+  const color = RESOURCE_COLORS[resource];
+  return [
+    Number.parseInt(color.slice(1, 3), 16),
+    Number.parseInt(color.slice(3, 5), 16),
+    Number.parseInt(color.slice(5, 7), 16),
+  ];
 }
 
-function visualNoise(
-  node: { x: number; y: number; resource: NaturalResource },
-  sample: number,
-): number {
-  let value =
-    (Math.imul(node.x + 1, 0x45d9f3b) ^
-      Math.imul(node.y + 1, 0x119de1f3) ^
-      Math.imul(
-        Object.values(NaturalResource).indexOf(node.resource) + 1,
-        0x27d4eb2d,
-      ) ^
-      Math.imul(sample + 1, 0x165667b1)) >>>
-    0;
-  value = Math.imul(value ^ (value >>> 16), 0x45d9f3b) >>> 0;
-  value = Math.imul(value ^ (value >>> 16), 0x45d9f3b) >>> 0;
-  return (value ^ (value >>> 16)) / 0xffffffff;
-}
-
-/** Draws a deterministic, softly edged deposit field with an irregular contour. */
-function drawResourceField(
+/** Rasterizes the cached noise fields once, at their native coarse resolution. */
+function drawResourceNoiseMap(
   context: CanvasRenderingContext2D,
-  node: { x: number; y: number; resource: NaturalResource; richness: number },
-  cellSize: number,
+  map: GameMap,
+  matchSeed: string,
 ): void {
-  const radius = cellSize * (1.05 + node.richness * 0.15);
-  const points = 24;
-  const contour: Array<{ x: number; y: number }> = [];
-  for (let index = 0; index < points; index++) {
-    const angle = (index / points) * Math.PI * 2;
-    // Average adjacent fixed samples to form broad lobes instead of noisy spikes.
-    const variation =
-      (visualNoise(node, index) + visualNoise(node, (index + 1) % points)) / 2;
-    const localRadius = radius * (0.78 + variation * 0.4);
-    contour.push({
-      x: node.x + Math.cos(angle) * localRadius,
-      y: node.y + Math.sin(angle) * localRadius,
-    });
-  }
+  const width = Math.ceil(map.width() / RESOURCE_FIELD_CELL_SIZE);
+  const height = Math.ceil(map.height() / RESOURCE_FIELD_CELL_SIZE);
+  const raster = document.createElement("canvas");
+  raster.width = width;
+  raster.height = height;
+  const rasterContext = raster.getContext("2d");
+  if (!rasterContext) return;
 
-  context.beginPath();
-  const first = contour[0];
-  const last = contour[contour.length - 1];
-  context.moveTo((first.x + last.x) / 2, (first.y + last.y) / 2);
-  for (let index = 0; index < points; index++) {
-    const current = contour[index];
-    const next = contour[(index + 1) % points];
-    context.quadraticCurveTo(
-      current.x,
-      current.y,
-      (current.x + next.x) / 2,
-      (current.y + next.y) / 2,
+  const image = rasterContext.createImageData(width, height);
+  const colors = Object.values(NaturalResource).map((resource) => ({
+    resource,
+    channels: resourceColorChannels(resource),
+  }));
+
+  for (let gridY = 0; gridY < height; gridY++) {
+    const y = Math.min(
+      map.height() - 1,
+      gridY * RESOURCE_FIELD_CELL_SIZE + RESOURCE_FIELD_CELL_SIZE / 2,
     );
-  }
-  context.closePath();
-  context.save();
-  context.clip();
+    for (let gridX = 0; gridX < width; gridX++) {
+      const x = Math.min(
+        map.width() - 1,
+        gridX * RESOURCE_FIELD_CELL_SIZE + RESOURCE_FIELD_CELL_SIZE / 2,
+      );
+      let totalWeight = 0;
+      let maxWeight = 0;
+      let red = 0;
+      let green = 0;
+      let blue = 0;
+      for (const { resource, channels } of colors) {
+        const concentration = resourceConcentrationAt(
+          map,
+          matchSeed,
+          resource,
+          x,
+          y,
+        );
+        if (concentration === undefined) continue;
+        const weight = concentration / 100;
+        totalWeight += weight;
+        maxWeight = Math.max(maxWeight, weight);
+        red += channels[0] * weight;
+        green += channels[1] * weight;
+        blue += channels[2] * weight;
+      }
+      if (totalWeight === 0) continue;
 
-  const gradient = context.createRadialGradient(
-    node.x,
-    node.y,
-    0,
-    node.x,
-    node.y,
-    radius,
-  );
-  const color = RESOURCE_COLORS[node.resource];
-  gradient.addColorStop(0, colorWithAlpha(color, 0.4));
-  gradient.addColorStop(0.4, colorWithAlpha(color, 0.28));
-  gradient.addColorStop(0.78, colorWithAlpha(color, 0.08));
-  gradient.addColorStop(1, colorWithAlpha(color, 0));
-  context.fillStyle = gradient;
-  context.fillRect(node.x - radius, node.y - radius, radius * 2, radius * 2);
-  context.restore();
+      const offset = (gridY * width + gridX) * 4;
+      image.data[offset] = red / totalWeight;
+      image.data[offset + 1] = green / totalWeight;
+      image.data[offset + 2] = blue / totalWeight;
+      image.data[offset + 3] = 48 + Math.round(maxWeight * 120);
+    }
+  }
+
+  rasterContext.putImageData(image, 0, 0);
+  context.imageSmoothingEnabled = true;
+  context.drawImage(raster, 0, 0, map.width(), map.height());
 }
 
 /** Build one client-only texture from the deterministic geological catalog. */
@@ -297,12 +294,7 @@ export async function createResourceMapImage(
   if (!context) throw new Error("resource map canvas is unavailable");
   context.globalCompositeOperation = "source-over";
   const nodes = resourceNodesForMap(map, matchSeed);
-  const cellSize = resourceNodeCellSizeForMap(map);
-
-  for (const node of nodes) {
-    // Overlapping warped contours read as geological belts instead of circles.
-    drawResourceField(context, node, cellSize);
-  }
+  drawResourceNoiseMap(context, map, matchSeed);
 
   for (const node of nodes) {
     drawResourcePixelIcon(context, node.resource, node.x, node.y);

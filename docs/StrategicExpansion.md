@@ -59,9 +59,8 @@ Issues #1–#11 abertas. Worktree contém fundação de recursos, heatmap, categ
 A geração já usa quatro oitavas de value noise determinístico, com seed
 independente por recurso e cache por mapa/partida. A malha de depósitos foi
 refinada de 128 para 48 tiles (com ajuste para mapas pequenos), aumentando a
-quantidade de pontos extraíveis dentro de cada região ampla sem mudar a escala
-macroscópica do noise. Os contornos dos depósitos se sobrepõem dentro das áreas
-produtoras contínuas e cada candidato continua limitado a terra passável. A
+quantidade de pontos de referência nas regiões amplas sem mudar a escala
+macroscópica do noise. Cada candidato continua limitado a terra passável. A
 distribuição agora usa
 somente os limiares configurados: removi os depósitos de fallback que preenchiam
 células sem ocorrência e a garantia artificial de um ponto de cada recurso em
@@ -71,11 +70,10 @@ configuráveis em `RESOURCE_GENERATION_CONFIG`; a abundância desloca o limiar e
 riqueza é calculada em faixas sobre o mesmo valor do noise. Cada candidato ainda
 é resolvido para terra passável. A malha de amostragem e a escala do noise se
 adaptam às dimensões do mapa. No overlay, manchas de contorno suave e irregular
-se sobrepõem para que depósitos vizinhos apareçam como cinturões geológicos
-contínuos, sem a aparência de círculos isolados. A forma visual é determinística
-por coordenada e recurso; a riqueza amplia a área do depósito sem alterar posição
-ou reserva. A
-menor abundância do ouro foi
+se sobrepõem para formar cinturões geológicos contínuos. O overlay agora rasteriza
+os mesmos valores locais de noise usados pela simulação em uma grade de oito
+tiles, com interpolação visual ao tamanho do mapa; os ícones marcam referências,
+mas não definem os limites mineráveis. A menor abundância do ouro foi
 ajustada para formar regiões produtoras conectadas sem tornar o recurso
 uniforme. A distribuição é cacheada por mapa e seed; o cálculo não roda durante
 os ticks da partida. O campo amplo também recebe uma distorção espacial suave
@@ -94,9 +92,13 @@ outras. Também foram validados os fluxos de mineração, prioridades da IA,
 produção e replay: 30 testes passaram em 6 arquivos. A suíte completa passou
 com 474 arquivos/5.611 testes; a suíte de servidor, com 63 arquivos/656 testes.
 `tsc --noEmit`, lint, `npm run build-dev`, Prettier e `git diff --check` também
-passaram. Nesta revisão, os testes focados de geração, contorno visual e extração
-passaram em 3 arquivos/22 testes; ESLint, `tsc --noEmit`, build de desenvolvimento,
-Prettier e `git diff --check` também passaram.
+passaram. Nesta revisão, os testes focados de geração, textura geológica e
+extração passaram em 3 arquivos/28 testes. A suíte completa passou em
+490 arquivos/5.762 testes, e a suíte de servidor em 63 arquivos/656 testes;
+`tsc --noEmit`, lint, `npm run build-dev`, Prettier e `git diff --check` também
+passaram. O build continua reportando chunks acima de 500 kB, avisos de tempo
+dos plugins `vite:worker`/`vite:asset` e a depreciação `module.register()` do
+Node.
 Em 2026-09-28, `Resources.test.ts` passou com 15 testes, incluindo a nova
 validação do mapa real `World`.
 
@@ -110,8 +112,9 @@ validação do mapa real `World`.
 3. Reabra a mesma partida e confirme que posições e riqueza são idênticas.
    Inicie uma partida com outra seed e confirme que as camadas mudam.
 
-Os contornos de cada depósito devem parecer irregulares e se unir em manchas
-amplas; confirme que não aparecem halos circulares isolados.
+As regiões produtoras devem acompanhar os cinturões irregulares do noise e
+variar suavemente em concentração; os ícones devem apenas marcar pontos de
+referência, sem halos circulares isolados.
 
 Esperado: os depósitos aparecem somente em terra passável, em regiões amplas e
 irregulares compostas por tiles próximos; os níveis de riqueza variam segundo o

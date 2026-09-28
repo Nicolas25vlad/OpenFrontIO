@@ -78,27 +78,35 @@ describe("resource visualization icons", () => {
     ]);
   });
 
-  test("renders cached deposits as repeatable irregular contours", async () => {
-    const gradient = { addColorStop: vi.fn() };
-    const quadraticCurveTo = vi.fn();
-    const context = {
-      beginPath: vi.fn(),
-      moveTo: vi.fn(),
-      quadraticCurveTo,
-      closePath: vi.fn(),
-      save: vi.fn(),
-      clip: vi.fn(),
-      createRadialGradient: vi.fn(() => gradient),
-      fillRect: vi.fn(),
-      restore: vi.fn(),
-      imageSmoothingEnabled: false,
-    } as unknown as CanvasRenderingContext2D;
-    vi.stubGlobal("document", {
-      createElement: () => ({
+  test("renders cached noise concentrations as a repeatable geological field", async () => {
+    const rasterData: Uint8ClampedArray[] = [];
+    const contexts: CanvasRenderingContext2D[] = [];
+    const canvases: HTMLCanvasElement[] = [];
+    const createCanvas = () => {
+      const context = {
+        createImageData: (width: number, height: number) => ({
+          data: new Uint8ClampedArray(width * height * 4),
+          width,
+          height,
+        }),
+        putImageData: (image: ImageData) => {
+          rasterData.push(new Uint8ClampedArray(image.data));
+        },
+        drawImage: vi.fn(),
+        fillRect: vi.fn(),
+        imageSmoothingEnabled: false,
+      } as unknown as CanvasRenderingContext2D;
+      const canvas = {
         width: 0,
         height: 0,
         getContext: () => context,
-      }),
+      } as unknown as HTMLCanvasElement;
+      contexts.push(context);
+      canvases.push(canvas);
+      return canvas;
+    };
+    vi.stubGlobal("document", {
+      createElement: createCanvas,
     });
     vi.stubGlobal(
       "createImageBitmap",
@@ -118,14 +126,28 @@ describe("resource visualization icons", () => {
       };
 
       await createResourceMapImage(map as never, "visual-test-seed");
-      const firstContour = quadraticCurveTo.mock.calls.map((call) => [...call]);
-      quadraticCurveTo.mockClear();
+      const firstRaster = new Uint8ClampedArray(rasterData[0]);
       await createResourceMapImage(map as never, "visual-test-seed");
 
-      expect(quadraticCurveTo).toHaveBeenCalled();
-      expect(quadraticCurveTo.mock.calls).toEqual(firstContour);
-      expect(context.clip).toHaveBeenCalled();
-      expect(context.createRadialGradient).toHaveBeenCalled();
+      expect(
+        rasterData[0].some((alpha, index) => index % 4 === 3 && alpha > 0),
+      ).toBe(true);
+      expect(
+        new Set(
+          rasterData[0].filter((alpha, index) => index % 4 === 3 && alpha > 0),
+        ).size,
+      ).toBeGreaterThan(1);
+      expect(rasterData[1]).toEqual(firstRaster);
+      expect(canvases[1].width).toBe(128);
+      expect(canvases[1].height).toBe(128);
+      expect(contexts[0].drawImage).toHaveBeenCalledOnce();
+      expect(contexts[0].drawImage).toHaveBeenCalledWith(
+        canvases[1],
+        0,
+        0,
+        width,
+        width,
+      );
     } finally {
       vi.unstubAllGlobals();
     }
