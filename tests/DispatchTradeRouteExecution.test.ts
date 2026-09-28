@@ -1,5 +1,6 @@
 import { DispatchTradeRouteExecution } from "../src/core/execution/DispatchTradeRouteExecution";
 import { PlayerInfo, PlayerType, UnitType } from "../src/core/game/Game";
+import { ProcessedResource } from "../src/core/game/Resources";
 import { setup } from "./util/Setup";
 
 describe("DispatchTradeRouteExecution", () => {
@@ -78,6 +79,59 @@ describe("DispatchTradeRouteExecution", () => {
     );
 
     for (let tick = 0; tick < 3; tick++) game.executeNextTick();
+
+    expect(game.units(UnitType.TradeShip)).toHaveLength(0);
+  });
+
+  test("enforces the configured active convoy limit", async () => {
+    const { game, sourceOwner, sourcePort, destinationPort } =
+      await routeFixture();
+    for (let index = 0; index < 3; index++) {
+      sourceOwner.buildUnit(UnitType.TradeShip, game.ref(8, 10), {
+        targetUnit: destinationPort,
+      });
+    }
+    game.addExecution(
+      new DispatchTradeRouteExecution(
+        sourceOwner,
+        sourcePort.id(),
+        destinationPort.id(),
+      ),
+    );
+
+    for (let tick = 0; tick < 4; tick++) game.executeNextTick();
+
+    expect(sourceOwner.units(UnitType.TradeShip)).toHaveLength(3);
+  });
+
+  test("rejects a destination port under naval blockade", async () => {
+    const { game, sourceOwner, sourcePort, destinationPort } =
+      await routeFixture();
+    const attacker = game.addPlayer(
+      new PlayerInfo("blockader", PlayerType.Human, null, "blockader_id"),
+    );
+    attacker.addGold(1_000_000n);
+    attacker.addResource(ProcessedResource.Steel, 100);
+    attacker.addResource(ProcessedResource.Fuel, 100);
+    const waterTile = [...game.circleSearch(destinationPort.tile(), 8)].find(
+      (tile) => game.isWater(tile),
+    );
+    if (waterTile === undefined)
+      throw new Error("destination has no nearby sea");
+    for (let index = 0; index < 2; index++) {
+      attacker.buildUnit(UnitType.Warship, waterTile, {
+        patrolTile: waterTile,
+      });
+    }
+    game.addExecution(
+      new DispatchTradeRouteExecution(
+        sourceOwner,
+        sourcePort.id(),
+        destinationPort.id(),
+      ),
+    );
+
+    for (let tick = 0; tick < 4; tick++) game.executeNextTick();
 
     expect(game.units(UnitType.TradeShip)).toHaveLength(0);
   });

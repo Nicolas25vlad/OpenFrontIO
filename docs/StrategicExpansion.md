@@ -366,6 +366,8 @@ Arquivos desta etapa: `src/core/Schemas.ts`,
 testes em `tests/DispatchTradeRouteExecution.test.ts`,
 `tests/client/ResourcePanel.test.ts`,
 `tests/client/TransportSendPaths.test.ts` e `tests/zbin/wire.test.ts`.
+Os testes de execução também confirmam a rejeição de uma origem alheia, da
+economia legada, do limite atingido e de um porto bloqueado.
 
 ### Validação manual pendente no PC principal
 
