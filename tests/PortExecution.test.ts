@@ -1,4 +1,7 @@
+import { vi } from "vitest";
+import { NAVAL_TRADE } from "../src/core/configuration/StrategyConfig";
 import { PortExecution } from "../src/core/execution/PortExecution";
+import { TradeShipExecution } from "../src/core/execution/TradeShipExecution";
 import {
   Game,
   Player,
@@ -171,5 +174,29 @@ describe("PortExecution", () => {
     game.config().tradeShipSpawnRate = (r) => (rejections.push(r), 1000000);
     expect(execution.shouldSpawnTradeShip()).toBe(false);
     expect(rejections).toEqual([0, 1, 2, 0, 1]);
+  });
+
+  test("stops strategic automatic routes when pending convoys fill the cap", async () => {
+    const cappedGame = await setup(
+      "half_land_half_ocean",
+      { instantBuild: true, strategicEconomy: true },
+      [new PlayerInfo("player", PlayerType.Human, null, "player_id")],
+    );
+    const cappedPlayer = cappedGame.player("player_id");
+    cappedPlayer.addGold(1_000_000n);
+    cappedPlayer.addResource(ProcessedResource.Steel, 20);
+    const tile = cappedGame.ref(7, 10);
+    cappedPlayer.conquer(tile);
+    const port = cappedPlayer.buildUnit(UnitType.Port, tile, {});
+    const execution = new PortExecution(port);
+    execution.init(cappedGame, 0);
+    vi.spyOn(cappedGame, "unitCount").mockReturnValue(
+      NAVAL_TRADE.globalRouteLimit - 1,
+    );
+    cappedGame.addExecution(new TradeShipExecution(cappedPlayer, port, port));
+    const spawnRate = vi.spyOn(cappedGame.config(), "tradeShipSpawnRate");
+
+    expect(execution.shouldSpawnTradeShip()).toBe(false);
+    expect(spawnRate).not.toHaveBeenCalled();
   });
 });

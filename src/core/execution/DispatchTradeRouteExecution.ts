@@ -2,7 +2,10 @@ import { NAVAL_TRADE } from "../configuration/StrategyConfig";
 import { Execution, Game, Player, Unit, UnitType } from "../game/Game";
 import { TileRef } from "../game/GameMap";
 import { isNavalSectorBlockaded } from "../game/NavalSupremacy";
-import { TradeShipExecution } from "./TradeShipExecution";
+import {
+  activeTradeRouteCount,
+  TradeShipExecution,
+} from "./TradeShipExecution";
 
 /** Validates a player-selected port pair and starts one authoritative convoy. */
 export class DispatchTradeRouteExecution implements Execution {
@@ -94,6 +97,13 @@ export class DispatchTradeRouteExecution implements Execution {
       .filter(
         (execution) =>
           execution instanceof DispatchTradeRouteExecution &&
+          execution.isActive(),
+      ).length;
+    const earlierPlayerRequests = executions
+      .slice(0, thisIndex < 0 ? 0 : thisIndex)
+      .filter(
+        (execution) =>
+          execution instanceof DispatchTradeRouteExecution &&
           execution.owner === this.owner &&
           execution.isActive(),
       ).length;
@@ -107,8 +117,10 @@ export class DispatchTradeRouteExecution implements Execution {
     return (
       this.owner.units(UnitType.TradeShip).length +
         pendingTradeShips +
-        earlierRequests <
-      NAVAL_TRADE.manualRouteLimitPerPlayer
+        earlierPlayerRequests <
+        NAVAL_TRADE.manualRouteLimitPerPlayer &&
+      activeTradeRouteCount(game) + earlierRequests <
+        NAVAL_TRADE.globalRouteLimit
     );
   }
 }

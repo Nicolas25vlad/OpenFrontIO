@@ -28,6 +28,7 @@ import { assertNever, sigmoid, toInt, within } from "../Util";
 import {
   ECONOMY,
   NAVAL_SUPREMACY,
+  NAVAL_TRADE,
   NUCLEAR_PRODUCTION_TICKS,
   RESOURCE_COSTS,
   ResourceAmounts,
@@ -534,13 +535,16 @@ export class Config {
    * ships, then a capacity sigmoid damps spawning past the ~230-ship
    * midpoint. The damping flattens onto a 0.25 plateau past ~310 ships
    * (~half cadence per port after the pity timer), so heavy port
-   * investment keeps scaling income linearly, until a global hard cap far
-   * beyond any normal game collapses the plateau past ~800 at sea.
+   * investment keeps scaling income linearly. Strategic games enforce a hard
+   * global cap at the configured route limit; legacy games keep old behavior.
    */
   tradeShipSaturation(numTradeShips: number): number {
     const boost = 1 + 0.45 * exp(-numTradeShips / 120);
     const damping = 1 - sigmoid(numTradeShips, Math.LN2 / 50, 230);
-    const plateau = 0.25 * (1 - sigmoid(numTradeShips, Math.LN2 / 100, 800));
+    const plateau =
+      0.25 *
+      (1 -
+        sigmoid(numTradeShips, Math.LN2 / 100, NAVAL_TRADE.globalRouteLimit));
     return boost * Math.max(damping, plateau);
   }
 

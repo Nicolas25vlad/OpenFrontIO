@@ -1,3 +1,5 @@
+import { vi } from "vitest";
+import { NAVAL_TRADE } from "../src/core/configuration/StrategyConfig";
 import { DispatchTradeRouteExecution } from "../src/core/execution/DispatchTradeRouteExecution";
 import { TradeShipExecution } from "../src/core/execution/TradeShipExecution";
 import { PlayerInfo, PlayerType, UnitType } from "../src/core/game/Game";
@@ -182,6 +184,28 @@ describe("DispatchTradeRouteExecution", () => {
     game.addExecution(thirdExecution);
 
     expect((dispatch as any).hasRouteCapacity(game)).toBe(false);
+  });
+
+  test("reserves global capacity for earlier simultaneous route intents", async () => {
+    const { game, sourceOwner, sourcePort, destinationPort } =
+      await routeFixture();
+    vi.spyOn(game, "unitCount").mockImplementation((type) =>
+      type === UnitType.TradeShip ? NAVAL_TRADE.globalRouteLimit - 1 : 0,
+    );
+    const first = new DispatchTradeRouteExecution(
+      sourceOwner,
+      sourcePort.id(),
+      destinationPort.id(),
+    );
+    const second = new DispatchTradeRouteExecution(
+      sourceOwner,
+      sourcePort.id(),
+      destinationPort.id(),
+    );
+    game.addExecution(first, second);
+
+    expect((first as any).hasRouteCapacity(game)).toBe(true);
+    expect((second as any).hasRouteCapacity(game)).toBe(false);
   });
 
   test("rejects a destination port under naval blockade", async () => {

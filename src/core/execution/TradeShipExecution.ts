@@ -314,3 +314,14 @@ export class TradeShipExecution implements Execution {
     return this.tradeShip !== undefined;
   }
 }
+
+/** Counts active ships and route executions that have not spawned their ship. */
+export function activeTradeRouteCount(game: Game): number {
+  const pendingSpawns = (game.executions?.() ?? []).filter(
+    (execution) =>
+      execution instanceof TradeShipExecution &&
+      execution.isActive() &&
+      !execution.hasSpawnedShip(),
+  ).length;
+  return game.unitCount(UnitType.TradeShip) + pendingSpawns;
+}

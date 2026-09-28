@@ -1,7 +1,11 @@
+import { NAVAL_TRADE } from "../configuration/StrategyConfig";
 import { Execution, Game, Unit, UnitType } from "../game/Game";
 import { isNavalSectorBlockaded } from "../game/NavalSupremacy";
 import { PseudoRandom } from "../PseudoRandom";
-import { TradeShipExecution } from "./TradeShipExecution";
+import {
+  activeTradeRouteCount,
+  TradeShipExecution,
+} from "./TradeShipExecution";
 import { TrainStationExecution } from "./TrainStationExecution";
 
 export class PortExecution implements Execution {
@@ -70,6 +74,12 @@ export class PortExecution implements Execution {
   }
 
   shouldSpawnTradeShip(): boolean {
+    if (
+      this.mg.config().strategicEconomy() &&
+      activeTradeRouteCount(this.mg) >= NAVAL_TRADE.globalRouteLimit
+    ) {
+      return false;
+    }
     const numTradeShips = this.mg.unitCount(UnitType.TradeShip);
     for (let i = 0; i < this.port!.level(); i++) {
       const spawnRate = this.mg

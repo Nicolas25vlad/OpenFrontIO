@@ -485,7 +485,10 @@ leitura usa os updates de unidades existentes e não altera as regras do core.
 O limite de três comboios manuais por jogador conta navios ativos e execuções
 que ainda aguardam o surgimento do navio. Execuções de comboios já representados
 por um navio ativo não são contadas novamente; o teste cobre duas rotas em curso,
-a vaga restante e o bloqueio ao atingir o limite.
+a vaga restante e o bloqueio ao atingir o limite. Na economia estratégica,
+rotas manuais e automáticas também respeitam o teto global configurável de 800
+comboios; navios existentes e execuções pendentes ocupam uma vaga. A economia
+legada conserva o fluxo antigo.
 
 Também há uma camada visual opcional com a grade quadrada dos setores de 64
 tiles, coordenadas `x,y` e preenchimento azul translúcido. O renderer a recorta

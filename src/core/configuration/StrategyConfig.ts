@@ -141,6 +141,8 @@ export const NAVAL_TRADE = {
   cargoPricePerUnit: 100n,
   /** Manual route orders share one small cap per player to bound active work. */
   manualRouteLimitPerPlayer: 3,
+  /** Hard strategic cap; legacy trade ships keep their existing behavior. */
+  globalRouteLimit: 800,
   exportReserve: {
     [Product.Food]: 120,
     [Product.Fuel]: 30,
