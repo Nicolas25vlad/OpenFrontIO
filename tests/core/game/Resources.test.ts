@@ -84,6 +84,21 @@ describe("deterministic resource deposits", () => {
     );
   });
 
+  test("protects cached nodes from consumer mutation", () => {
+    const map = landMap();
+    const nodes = resourceNodesForMap(map, "immutable-match");
+    const richness = nodes[0].richness;
+
+    expect(Object.isFrozen(nodes)).toBe(true);
+    expect(Object.isFrozen(nodes[0])).toBe(true);
+    expect(() => {
+      (nodes[0] as { richness: number }).richness = 0;
+    }).toThrow();
+    expect(resourceNodesForMap(map, "immutable-match")[0].richness).toBe(
+      richness,
+    );
+  });
+
   test("changes locations between match seeds", () => {
     const map = landMap();
 

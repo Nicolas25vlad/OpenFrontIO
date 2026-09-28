@@ -189,7 +189,10 @@ type ResourceSeed = string | number;
 const NOISE_OCTAVES = 4;
 const NOISE_PERSISTENCE = 0.5;
 const RICHNESS_THRESHOLDS = [0, 0.08, 0.18, 0.3];
-const RESOURCE_CACHE = new WeakMap<object, Map<string, ResourceNode[]>>();
+const RESOURCE_CACHE = new WeakMap<
+  object,
+  Map<string, readonly ResourceNode[]>
+>();
 
 function seedNumber(seed: ResourceSeed): number {
   if (typeof seed === "number") return seed >>> 0;
@@ -327,9 +330,10 @@ function richnessForNoise(noise: number, threshold: number): number {
 export function resourceNodesForMap(
   map: ResourceMapLike,
   matchSeed: ResourceSeed,
-): ResourceNode[] {
+): readonly ResourceNode[] {
   const mapCache =
-    RESOURCE_CACHE.get(map as object) ?? new Map<string, ResourceNode[]>();
+    RESOURCE_CACHE.get(map as object) ??
+    new Map<string, readonly ResourceNode[]>();
   RESOURCE_CACHE.set(map as object, mapCache);
 
   const key = cacheKey(matchSeed);
@@ -420,8 +424,11 @@ export function resourceNodesForMap(
       a.x - b.x ||
       RESOURCE_VALUES.indexOf(a.resource) - RESOURCE_VALUES.indexOf(b.resource),
   );
-  mapCache.set(key, nodes);
-  return nodes;
+  const immutableNodes = Object.freeze(
+    nodes.map((node) => Object.freeze({ ...node })),
+  );
+  mapCache.set(key, immutableNodes);
+  return immutableNodes;
 }
 
 export function resourceTotalsForOwner(
