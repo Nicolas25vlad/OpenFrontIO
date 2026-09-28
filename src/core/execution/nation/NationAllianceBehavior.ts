@@ -18,6 +18,9 @@ import {
   NationEmojiBehavior,
 } from "./NationEmojiBehavior";
 
+const CAPITULATION_TROOP_RATIO = 4;
+const CAPITULATION_TERRITORY_RATIO = 2;
+
 export class NationAllianceBehavior {
   constructor(
     private random: PseudoRandom,
@@ -30,12 +33,19 @@ export class NationAllianceBehavior {
     if (this.game.config().disableAlliances()) return;
 
     for (const req of this.player.incomingAllianceRequests()) {
-      if (req.kind() === "capitulation") continue;
       // Alliance Request intents created during the spawn phase are executed on
       // the first tick post-spawn phase. With the following condition we reject
       // all requests created during the spawn phase.
       if (req.createdAt() <= this.game.config().numSpawnPhaseTurns() + 1) {
         req.reject();
+        continue;
+      }
+      if (req.kind() === "capitulation") {
+        if (this.shouldAcceptCapitulation(req.requestor())) {
+          req.accept();
+        } else {
+          req.reject();
+        }
         continue;
       }
       if (req.territoryPercent() > 0) {
@@ -173,6 +183,28 @@ export class NationAllianceBehavior {
     if (territoryPercent > 10 || requestor.isTraitor()) return false;
     if (this.hasTooManyAlliances(requestor)) return false;
     return this.isAlliancePartnerThreat(requestor);
+  }
+
+  /**
+   * A capitulation ends the recipient's game, so only accept it when the
+   * requester is already a clear military and territorial dominant.
+   */
+  private shouldAcceptCapitulation(requestor: Player): boolean {
+    if (
+      requestor.isTraitor() ||
+      requestor.isFriendly(this.player) ||
+      this.hasTooManyAlliances(requestor) ||
+      !this.isAlliancePartnerThreat(requestor)
+    ) {
+      return false;
+    }
+
+    return (
+      requestor.troops() >
+        Math.max(1, this.player.troops()) * CAPITULATION_TROOP_RATIO &&
+      requestor.numTilesOwned() >
+        Math.max(1, this.player.numTilesOwned()) * CAPITULATION_TERRITORY_RATIO
+    );
   }
 
   private hasTooManyAlliances(otherPlayer: Player): boolean {

@@ -116,13 +116,56 @@ describe("AllianceBehavior.handleAllianceRequests", () => {
     expect(request.reject).not.toHaveBeenCalled();
   });
 
-  test("does not process capitulation as an ordinary alliance request", () => {
+  test("rejects capitulation when the requester is not overwhelmingly stronger", () => {
     const request = setupAllianceRequest({ kind: "capitulation" });
 
     allianceBehavior.handleAllianceRequests();
 
     expect(request.accept).not.toHaveBeenCalled();
+    expect(request.reject).toHaveBeenCalledOnce();
+  });
+
+  test("accepts capitulation only when the requester dominates troops and territory", () => {
+    const request = setupAllianceRequest({
+      kind: "capitulation",
+      numTilesPlayer: 10,
+      numTilesRequestor: 30,
+    });
+    vi.spyOn(player, "troops").mockReturnValue(100);
+    vi.spyOn(requestor, "troops").mockReturnValue(500);
+
+    allianceBehavior.handleAllianceRequests();
+
+    expect(request.accept).toHaveBeenCalledOnce();
     expect(request.reject).not.toHaveBeenCalled();
+  });
+
+  test("rejects capitulation from a traitor even when they dominate", () => {
+    const request = setupAllianceRequest({
+      kind: "capitulation",
+      isTraitor: true,
+      numTilesPlayer: 10,
+      numTilesRequestor: 30,
+    });
+    vi.spyOn(player, "troops").mockReturnValue(100);
+    vi.spyOn(requestor, "troops").mockReturnValue(500);
+
+    allianceBehavior.handleAllianceRequests();
+
+    expect(request.accept).not.toHaveBeenCalled();
+    expect(request.reject).toHaveBeenCalledOnce();
+  });
+
+  test("rejects capitulation created during the spawn phase", () => {
+    const request = setupAllianceRequest({
+      kind: "capitulation",
+      createdAtTick: game.config().numSpawnPhaseTurns() + 1,
+    });
+
+    allianceBehavior.handleAllianceRequests();
+
+    expect(request.accept).not.toHaveBeenCalled();
+    expect(request.reject).toHaveBeenCalledOnce();
   });
 
   test("should reject alliance if requestor is a traitor", () => {
