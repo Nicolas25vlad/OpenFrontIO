@@ -17,6 +17,7 @@ import {
 } from "../../Transport";
 import { UIState } from "../../UIState";
 import { PlayerView } from "../../view";
+import { requestedTanksForAttack } from "../TankCommitment";
 
 export class PlayerActionHandler {
   constructor(
@@ -25,10 +26,12 @@ export class PlayerActionHandler {
   ) {}
 
   handleAttack(player: PlayerView, targetId: string | null) {
+    const troops = this.uiState.attackRatio * player.troops();
     this.eventBus.emit(
       new SendAttackIntentEvent(
         targetId,
-        this.uiState.attackRatio * player.troops(),
+        troops,
+        requestedTanksForAttack(troops, this.uiState.tankCommitmentRatio),
       ),
     );
   }

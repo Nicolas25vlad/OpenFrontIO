@@ -1845,6 +1845,9 @@
     "none": "Você não tem uma assinatura ativa.",
     "title": "Sua Assinatura"
   },
+  "tank_commitment": {
+    "label": "Compromisso de tanques"
+  },
   "team_colors": {
     "blue": "Azul",
     "bot": "Tribos",

@@ -96,6 +96,7 @@ export class SendAttackIntentEvent implements GameEvent {
   constructor(
     public readonly targetID: PlayerID | null,
     public readonly troops: number,
+    public readonly tanks?: number,
   ) {}
 }
 
@@ -750,6 +751,7 @@ export class Transport {
       type: "attack",
       targetID: event.targetID,
       troops: event.troops,
+      ...(event.tanks === undefined ? {} : { tanks: event.tanks }),
     });
   }
 

@@ -628,6 +628,7 @@ export const AttackIntentSchema = z.object({
   type: z.literal("attack"),
   targetID: MappedID.nullable(),
   troops: zb.float({ min: 0 }).nullable(),
+  tanks: zb.uint().optional(),
 });
 
 export const SpawnIntentSchema = z.object({

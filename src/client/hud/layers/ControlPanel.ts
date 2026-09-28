@@ -38,6 +38,9 @@ export class ControlPanel extends LitElement implements Controller {
   private attackRatio: number = 0.2;
 
   @state()
+  private tankCommitmentRatio: number = 1;
+
+  @state()
   private _maxTroops: number;
 
   @state()
@@ -96,6 +99,12 @@ export class ControlPanel extends LitElement implements Controller {
   init() {
     this.attackRatio = new UserSettings().attackRatio();
     this.uiState.attackRatio = this.attackRatio;
+    if (this.isStrategicEconomy()) {
+      this.tankCommitmentRatio = this.uiState.tankCommitmentRatio ?? 1;
+      this.uiState.tankCommitmentRatio = this.tankCommitmentRatio;
+    } else {
+      this.uiState.tankCommitmentRatio = undefined;
+    }
     this.eventBus.on(TutorialHighlightEvent, (e) => {
       this._tutorialHighlight = e.target;
     });
@@ -360,6 +369,16 @@ export class ControlPanel extends LitElement implements Controller {
     (e.target as HTMLInputElement).blur();
   }
 
+  private handleTankCommitmentSliderInput(e: Event) {
+    this.tankCommitmentRatio =
+      Number((e.target as HTMLInputElement).value) / 100;
+    this.uiState.tankCommitmentRatio = this.tankCommitmentRatio;
+  }
+
+  private isStrategicEconomy(): boolean {
+    return this.game?.config?.().strategicEconomy?.() ?? false;
+  }
+
   private calculateTroopBar(): { greenPercent: number; orangePercent: number } {
     const base = Math.max(this._maxTroops, 1);
     const greenPercentRaw = (this._troops / base) * 100;
@@ -593,72 +612,110 @@ export class ControlPanel extends LitElement implements Controller {
           class="flex-1 h-1.5 accent-aquarius cursor-pointer"
         />
       </div>
+      ${this.isStrategicEconomy()
+        ? html`<div class="flex items-center gap-2 text-xs text-white">
+            <span class="shrink-0"
+              >${translateText("tank_commitment.label")}
+              ${(this.tankCommitmentRatio * 100).toFixed(0)}%</span
+            >
+            <input
+              type="range"
+              min="0"
+              max="100"
+              aria-label=${translateText("tank_commitment.label")}
+              .value=${String(Math.round(this.tankCommitmentRatio * 100))}
+              @input=${(e: Event) => this.handleTankCommitmentSliderInput(e)}
+              @pointerup=${(e: Event) => this.handleRatioSliderPointerUp(e)}
+              class="flex-1 h-1.5 accent-aquarius cursor-pointer"
+            />
+          </div>`
+        : ""}
     `;
   }
 
   private renderMobile() {
     return html`
       ${this.renderNotification()}
-      <div class="flex gap-2 items-center">
-        <!-- Gold -->
-        <div
-          class="flex items-center justify-center p-1 gap-0.5 border rounded-md border-yellow-400 font-bold text-yellow-400 text-xs w-1/5 shrink-0 relative ${this.tutorialHighlightClass(
-            "gold",
-          )}"
-          translate="no"
-        >
-          ${this._goldGain !== null
-            ? keyed(
-                this._goldGainPulseId,
-                html`<span
-                  class="gold-gain-pop absolute -top-5 right-[5px] min-[1015px]:right-[9px] text-green-400 text-xs font-extrabold tabular-nums whitespace-nowrap pointer-events-none drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]"
-                  >+${renderNumber(this._goldGain)}</span
-                >`,
-              )
-            : ""}
-          <img src=${goldCoinIcon} width="13" height="13" />
-          <span class="px-0.5">${renderNumber(this._gold)}</span>
-        </div>
-        <!-- Troop bar -->
-        <div
-          class="w-[40%] shrink-0 flex items-center ${this.tutorialHighlightClass(
-            "troops",
-          )}"
-        >
-          ${this.renderMobileTroopBar()}
-        </div>
-        <!-- Sword + % label -->
-        <div
-          class="flex flex-col items-center shrink-0 gap-0.5 w-8"
-          translate="no"
-        >
-          <img
-            src=${swordIcon}
-            alt=""
-            aria-hidden="true"
-            width="10"
-            height="10"
-            style="filter: brightness(0) invert(1);"
-          />
-          <span class="text-white text-xs font-bold tabular-nums"
-            >${(this.attackRatio * 100).toFixed(0)}%</span
+      <div class="flex flex-col gap-1">
+        <div class="flex gap-2 items-center">
+          <!-- Gold -->
+          <div
+            class="flex items-center justify-center p-1 gap-0.5 border rounded-md border-yellow-400 font-bold text-yellow-400 text-xs w-1/5 shrink-0 relative ${this.tutorialHighlightClass(
+              "gold",
+            )}"
+            translate="no"
           >
+            ${this._goldGain !== null
+              ? keyed(
+                  this._goldGainPulseId,
+                  html`<span
+                    class="gold-gain-pop absolute -top-5 right-[5px] min-[1015px]:right-[9px] text-green-400 text-xs font-extrabold tabular-nums whitespace-nowrap pointer-events-none drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]"
+                    >+${renderNumber(this._goldGain)}</span
+                  >`,
+                )
+              : ""}
+            <img src=${goldCoinIcon} width="13" height="13" />
+            <span class="px-0.5">${renderNumber(this._gold)}</span>
+          </div>
+          <!-- Troop bar -->
+          <div
+            class="w-[40%] shrink-0 flex items-center ${this.tutorialHighlightClass(
+              "troops",
+            )}"
+          >
+            ${this.renderMobileTroopBar()}
+          </div>
+          <!-- Sword + % label -->
+          <div
+            class="flex flex-col items-center shrink-0 gap-0.5 w-8"
+            translate="no"
+          >
+            <img
+              src=${swordIcon}
+              alt=""
+              aria-hidden="true"
+              width="10"
+              height="10"
+              style="filter: brightness(0) invert(1);"
+            />
+            <span class="text-white text-xs font-bold tabular-nums"
+              >${(this.attackRatio * 100).toFixed(0)}%</span
+            >
+          </div>
+          <!-- Attack ratio slider -->
+          <div
+            class="flex-1 ${this.tutorialHighlightClass("attack_ratio")}"
+            translate="no"
+          >
+            <input
+              type="range"
+              min="1"
+              max="100"
+              .value=${String(Math.round(this.attackRatio * 100))}
+              @input=${(e: Event) => this.handleRatioSliderInput(e)}
+              @pointerup=${(e: Event) => this.handleRatioSliderPointerUp(e)}
+              class="w-full h-1.5 accent-aquarius cursor-pointer"
+            />
+          </div>
         </div>
-        <!-- Attack ratio slider -->
-        <div
-          class="flex-1 ${this.tutorialHighlightClass("attack_ratio")}"
-          translate="no"
-        >
-          <input
-            type="range"
-            min="1"
-            max="100"
-            .value=${String(Math.round(this.attackRatio * 100))}
-            @input=${(e: Event) => this.handleRatioSliderInput(e)}
-            @pointerup=${(e: Event) => this.handleRatioSliderPointerUp(e)}
-            class="w-full h-1.5 accent-aquarius cursor-pointer"
-          />
-        </div>
+        ${this.isStrategicEconomy()
+          ? html`<div class="flex items-center gap-2 text-xs text-white">
+              <span class="shrink-0"
+                >${translateText("tank_commitment.label")}
+                ${(this.tankCommitmentRatio * 100).toFixed(0)}%</span
+              >
+              <input
+                type="range"
+                min="0"
+                max="100"
+                aria-label=${translateText("tank_commitment.label")}
+                .value=${String(Math.round(this.tankCommitmentRatio * 100))}
+                @input=${(e: Event) => this.handleTankCommitmentSliderInput(e)}
+                @pointerup=${(e: Event) => this.handleRatioSliderPointerUp(e)}
+                class="flex-1 h-1.5 accent-aquarius cursor-pointer"
+              />
+            </div>`
+          : ""}
       </div>
     `;
   }

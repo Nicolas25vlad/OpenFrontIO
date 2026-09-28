@@ -1950,6 +1950,9 @@
     "none": "You don't have an active subscription.",
     "title": "Your Subscription"
   },
+  "tank_commitment": {
+    "label": "Tank commitment"
+  },
   "team_colors": {
     "blue": "Blue",
     "bot": "Tribes",

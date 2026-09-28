@@ -29,7 +29,9 @@ describe("control-panel attack ratio", () => {
     panel.game = {
       inSpawnPhase: () => false,
       myPlayer: () => null,
+      config: () => ({ strategicEconomy: () => true }),
     } as unknown as GameView;
+    uiState.tankCommitmentRatio = undefined;
     document.body.appendChild(panel);
     panel.init();
   });
@@ -52,5 +54,15 @@ describe("control-panel attack ratio", () => {
     new UserSettings().setAttackRatio(0.75);
 
     expect(uiState.attackRatio).toBeCloseTo(0.2);
+  });
+
+  it("defaults tank commitment to full and stores slider changes for the match", () => {
+    expect(uiState.tankCommitmentRatio).toBe(1);
+
+    (panel as any).handleTankCommitmentSliderInput({
+      target: { value: "45" },
+    });
+
+    expect(uiState.tankCommitmentRatio).toBe(0.45);
   });
 });

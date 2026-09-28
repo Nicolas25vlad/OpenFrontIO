@@ -69,6 +69,7 @@ import { createCanvas } from "./Utils";
 import { WebGLFrameBuilder } from "./WebGLFrameBuilder";
 import { MapLayerController } from "./controllers/MapLayerController";
 import { createRenderer, GameRenderer } from "./hud/GameRenderer";
+import { requestedTanksForAttack } from "./hud/TankCommitment";
 import { goldRateTracker } from "./hud/layers/lib/GoldRateTracker";
 import {
   applyGraphicsOverrides,
@@ -1171,10 +1172,16 @@ export class ClientGameRunner {
     }
     this.myPlayer.actions(tile, [UnitType.TransportShip]).then((actions) => {
       if (actions.canAttack) {
+        const troops =
+          this.myPlayer!.troops() * this.renderer.uiState.attackRatio;
         this.eventBus.emit(
           new SendAttackIntentEvent(
             this.gameView.owner(tile).id(),
-            this.myPlayer!.troops() * this.renderer.uiState.attackRatio,
+            troops,
+            requestedTanksForAttack(
+              troops,
+              this.renderer.uiState.tankCommitmentRatio,
+            ),
           ),
         );
       } else if (this.canAutoBoat(actions.buildableUnits, tile)) {
@@ -1330,10 +1337,16 @@ export class ClientGameRunner {
 
     this.myPlayer.actions(tile, null).then((actions) => {
       if (actions.canAttack) {
+        const troops =
+          this.myPlayer!.troops() * this.renderer.uiState.attackRatio;
         this.eventBus.emit(
           new SendAttackIntentEvent(
             this.gameView.owner(tile).id(),
-            this.myPlayer!.troops() * this.renderer.uiState.attackRatio,
+            troops,
+            requestedTanksForAttack(
+              troops,
+              this.renderer.uiState.tankCommitmentRatio,
+            ),
           ),
         );
       }
@@ -1372,7 +1385,16 @@ export class ClientGameRunner {
       mostRecentAttack.troops,
       this.renderer.uiState.attackRatio * this.myPlayer.troops(),
     );
-    this.eventBus.emit(new SendAttackIntentEvent(attacker.id(), counterTroops));
+    this.eventBus.emit(
+      new SendAttackIntentEvent(
+        attacker.id(),
+        counterTroops,
+        requestedTanksForAttack(
+          counterTroops,
+          this.renderer.uiState.tankCommitmentRatio,
+        ),
+      ),
+    );
   }
 
   private doRequestAllianceUnderCursor(): void {

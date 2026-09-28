@@ -176,6 +176,7 @@ describe("Transport send paths", () => {
       const { eventBus, ws } = connected();
       eventBus.emit(new SendSpawnIntentEvent(123));
       eventBus.emit(new SendAttackIntentEvent("player01", 50));
+      eventBus.emit(new SendAttackIntentEvent("player01", 50, 2));
       eventBus.emit(
         new SendAllianceRequestIntentEvent(
           { id: () => "player01" } as unknown as PlayerView,
@@ -203,6 +204,15 @@ describe("Transport send paths", () => {
         {
           type: "intent",
           intent: { type: "attack", targetID: "player01", troops: 50 },
+        },
+        {
+          type: "intent",
+          intent: {
+            type: "attack",
+            targetID: "player01",
+            troops: 50,
+            tanks: 2,
+          },
         },
         {
           type: "intent",

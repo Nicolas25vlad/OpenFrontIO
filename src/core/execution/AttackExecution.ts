@@ -52,6 +52,7 @@ export class AttackExecution implements Execution {
     private sourceTile: TileRef | null = null,
     private removeTroops: boolean = true,
     private preferredExpansionTile: TileRef | null = null,
+    private requestedTanks?: number,
   ) {}
 
   public targetID(): PlayerID | null {
@@ -136,8 +137,12 @@ export class AttackExecution implements Execution {
       this.sourceTile === null &&
       this.mg.config().strategicEconomy()
     ) {
-      const requestedTanks = Math.floor(
+      const troopBasedTankLimit = Math.floor(
         this.startTroops / STRATEGIC_COMBAT.infantryPerTank,
+      );
+      const requestedTanks = Math.min(
+        troopBasedTankLimit,
+        this.requestedTanks ?? troopBasedTankLimit,
       );
       this.startTanks = this._owner.removeTanks(requestedTanks);
     }

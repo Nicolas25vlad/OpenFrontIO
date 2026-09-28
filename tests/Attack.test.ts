@@ -212,6 +212,53 @@ describe("land attack tanks", () => {
     expect(tankAttacker.outgoingAttacks()).toHaveLength(0);
   });
 
+  test("respects a lower requested tank count without exceeding inventory", async () => {
+    const tankGame = await setup("ocean_and_land", {
+      strategicEconomy: true,
+      infiniteGold: true,
+      instantBuild: true,
+    });
+    const attackerInfo = new PlayerInfo(
+      "selected tank attacker",
+      PlayerType.Human,
+      null,
+      "selected_tank_attacker_id",
+    );
+    tankGame.addPlayer(attackerInfo);
+    const attacker = tankGame.player(attackerInfo.id);
+    tankGame.addExecution(
+      new SpawnExecution(gameID, attacker.info(), tankGame.ref(0, 10)),
+    );
+    tankGame.executeNextTick();
+    tankGame.executeNextTick();
+
+    attacker.addTroops(25_000);
+    attacker.addTanks(3);
+    let observedAttackStrength = 0;
+    (tankGame.config() as TestConfig).attackLogic = (input) => {
+      observedAttackStrength = input.attackTroops;
+      return { attackerTroopLoss: 1, defenderTroopLoss: 0, tickFraction: 1 };
+    };
+
+    tankGame.addExecution(
+      new AttackExecution(
+        25_000,
+        attacker,
+        tankGame.terraNullius().id(),
+        null,
+        true,
+        null,
+        1,
+      ),
+    );
+    tankGame.executeNextTick();
+    tankGame.executeNextTick();
+
+    expect(attacker.tanks()).toBe(2);
+    expect(attacker.outgoingAttacks()[0].tanks()).toBe(1);
+    expect(observedAttackStrength).toBe(30_000);
+  });
+
   test("takes deterministic tank casualties in player combat", async () => {
     const tankGame = await setup("ocean_and_land", {
       strategicEconomy: true,

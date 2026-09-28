@@ -120,6 +120,19 @@ contagem viaja no delta compacto e aparece nas listas e rótulos de ataques.
 Ainda faltam seleção/movimento de tanques como unidades independentes, carga
 naval de tanques e decisões específicas dos bots.
 
+Agora a interface estratégica também oferece um controle de 0–100% para a
+quantidade de tanques que acompanha cada ataque terrestre, calculada sobre o
+limite permitido pelo número de tropas e pelo estoque. O padrão em 100% mantém
+o comportamento anterior; 0% envia apenas infantaria. O campo opcional no
+protocolo preserva clientes e partidas que ainda usam a alocação automática.
+
+Arquivos desta etapa: `src/client/hud/layers/ControlPanel.ts`,
+`src/client/hud/TankCommitment.ts`, `src/client/Transport.ts`,
+`src/core/Schemas.ts`, `src/core/execution/ExecutionManager.ts`,
+`src/core/execution/AttackExecution.ts` e os testes de `Attack`, painel e
+transporte. Os testes focados passaram (43 testes); `npm run build-dev`, lint,
+Prettier e `git diff --check` também passaram no homelab.
+
 Validação automatizada: `tests/client/render/gl/TroopGarrisons.test.ts` cobre
 posições de fronteira, determinismo, limiar de tropas e limite global;
 `tests/economy/Production.test.ts` e `tests/economy/StrategicReplay.test.ts`
@@ -153,14 +166,17 @@ arquivos e 5.607 testes, e a suíte de servidor com 63 arquivos e 656 testes.
 ### Validação manual pendente no PC principal
 
 1. Inicie o cliente com `npm run dev:host` e abra uma partida solo ou
-   multiplayer. Faça o teste com `strategicEconomy` ligado e desligado.
+   multiplayer. Faça o teste com `strategicEconomy` ligado e desligado. O novo
+   controle deve aparecer apenas com a economia estratégica ativa.
 2. Com a economia estratégica ligada, construa uma Vehicle Factory e forneça
    aço e combustível. Confira o contador de tanques no painel após alguns ticks.
 3. Envie pelo menos 25.000 tropas por terra. Confira dois tanques no rótulo do
    ataque e a redução correspondente do estoque. Compare o avanço com uma
    investida sem tanques: os dois tanques devem acelerar o avanço terrestre.
    Cancele a investida e confira a devolução dos sobreviventes; repita contra
-   um jogador para observar baixas.
+   um jogador para observar baixas. Ajuste o controle de compromisso para 0%,
+   50% e 100%; com 25.000 tropas, o ataque deve levar 0, 1 e 2 tanques,
+   respectivamente, quando houver estoque suficiente.
 4. Em uma nação com pelo menos 25.000 tropas, aproxime a câmera da fronteira
    até os ícones aparecerem. Confira uma região interior e uma fronteira entre
    dois jogadores.
@@ -175,6 +191,8 @@ rápido com os tanques e devolver apenas os sobreviventes ao cancelar. A
 quantidade cresce em degraus com as tropas, respeita o limite visual, some
 abaixo do zoom mínimo e os ícones de guarnição não mudam o combate. O contador de
 tanques deve aumentar em lotes conforme a fábrica consome aço e combustível.
+O controle de compromisso aparece apenas na economia estratégica e limita os
+tanques embarcados sem ultrapassar o limite das tropas ou o estoque disponível.
 Registre navegador,
 mapa e resultado em `StrategicCompatibilityChecklist.md`; a aprovação visual
 continua pendente até essa execução.
