@@ -367,11 +367,12 @@ testes em `tests/DispatchTradeRouteExecution.test.ts`,
 `tests/client/ResourcePanel.test.ts`,
 `tests/client/TransportSendPaths.test.ts` e `tests/zbin/wire.test.ts`.
 Os testes de execução também confirmam a rejeição de uma origem alheia, da
-economia legada, do limite atingido e de um porto bloqueado.
+economia legada, de comércio sob embargo, do limite atingido e de um porto
+bloqueado.
 Pedidos simultâneos contam contra o mesmo limite, incluindo comboios ainda
 enfileirados. A regressão foi reproduzida e coberta em
 `tests/DispatchTradeRouteExecution.test.ts`. A revalidação de despacho,
-`PortExecution` e `TradeShipExecution` passou em 3 arquivos/20 testes;
+`PortExecution` e `TradeShipExecution` passou em 3 arquivos/21 testes;
 `tsc --noEmit`, `npm run lint`, `npm run build-dev`, Prettier e
 `git diff --check` também passaram.
 
@@ -679,5 +680,5 @@ procedimentos descritos nas respectivas seções.
 
 Essa execução completa precedeu a correção posterior de reserva para intents
 simultâneos de comboio. Depois dessa correção, os testes focados passaram em 3
-arquivos/20 testes e foram repetidos typecheck, lint do repositório e build;
+arquivos/21 testes e foram repetidos typecheck, lint do repositório e build;
 essa alteração ainda não foi incluída em uma nova execução da suíte completa.

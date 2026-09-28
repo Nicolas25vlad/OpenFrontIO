@@ -67,6 +67,23 @@ describe("DispatchTradeRouteExecution", () => {
     expect(game.units(UnitType.TradeShip)).toHaveLength(0);
   });
 
+  test("rejects routes when either port owner has embargoed the other", async () => {
+    const { game, sourceOwner, destinationOwner, sourcePort, destinationPort } =
+      await routeFixture();
+    destinationOwner.addEmbargo(sourceOwner, false);
+    game.addExecution(
+      new DispatchTradeRouteExecution(
+        sourceOwner,
+        sourcePort.id(),
+        destinationPort.id(),
+      ),
+    );
+
+    for (let tick = 0; tick < 4; tick++) game.executeNextTick();
+
+    expect(game.units(UnitType.TradeShip)).toHaveLength(0);
+  });
+
   test("does not expose manual dispatch in legacy economy", async () => {
     const { game, sourceOwner, sourcePort, destinationPort } =
       await routeFixture(false);
