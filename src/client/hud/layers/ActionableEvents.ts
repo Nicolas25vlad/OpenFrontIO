@@ -16,6 +16,7 @@ import {
   SendAllianceExtensionIntentEvent,
   SendAllianceRejectIntentEvent,
   SendAllianceRequestIntentEvent,
+  SendCapitulationIntentEvent,
 } from "../../Transport";
 import { UIState } from "../../UIState";
 import { getMessageTypeClasses, translateText } from "../../Utils";
@@ -219,13 +220,17 @@ export class ActionableEvents extends LitElement implements Controller {
       update.recipientID,
     ) as PlayerView;
     const territoryPercent = update.territoryPercent ?? 0;
+    const isCapitulation = update.kind === "capitulation";
 
     if (!requestor.isAlliedWith(recipient)) {
       this.eventBus.emit(new PlaySoundEffectEvent("alliance-suggested"));
     }
     this.addEvent({
-      description:
-        territoryPercent > 0
+      description: isCapitulation
+        ? translateText("events_display.capitulation_request", {
+            name: requestor.displayName(),
+          })
+        : territoryPercent > 0
           ? translateText("events_display.request_peace_offer", {
               name: requestor.displayName(),
               percent: territoryPercent,
@@ -242,21 +247,29 @@ export class ActionableEvents extends LitElement implements Controller {
         },
         {
           text: translateText(
-            territoryPercent > 0
-              ? "events_display.accept_peace_offer"
-              : "events_display.accept_alliance",
+            isCapitulation
+              ? "events_display.accept_capitulation"
+              : territoryPercent > 0
+                ? "events_display.accept_peace_offer"
+                : "events_display.accept_alliance",
           ),
           className: "btn",
           action: () =>
             this.eventBus.emit(
-              new SendAllianceRequestIntentEvent(recipient, requestor),
+              isCapitulation
+                ? new SendCapitulationIntentEvent("accept", requestor)
+                : new SendAllianceRequestIntentEvent(recipient, requestor),
             ),
         },
         {
           text: translateText("events_display.reject_alliance"),
           className: "btn-info",
           action: () =>
-            this.eventBus.emit(new SendAllianceRejectIntentEvent(requestor)),
+            this.eventBus.emit(
+              isCapitulation
+                ? new SendCapitulationIntentEvent("reject", requestor)
+                : new SendAllianceRejectIntentEvent(requestor),
+            ),
         },
       ],
       type: MessageType.ALLIANCE_REQUEST,

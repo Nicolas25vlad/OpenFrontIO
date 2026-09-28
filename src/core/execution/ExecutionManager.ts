@@ -7,6 +7,7 @@ import { AllianceExtensionExecution } from "./alliance/AllianceExtensionExecutio
 import { AllianceRejectExecution } from "./alliance/AllianceRejectExecution";
 import { AllianceRequestExecution } from "./alliance/AllianceRequestExecution";
 import { BreakAllianceExecution } from "./alliance/BreakAllianceExecution";
+import { CapitulationExecution } from "./alliance/CapitulationExecution";
 import { AttackExecution } from "./AttackExecution";
 import { BoatRetreatExecution } from "./BoatRetreatExecution";
 import { BuildTrenchExecution } from "./BuildTrenchExecution";
@@ -100,6 +101,8 @@ export class Executor {
           intent.recipient,
           intent.territoryPercent ?? 0,
         );
+      case "capitulation":
+        return new CapitulationExecution(player, intent.action, intent.player);
       case "allianceReject":
         return new AllianceRejectExecution(intent.requestor, player);
       case "allianceCancel":

@@ -36,6 +36,7 @@ export type Intent =
   | BoatAttackIntent
   | CancelBoatIntent
   | AllianceRequestIntent
+  | CapitulationIntent
   | AllianceRejectIntent
   | AllianceCancelIntent
   | AllianceExtensionIntent
@@ -66,6 +67,7 @@ export type BoatAttackIntent = z.infer<typeof BoatAttackIntentSchema>;
 export type EmbargoAllIntent = z.infer<typeof EmbargoAllIntentSchema>;
 export type CancelBoatIntent = z.infer<typeof CancelBoatIntentSchema>;
 export type AllianceRequestIntent = z.infer<typeof AllianceRequestIntentSchema>;
+export type CapitulationIntent = z.infer<typeof CapitulationIntentSchema>;
 export type AllianceRejectIntent = z.infer<typeof AllianceRejectIntentSchema>;
 export type AllianceCancelIntent = z.infer<typeof AllianceCancelIntentSchema>;
 export type BreakAllianceIntent = z.infer<typeof BreakAllianceIntentSchema>;
@@ -654,6 +656,12 @@ export const AllianceRequestIntentSchema = z.object({
   territoryPercent: zb.uint({ max: 50 }).optional(),
 });
 
+export const CapitulationIntentSchema = z.object({
+  type: z.literal("capitulation"),
+  action: z.enum(["propose", "accept", "reject", "cancel"]),
+  player: MappedID,
+});
+
 export const AllianceRejectIntentSchema = z.object({
   type: z.literal("allianceReject"),
   requestor: MappedID,
@@ -801,6 +809,7 @@ export const IntentSchema = z.discriminatedUnion("type", [
   BoatAttackIntentSchema,
   CancelBoatIntentSchema,
   AllianceRequestIntentSchema,
+  CapitulationIntentSchema,
   AllianceRejectIntentSchema,
   AllianceCancelIntentSchema,
   BreakAllianceIntentSchema,

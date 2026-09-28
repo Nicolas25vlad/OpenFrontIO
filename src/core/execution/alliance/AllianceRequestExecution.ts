@@ -37,7 +37,9 @@ export class AllianceRequestExecution implements Execution {
     } else {
       const incoming = recipient
         .outgoingAllianceRequests()
-        .find((r) => r.recipient() === this.requestor);
+        .find(
+          (r) => r.recipient() === this.requestor && r.kind() === "alliance",
+        );
       if (incoming) {
         // If the recipient already has pending alliance request,
         // then accept it instead of creating a new one.

@@ -46,7 +46,12 @@ import { MotionPlanRecord, packMotionPlans } from "./MotionPlans";
 import { PlayerImpl } from "./PlayerImpl";
 import { RailNetwork } from "./RailNetwork";
 import { createRailNetwork } from "./RailNetworkImpl";
-import { NaturalResource, ResourceCatalog, ResourceNode } from "./Resources";
+import {
+  NaturalResource,
+  ResourceCatalog,
+  ResourceNode,
+  STOCK_RESOURCES,
+} from "./Resources";
 import { Stats } from "./Stats";
 import { StatsImpl } from "./StatsImpl";
 import { assignTeams, resolveTeamsList } from "./TeamAssignment";
@@ -430,6 +435,7 @@ export class GameImpl implements Game {
     requestor: Player,
     recipient: Player,
     territoryPercent = 0,
+    kind: "alliance" | "capitulation" = "alliance",
   ): AllianceRequest | null {
     if (
       !Number.isInteger(territoryPercent) ||
@@ -451,9 +457,14 @@ export class GameImpl implements Game {
       console.log(`duplicate alliance request from ${requestor.name()}`);
       return null;
     }
-    const correspondingReq = requestor
-      .incomingAllianceRequests()
-      .find((ar) => ar.requestor() === recipient);
+    const correspondingReq =
+      kind === "alliance"
+        ? requestor
+            .incomingAllianceRequests()
+            .find(
+              (ar) => ar.requestor() === recipient && ar.kind() === "alliance",
+            )
+        : undefined;
     if (correspondingReq !== undefined) {
       console.log(`got corresponding alliance requests, accepting`);
       correspondingReq.accept();
@@ -465,6 +476,7 @@ export class GameImpl implements Game {
       this._ticks,
       territoryPercent,
       this,
+      kind,
     );
     this.allianceRequests.push(ar);
     this.addUpdate(ar.toUpdate());
@@ -476,6 +488,9 @@ export class GameImpl implements Game {
     const recipient = request.recipient();
 
     if (!this.allianceRequests.includes(request)) return false;
+    if (request.kind() === "capitulation") {
+      return this.acceptCapitulationRequest(request);
+    }
     if (requestor.allianceWith(recipient)) {
       this.rejectAllianceRequest(request);
       return false;
@@ -523,6 +538,86 @@ export class GameImpl implements Game {
       accepted: true,
     });
     return true;
+  }
+
+  private acceptCapitulationRequest(request: AllianceRequestImpl): boolean {
+    const requestor = request.requestor() as PlayerImpl;
+    const recipient = request.recipient() as PlayerImpl;
+    const territory = [...recipient.tiles()];
+    if (
+      !this.allianceRequests.includes(request) ||
+      !requestor.isAlive() ||
+      !recipient.isAlive() ||
+      requestor.isFriendly(recipient) ||
+      territory.length === 0 ||
+      territory.some(
+        (tile) =>
+          this.owner(tile) !== recipient ||
+          !this.isLand(tile) ||
+          this.isImpassable(tile),
+      )
+    ) {
+      this.rejectAllianceRequest(request);
+      return false;
+    }
+
+    // Every operation below is deterministic and operates on the validated
+    // snapshot, so no later tick can observe a partially transferred surrender.
+    this.allianceRequests = this.allianceRequests.filter(
+      (candidate) => candidate !== request,
+    );
+    for (const tile of territory) requestor.conquer(tile);
+
+    const attacks = new Set([
+      ...recipient.outgoingAttacks(),
+      ...recipient.incomingAttacks(),
+    ]);
+    for (const attack of attacks) attack.delete();
+    for (const unit of [...recipient.units()]) unit.delete(false);
+
+    recipient.removeAllAlliances();
+    this.resolveRequestsForEliminatedPlayer(recipient, request);
+    this.conquerPlayer(requestor, recipient);
+    recipient.removeGold(recipient.gold());
+    for (const resource of STOCK_RESOURCES) {
+      recipient.removeResource(resource, recipient.resourceAmount(resource));
+    }
+    requestor.pastOutgoingAllianceRequests.push(request);
+
+    this.addUpdate({
+      type: GameUpdateType.AllianceRequestReply,
+      request: request.toUpdate(),
+      accepted: true,
+    });
+    this.displayMessage(
+      "events_display.capitulation_accepted",
+      MessageType.CONQUERED_PLAYER,
+      requestor.id(),
+      undefined,
+      { name: recipient.displayName() },
+    );
+    this.displayMessage(
+      "events_display.capitulation_received",
+      MessageType.CONQUERED_PLAYER,
+      recipient.id(),
+      undefined,
+      { name: requestor.displayName() },
+    );
+    return true;
+  }
+
+  private resolveRequestsForEliminatedPlayer(
+    player: Player,
+    acceptedRequest: AllianceRequestImpl,
+  ): void {
+    const pending = this.allianceRequests.filter(
+      (candidate) =>
+        candidate !== acceptedRequest &&
+        (candidate.requestor() === player || candidate.recipient() === player),
+    );
+    for (const request of pending) {
+      request.reject();
+    }
   }
 
   rejectAllianceRequest(request: AllianceRequestImpl) {

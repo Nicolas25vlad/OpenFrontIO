@@ -440,6 +440,7 @@ export interface AllianceRequest {
   recipient(): Player;
   createdAt(): Tick;
   territoryPercent(): number;
+  kind(): "alliance" | "capitulation";
   status(): "pending" | "accepted" | "rejected" | "canceled";
 }
 
@@ -765,6 +766,7 @@ export interface Player {
   createAllianceRequest(
     recipient: Player,
     territoryPercent?: number,
+    kind?: "alliance" | "capitulation",
   ): AllianceRequest | null;
   betrayals(): number;
 

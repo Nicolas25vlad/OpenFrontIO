@@ -297,6 +297,8 @@ export interface AllianceRequestUpdate {
   recipientID: number;
   createdAt: Tick;
   territoryPercent?: number;
+  /** Omitted on older snapshots and ordinary alliance/peace offers. */
+  kind?: "capitulation";
 }
 
 export interface AllianceRequestReplyUpdate {

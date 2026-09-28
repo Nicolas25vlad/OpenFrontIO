@@ -67,6 +67,7 @@ export class TribeExecution implements Execution {
   private acceptAllAllianceRequests() {
     // Accept all alliance requests
     for (const req of this.tribe.incomingAllianceRequests()) {
+      if (req.kind() === "capitulation") continue;
       req.accept();
     }
 

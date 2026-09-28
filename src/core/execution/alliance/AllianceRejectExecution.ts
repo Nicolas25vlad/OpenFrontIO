@@ -25,7 +25,9 @@ export class AllianceRejectExecution implements Execution {
     } else {
       const request = requestor
         .outgoingAllianceRequests()
-        .find((ar) => ar.recipient() === this.recipient);
+        .find(
+          (ar) => ar.recipient() === this.recipient && ar.kind() === "alliance",
+        );
       if (request === undefined) {
         console.warn(
           `[AllianceRejectExecution] Player ${this.requestorID} cannot reject alliance with ${this.recipient.id}, no alliance request found`,

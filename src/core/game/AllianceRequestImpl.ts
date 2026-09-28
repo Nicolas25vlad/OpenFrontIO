@@ -11,6 +11,7 @@ export class AllianceRequestImpl implements AllianceRequest {
     private tickCreated: number,
     private territoryPercent_: number,
     private game: GameImpl,
+    private kind_: "alliance" | "capitulation" = "alliance",
   ) {}
 
   status(): "pending" | "accepted" | "rejected" | "canceled" {
@@ -31,6 +32,10 @@ export class AllianceRequestImpl implements AllianceRequest {
 
   territoryPercent(): number {
     return this.territoryPercent_;
+  }
+
+  kind(): "alliance" | "capitulation" {
+    return this.kind_;
   }
 
   accept(): void {
@@ -57,6 +62,7 @@ export class AllianceRequestImpl implements AllianceRequest {
       recipientID: this.recipient_.smallID(),
       createdAt: this.tickCreated,
       territoryPercent: this.territoryPercent_,
+      ...(this.kind_ === "capitulation" ? { kind: this.kind_ } : {}),
     };
   }
 }

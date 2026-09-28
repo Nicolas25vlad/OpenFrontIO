@@ -28,6 +28,7 @@ import {
   PlayerReportedEvent,
   SendAllianceRequestIntentEvent,
   SendBreakAllianceIntentEvent,
+  SendCapitulationIntentEvent,
   SendEmbargoAllIntentEvent,
   SendEmbargoIntentEvent,
   SendEmojiIntentEvent,
@@ -242,6 +243,12 @@ export class PlayerPanel extends LitElement implements Controller {
     this.eventBus.emit(
       new SendAllianceRequestIntentEvent(myPlayer, other, territoryPercent),
     );
+    this.hide();
+  }
+
+  private handleCapitulationClick(e: Event, other: PlayerView) {
+    e.stopPropagation();
+    this.eventBus.emit(new SendCapitulationIntentEvent("propose", other));
     this.hide();
   }
 
@@ -946,6 +953,19 @@ export class PlayerPanel extends LitElement implements Controller {
                   : ""}
                 ${canSendAllianceRequest
                   ? html`
+                      ${actionButton({
+                        onClick: (e: MouseEvent) =>
+                          this.handleCapitulationClick(e, other),
+                        icon: allianceIcon,
+                        iconAlt: "Capitulation",
+                        title: translateText(
+                          "player_panel.propose_capitulation",
+                        ),
+                        label: translateText(
+                          "player_panel.propose_capitulation",
+                        ),
+                        type: "red",
+                      })}
                       ${actionButton({
                         onClick: (e: MouseEvent) =>
                           this.handleAllianceClick(e, my, other),

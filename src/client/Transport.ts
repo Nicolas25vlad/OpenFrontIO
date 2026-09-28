@@ -61,6 +61,13 @@ export class SendAllianceRequestIntentEvent implements GameEvent {
   ) {}
 }
 
+export class SendCapitulationIntentEvent implements GameEvent {
+  constructor(
+    public readonly action: "propose" | "accept" | "reject" | "cancel",
+    public readonly player: PlayerView,
+  ) {}
+}
+
 export class CancelAllianceRequestIntentEvent implements GameEvent {
   constructor(public readonly recipient: PlayerView) {}
 }
@@ -292,6 +299,13 @@ export class Transport {
 
     this.eventBus.on(SendAllianceRequestIntentEvent, (e) =>
       this.onSendAllianceRequest(e),
+    );
+    this.eventBus.on(SendCapitulationIntentEvent, (e) =>
+      this.sendIntent({
+        type: "capitulation",
+        action: e.action,
+        player: e.player.id(),
+      }),
     );
     this.eventBus.on(CancelAllianceRequestIntentEvent, (e) =>
       this.onCancelAllianceRequest(e),

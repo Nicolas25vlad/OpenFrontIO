@@ -30,6 +30,7 @@ export class NationAllianceBehavior {
     if (this.game.config().disableAlliances()) return;
 
     for (const req of this.player.incomingAllianceRequests()) {
+      if (req.kind() === "capitulation") continue;
       // Alliance Request intents created during the spawn phase are executed on
       // the first tick post-spawn phase. With the following condition we reject
       // all requests created during the spawn phase.

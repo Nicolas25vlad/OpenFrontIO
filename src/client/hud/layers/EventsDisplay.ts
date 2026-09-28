@@ -18,7 +18,10 @@ import {
 } from "../../../core/game/GameUpdates";
 import { UserSettings } from "../../../core/game/UserSettings";
 import { Controller } from "../../Controller";
-import { SendAllianceRequestIntentEvent } from "../../Transport";
+import {
+  SendAllianceRequestIntentEvent,
+  SendCapitulationIntentEvent,
+} from "../../Transport";
 
 import { onlyImages } from "../../../core/Util";
 import { GoToPlayerEvent, GoToUnitEvent } from "../../TransformHandler";
@@ -151,6 +154,18 @@ export class EventsDisplay extends LitElement implements Controller {
       SendAllianceRequestIntentEvent,
       this.onAllianceRequestSentConfirmation.bind(this),
     );
+    this.eventBus.on(SendCapitulationIntentEvent, (event) => {
+      if (event.action !== "propose") return;
+      const myPlayer = this.game.myPlayer();
+      if (!myPlayer) return;
+      this.addEvent({
+        description: translateText("events_display.capitulation_sent", {
+          name: event.player.displayName(),
+        }),
+        type: MessageType.ALLIANCE_REQUEST,
+        createdAt: this.game.ticks(),
+      });
+    });
   }
 
   private onAllianceRequestSentConfirmation(e: SendAllianceRequestIntentEvent) {
@@ -367,6 +382,26 @@ export class EventsDisplay extends LitElement implements Controller {
       update.request.recipientID,
     ) as PlayerView;
     const territoryPercent = update.request.territoryPercent ?? 0;
+    if (update.request.kind === "capitulation") {
+      this.addEvent({
+        description: translateText("events_display.capitulation_status", {
+          name: recipient.displayName(),
+          status: update.accepted
+            ? translateText("events_display.capitulation_accepted_status")
+            : translateText(
+                update.canceled
+                  ? "events_display.alliance_canceled"
+                  : "events_display.alliance_rejected",
+              ),
+        }),
+        type: update.accepted
+          ? MessageType.CONQUERED_PLAYER
+          : MessageType.ALLIANCE_ACCEPTED,
+        createdAt: this.game.ticks(),
+        focusID: recipient.smallID(),
+      });
+      return;
+    }
     this.addEvent({
       description:
         territoryPercent > 0

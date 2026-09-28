@@ -945,6 +945,7 @@ export class PlayerImpl implements Player {
   createAllianceRequest(
     recipient: Player,
     territoryPercent = 0,
+    kind: "alliance" | "capitulation" = "alliance",
   ): AllianceRequest | null {
     if (this.isAlliedWith(recipient)) {
       throw new Error(`cannot create alliance request, already allies`);
@@ -953,6 +954,7 @@ export class PlayerImpl implements Player {
       this,
       recipient satisfies Player,
       territoryPercent,
+      kind,
     );
   }
 
