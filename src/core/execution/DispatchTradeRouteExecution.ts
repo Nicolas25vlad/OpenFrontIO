@@ -4,6 +4,8 @@ import { TileRef } from "../game/GameMap";
 import { isNavalSectorBlockaded } from "../game/NavalSupremacy";
 import {
   activeTradeRouteCount,
+  addTradeShipExecution,
+  pendingTradeShipCount,
   TradeShipExecution,
 } from "./TradeShipExecution";
 
@@ -33,7 +35,8 @@ export class DispatchTradeRouteExecution implements Execution {
     if (!this.active) return;
     this.active = false;
     if (!this.isValidRoute(this.game, this.source, this.destination)) return;
-    this.game.addExecution(
+    addTradeShipExecution(
+      this.game,
       new TradeShipExecution(this.owner, this.source!, this.destination!),
     );
   }
@@ -107,13 +110,7 @@ export class DispatchTradeRouteExecution implements Execution {
           execution.owner === this.owner &&
           execution.isActive(),
       ).length;
-    const pendingTradeShips = executions.filter(
-      (execution) =>
-        execution instanceof TradeShipExecution &&
-        execution.isActive() &&
-        execution.originatingPlayer() === this.owner &&
-        !execution.hasSpawnedShip(),
-    ).length;
+    const pendingTradeShips = pendingTradeShipCount(game, this.owner);
     return (
       this.owner.units(UnitType.TradeShip).length +
         pendingTradeShips +

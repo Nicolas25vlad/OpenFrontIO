@@ -513,6 +513,14 @@ a vaga restante e o bloqueio ao atingir o limite. Na economia estratégica,
 rotas manuais e automáticas também respeitam o teto global configurável de 800
 comboios; navios existentes e execuções pendentes ocupam uma vaga. A economia
 legada conserva o fluxo antigo.
+O contador global soma os navios ativos às execuções que ainda aguardam spawn,
+indexadas por partida; verificações periódicas dos portos não varrem mais a
+lista completa de execuções. Rotas canceladas ou já transformadas em navio são
+removidas do índice ao revalidar a contagem.
+`PortExecution`, `DispatchTradeRouteExecution` e `TradeShipExecution` passaram
+em 28 testes focados; a suíte principal passou em 492 arquivos/5.758 testes e a
+suíte do servidor em 63 arquivos/656 testes. Também passaram `npm run build-dev`,
+lint direcionado, Prettier e `git diff --check`.
 
 Também há uma camada visual opcional com a grade quadrada dos setores de 64
 tiles, coordenadas `x,y` e preenchimento azul translúcido. O renderer a recorta

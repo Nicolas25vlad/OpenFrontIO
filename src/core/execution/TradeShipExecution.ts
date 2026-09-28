@@ -17,6 +17,35 @@ import {
 import { PathStatus } from "../pathfinding/types";
 import { findClosestBy } from "../Util";
 
+const pendingTradeShips = new WeakMap<Game, Set<TradeShipExecution>>();
+
+/** Queue a trade route and index its pending spawn without scanning all executions. */
+export function addTradeShipExecution(
+  game: Game,
+  execution: TradeShipExecution,
+): void {
+  const pending = pendingTradeShips.get(game) ?? new Set<TradeShipExecution>();
+  pending.add(execution);
+  pendingTradeShips.set(game, pending);
+  game.addExecution(execution);
+}
+
+/** Count pending route spawns for one game or player, pruning resolved routes. */
+export function pendingTradeShipCount(game: Game, owner?: Player): number {
+  const pending = pendingTradeShips.get(game);
+  if (pending === undefined) return 0;
+
+  let count = 0;
+  for (const execution of pending) {
+    if (!execution.isActive() || execution.hasSpawnedShip()) {
+      pending.delete(execution);
+      continue;
+    }
+    if (owner === undefined || execution.originatingPlayer() === owner) count++;
+  }
+  return count;
+}
+
 export class TradeShipExecution implements Execution {
   private active = true;
   private mg: Game;
@@ -41,6 +70,9 @@ export class TradeShipExecution implements Execution {
 
   init(mg: Game, ticks: number): void {
     this.mg = mg;
+    const pending = pendingTradeShips.get(mg) ?? new Set<TradeShipExecution>();
+    pending.add(this);
+    pendingTradeShips.set(mg, pending);
     const stagger = nextWaterPathStagger(mg);
     this.pathFinder = new WaterPathFinder(mg, stagger, true); // memoized: port tile to port tile repeats
   }
@@ -317,11 +349,5 @@ export class TradeShipExecution implements Execution {
 
 /** Counts active ships and route executions that have not spawned their ship. */
 export function activeTradeRouteCount(game: Game): number {
-  const pendingSpawns = (game.executions?.() ?? []).filter(
-    (execution) =>
-      execution instanceof TradeShipExecution &&
-      execution.isActive() &&
-      !execution.hasSpawnedShip(),
-  ).length;
-  return game.unitCount(UnitType.TradeShip) + pendingSpawns;
+  return game.unitCount(UnitType.TradeShip) + pendingTradeShipCount(game);
 }

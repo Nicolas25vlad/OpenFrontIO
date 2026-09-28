@@ -4,6 +4,7 @@ import { isNavalSectorBlockaded } from "../game/NavalSupremacy";
 import { PseudoRandom } from "../PseudoRandom";
 import {
   activeTradeRouteCount,
+  addTradeShipExecution,
   TradeShipExecution,
 } from "./TradeShipExecution";
 import { TrainStationExecution } from "./TrainStationExecution";
@@ -60,7 +61,8 @@ export class PortExecution implements Execution {
     }
 
     const port = this.random.randElement(ports);
-    this.mg.addExecution(
+    addTradeShipExecution(
+      this.mg,
       new TradeShipExecution(this.port.owner(), this.port, port),
     );
   }

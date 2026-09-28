@@ -1,7 +1,10 @@
 import { vi } from "vitest";
 import { NAVAL_TRADE } from "../src/core/configuration/StrategyConfig";
 import { PortExecution } from "../src/core/execution/PortExecution";
-import { TradeShipExecution } from "../src/core/execution/TradeShipExecution";
+import {
+  addTradeShipExecution,
+  TradeShipExecution,
+} from "../src/core/execution/TradeShipExecution";
 import {
   Game,
   Player,
@@ -193,10 +196,15 @@ describe("PortExecution", () => {
     vi.spyOn(cappedGame, "unitCount").mockReturnValue(
       NAVAL_TRADE.globalRouteLimit - 1,
     );
-    cappedGame.addExecution(new TradeShipExecution(cappedPlayer, port, port));
+    const executions = vi.spyOn(cappedGame, "executions");
+    addTradeShipExecution(
+      cappedGame,
+      new TradeShipExecution(cappedPlayer, port, port),
+    );
     const spawnRate = vi.spyOn(cappedGame.config(), "tradeShipSpawnRate");
 
     expect(execution.shouldSpawnTradeShip()).toBe(false);
+    expect(executions).not.toHaveBeenCalled();
     expect(spawnRate).not.toHaveBeenCalled();
   });
 });
