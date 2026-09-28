@@ -400,7 +400,7 @@ filtra por água conectada ao porto ao decidir bloqueios.
 
 Validação automatizada: os testes cobrem bloqueio por presença, contrapressão
 de escolta, retomada após perda de navio, carga/pagamento na chegada, respeito à
-reserva e devolução após captura do porto. A regressão naval/econômica passou:
+reserva dos recursos e devolução após captura do porto. A regressão naval/econômica passou:
 5 arquivos/38 testes. `tsc --noEmit`, lint, `npm run build-dev` e Prettier
 também passaram após esta etapa.
 
@@ -446,6 +446,10 @@ partida. O contador não é compartilhado entre jogos no mesmo processo, então 
 ordem de partidas anteriores não muda quando cada comboio recalcula sua rota.
 `tests/core/pathfinding/WaterPathStagger.test.ts` cobre isolamento entre jogos
 e retorno ao início ao atingir o limite do ciclo.
+
+Complemento em 2026-09-28: `tests/core/executions/TradeShipExecution.test.ts`
+passou com 12 testes, incluindo envio de comida, combustível e aço com as
+reservas e metas de importação configuradas; `git diff --check` passou.
 
 ### Validação manual pendente no PC principal
 

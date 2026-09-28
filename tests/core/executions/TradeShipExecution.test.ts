@@ -1,3 +1,4 @@
+import { NAVAL_TRADE } from "../../../src/core/configuration/StrategyConfig";
 import { TradeShipExecution } from "../../../src/core/execution/TradeShipExecution";
 import {
   Game,
@@ -212,6 +213,88 @@ describe("TradeShipExecution", () => {
 });
 
 describe("strategic trade cargo", () => {
+  it.each(NAVAL_TRADE.cargoOrder)(
+    "honors export reserves and import targets for %s",
+    async (resource) => {
+      const game = await setup(
+        "big_plains",
+        { strategicEconomy: true, infiniteGold: true, instantBuild: true },
+        [
+          new PlayerInfo("seller", PlayerType.Human, null, "seller"),
+          new PlayerInfo("buyer", PlayerType.Human, null, "buyer"),
+        ],
+      );
+      const seller = game.player("seller");
+      const buyer = game.player("buyer");
+      const sourceTile = game.ref(10, 10);
+      const destinationTile = game.ref(150, 150);
+      seller.conquer(sourceTile);
+      buyer.conquer(destinationTile);
+      seller.addGold(100_000n);
+      buyer.addGold(100_000n);
+      const sourcePort = seller.buildUnit(UnitType.Port, sourceTile, {});
+      const destinationPort = buyer.buildUnit(
+        UnitType.Port,
+        destinationTile,
+        {},
+      );
+
+      for (const candidate of NAVAL_TRADE.cargoOrder) {
+        const reserve = NAVAL_TRADE.exportReserve[candidate];
+        const sellerAmount = seller.resourceAmount(candidate);
+        if (sellerAmount > reserve) {
+          seller.removeResource(candidate, sellerAmount - reserve);
+        } else if (sellerAmount < reserve) {
+          seller.addResource(candidate, reserve - sellerAmount);
+        }
+
+        const buyerTarget =
+          candidate === resource
+            ? NAVAL_TRADE.importTarget[candidate] - NAVAL_TRADE.cargoUnits
+            : NAVAL_TRADE.importTarget[candidate];
+        const buyerAmount = buyer.resourceAmount(candidate);
+        if (buyerAmount > buyerTarget) {
+          buyer.removeResource(candidate, buyerAmount - buyerTarget);
+        } else if (buyerAmount < buyerTarget) {
+          buyer.addResource(candidate, buyerTarget - buyerAmount);
+        }
+      }
+      seller.addResource(resource, NAVAL_TRADE.cargoUnits);
+      const sellerGoldBefore = seller.gold();
+      const buyerGoldBefore = buyer.gold();
+      const expectedPayment =
+        BigInt(NAVAL_TRADE.cargoUnits) * NAVAL_TRADE.cargoPricePerUnit;
+      const routeRevenue = game.config().tradeShipGold(0, seller);
+      const execution = new TradeShipExecution(
+        seller,
+        sourcePort,
+        destinationPort,
+      );
+      execution.init(game, 0);
+      execution["pathFinder"] = {
+        next: vi.fn(() => ({
+          status: PathStatus.COMPLETE,
+          node: destinationTile,
+        })),
+      } as any;
+
+      execution.tick(1);
+
+      expect(seller.resourceAmount(resource)).toBe(
+        NAVAL_TRADE.exportReserve[resource],
+      );
+      expect(buyer.resourceAmount(resource)).toBe(
+        NAVAL_TRADE.importTarget[resource],
+      );
+      expect(seller.gold()).toBe(
+        sellerGoldBefore + expectedPayment + routeRevenue,
+      );
+      expect(buyer.gold()).toBe(
+        buyerGoldBefore - expectedPayment + routeRevenue,
+      );
+    },
+  );
+
   test("moves scarce supplies and pays the exporter when the convoy arrives", async () => {
     const game = await setup(
       "big_plains",
