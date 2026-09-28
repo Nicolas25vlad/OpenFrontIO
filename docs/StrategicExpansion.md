@@ -400,7 +400,8 @@ filtra por água conectada ao porto ao decidir bloqueios.
 
 Validação automatizada: os testes cobrem bloqueio por presença, contrapressão
 de escolta, retomada após perda de navio, carga/pagamento na chegada, respeito à
-reserva dos recursos e devolução após captura do porto. A regressão naval/econômica passou:
+reserva dos recursos e devolução após captura do porto. A regressão
+naval/econômica passou:
 5 arquivos/38 testes. `tsc --noEmit`, lint, `npm run build-dev` e Prettier
 também passaram após esta etapa.
 
@@ -449,7 +450,9 @@ e retorno ao início ao atingir o limite do ciclo.
 
 Complemento em 2026-09-28: `tests/core/executions/TradeShipExecution.test.ts`
 passou com 12 testes, incluindo envio de comida, combustível e aço com as
-reservas e metas de importação configuradas; `git diff --check` passou.
+reservas e metas de importação configuradas. `tests/economy/NavalTradeReplay.test.ts`
+também passou, comparando hashes, carga e pagamentos em duas simulações; typecheck,
+lint, Prettier e `git diff --check` passaram.
 
 ### Validação manual pendente no PC principal
 
