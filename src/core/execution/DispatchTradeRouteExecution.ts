@@ -9,6 +9,11 @@ import {
   TradeShipExecution,
 } from "./TradeShipExecution";
 
+const pendingDispatchRoutes = new WeakMap<
+  Game,
+  Set<DispatchTradeRouteExecution>
+>();
+
 /** Validates a player-selected port pair and starts one authoritative convoy. */
 export class DispatchTradeRouteExecution implements Execution {
   private active = true;
@@ -24,6 +29,10 @@ export class DispatchTradeRouteExecution implements Execution {
 
   init(game: Game, _ticks: number): void {
     this.game = game;
+    const pending =
+      pendingDispatchRoutes.get(game) ?? new Set<DispatchTradeRouteExecution>();
+    pending.add(this);
+    pendingDispatchRoutes.set(game, pending);
     this.source = game.unit(this.sourcePortID);
     this.destination = game.unit(this.destinationPortID);
     if (!this.isValidRoute(game, this.source, this.destination)) {
@@ -93,23 +102,20 @@ export class DispatchTradeRouteExecution implements Execution {
   }
 
   private hasRouteCapacity(game: Game): boolean {
-    const executions = game.executions?.() ?? [];
-    const thisIndex = executions.indexOf(this);
-    const earlierRequests = executions
-      .slice(0, thisIndex < 0 ? 0 : thisIndex)
-      .filter(
-        (execution) =>
-          execution instanceof DispatchTradeRouteExecution &&
-          execution.isActive(),
-      ).length;
-    const earlierPlayerRequests = executions
-      .slice(0, thisIndex < 0 ? 0 : thisIndex)
-      .filter(
-        (execution) =>
-          execution instanceof DispatchTradeRouteExecution &&
-          execution.owner === this.owner &&
-          execution.isActive(),
-      ).length;
+    const pending = pendingDispatchRoutes.get(game);
+    let earlierRequests = 0;
+    let earlierPlayerRequests = 0;
+    if (pending !== undefined) {
+      for (const request of pending) {
+        if (request === this) break;
+        if (!request.isActive()) {
+          pending.delete(request);
+          continue;
+        }
+        earlierRequests++;
+        if (request.owner === this.owner) earlierPlayerRequests++;
+      }
+    }
     const pendingTradeShips = pendingTradeShipCount(game, this.owner);
     return (
       this.owner.units(UnitType.TradeShip).length +

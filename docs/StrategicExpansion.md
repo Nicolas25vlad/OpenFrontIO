@@ -520,7 +520,9 @@ comboios; navios existentes e execuções pendentes ocupam uma vaga. A economia
 legada conserva o fluxo antigo.
 O contador global soma os navios ativos às execuções que ainda aguardam spawn,
 indexadas por partida; verificações periódicas dos portos não varrem mais a
-lista completa de execuções. Rotas canceladas ou já transformadas em navio são
+lista completa de execuções. Intents de despacho manual também são indexados na
+ordem de validação, preservando a reserva de capacidade em pedidos simultâneos
+sem consultar a lista global. Rotas canceladas ou já transformadas em navio são
 removidas do índice ao revalidar a contagem.
 `PortExecution`, `DispatchTradeRouteExecution` e `TradeShipExecution` passaram
 em 28 testes focados; a suíte principal passou em 492 arquivos/5.758 testes e a

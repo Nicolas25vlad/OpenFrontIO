@@ -203,9 +203,14 @@ describe("DispatchTradeRouteExecution", () => {
       destinationPort.id(),
     );
     game.addExecution(first, second);
+    const executions = vi.spyOn(game, "executions");
 
-    expect((first as any).hasRouteCapacity(game)).toBe(true);
-    expect((second as any).hasRouteCapacity(game)).toBe(false);
+    first.init(game, 0);
+    second.init(game, 0);
+
+    expect(first.isActive()).toBe(true);
+    expect(second.isActive()).toBe(false);
+    expect(executions).not.toHaveBeenCalled();
   });
 
   test("rejects a destination port under naval blockade", async () => {
