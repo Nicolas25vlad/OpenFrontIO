@@ -1012,3 +1012,13 @@ transportados por bots. `tsc --noEmit`, `npm run lint`, Prettier e
 alteração de código de runtime (carga naval); os commits posteriores só alteram
 testes e documentação. A revisão visual continua pendente no PC principal
 conforme os procedimentos descritos nas respectivas seções.
+
+Revalidação local em 2026-09-28 após os ajustes de paz branca e hash diplomático:
+`GameImpl` e `CapitulationExecution` passaram em 2 arquivos/16 testes;
+`NationAllianceBehavior` e `AllianceRequestExecution` passaram em 2 arquivos/21
+testes; `EnJsonSorted` passou após ordenar as novas chaves de `en.json`. A
+primeira suíte principal serial executou 492 arquivos/5.738 testes: 491 arquivos
+e 5.737 testes passaram, e a única falha foi a ordem dessas chaves, agora
+corrigida e validada pelo teste dedicado. A suíte do servidor passou em 63
+arquivos/656 testes. `tsc --noEmit`, ESLint, Prettier e `git diff --check`
+passaram nas alterações correspondentes.

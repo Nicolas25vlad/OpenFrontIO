@@ -776,9 +776,9 @@
     "trade_ship_captured": "Your trade ship was captured by {name}",
     "unit_destroyed": "Your {unit} was destroyed",
     "unit_voluntarily_deleted": "Unit voluntarily deleted",
-    "white_peace_status": "{name} {status} your white peace offer",
+    "wants_to_renew_alliance": "{name} wants to renew your alliance",
     "white_peace_sent": "White peace offer sent to {name}.",
-    "wants_to_renew_alliance": "{name} wants to renew your alliance"
+    "white_peace_status": "{name} {status} your white peace offer"
   },
   "featured_stream": {
     "expand": "Expand",
