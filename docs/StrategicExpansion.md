@@ -57,7 +57,12 @@ Issues #1–#11 abertas. Worktree contém fundação de recursos, heatmap, categ
 ## Distribuição geológica determinística — requisitos 2 e 3 (parcial)
 
 A geração já usa quatro oitavas de value noise determinístico, com seed
-independente por recurso e cache por mapa/partida. A distribuição agora usa
+independente por recurso e cache por mapa/partida. A malha de depósitos foi
+refinada de 128 para 48 tiles (com ajuste para mapas pequenos), aumentando a
+quantidade de pontos extraíveis dentro de cada região ampla sem mudar a escala
+macroscópica do noise. Os contornos dos depósitos se sobrepõem dentro das áreas
+produtoras contínuas e cada candidato continua limitado a terra passável. A
+distribuição agora usa
 somente os limiares configurados: removi os depósitos de fallback que preenchiam
 células sem ocorrência e a garantia artificial de um ponto de cada recurso em
 cada continente. Isso mantém vazios geológicos e concentrações contínuas onde o

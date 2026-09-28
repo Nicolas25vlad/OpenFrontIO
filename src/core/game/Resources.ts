@@ -94,12 +94,11 @@ export interface ResourceContinentZone {
   maxY: number;
 }
 
-export const RESOURCE_NODE_CELL_SIZE = 128;
-const MIN_RESOURCE_NODE_CELL_SIZE = 48;
+export const RESOURCE_NODE_CELL_SIZE = 48;
+const MIN_RESOURCE_NODE_CELL_SIZE = 32;
 const RESOURCE_NOISE_REFERENCE_SIZE = 1024;
-export const RESOURCE_NODE_MARGIN = 32;
-export const RESOURCE_MIN_NODE_DISTANCE =
-  RESOURCE_NODE_CELL_SIZE - RESOURCE_NODE_MARGIN * 2;
+export const RESOURCE_NODE_MARGIN = 8;
+export const RESOURCE_MIN_NODE_DISTANCE = RESOURCE_NODE_MARGIN * 2 + 1;
 
 /** Normalized equirectangular zones for the six continents on the world map. */
 export const RESOURCE_CONTINENT_ZONES: Readonly<
@@ -311,9 +310,9 @@ function richnessForNoise(noise: number, threshold: number): number {
 /**
  * Generates a cached, deterministic resource catalog for a match.
  *
- * Each resource gets an independent fractal-noise layer. One candidate per
- * lattice cell turns eligible cells into broad zones instead of isolated
- * points; the renderer can blend neighbouring candidates into belts.
+ * Each resource gets an independent fractal-noise layer. A fine candidate
+ * lattice samples the broad field densely enough for deposits and their visual
+ * contours to connect into resource belts instead of isolated points.
  */
 export function resourceNodesForMap(
   map: ResourceMapLike,
@@ -409,18 +408,12 @@ export function resourceNodesForMap(
         const maxX = endX - margin;
         const minY = originY + margin;
         const maxY = endY - margin;
-        const landTiles = landTilesInCell(
-          cellX,
-          cellY,
-          minX,
-          maxX,
-          minY,
-          maxY,
-        );
+        const landTiles = landTilesInCell(cellX, cellY, minX, maxX, minY, maxY);
         if (landTiles.length === 0) continue;
-        const tile = landTiles[
-          hash(resourceSeed, cellX, cellY, 0x243f6a88) % landTiles.length
-        ];
+        const tile =
+          landTiles[
+            hash(resourceSeed, cellX, cellY, 0x243f6a88) % landTiles.length
+          ];
 
         const x = map.x(tile);
         const y = map.y(tile);

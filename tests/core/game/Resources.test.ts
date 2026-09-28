@@ -166,7 +166,7 @@ describe("deterministic resource deposits", () => {
         ),
       ).toBe(true);
       expect(
-        components.some((component) => component.length >= 3),
+        components.some((component) => component.length >= 10),
         resource,
       ).toBe(true);
       expect(resourceNodes.length).toBeLessThan(
@@ -196,19 +196,27 @@ describe("deterministic resource deposits", () => {
   });
 
   test("keeps resource-free cells instead of filling the whole map", () => {
-    const cellCount = (1024 / RESOURCE_NODE_CELL_SIZE) ** 2;
-    const nodes = resourceNodesForMap(landMap(), "coverage-match");
-    const coveredCells = new Set(
-      nodes.map(
-        (node) =>
-          `${Math.floor(node.x / RESOURCE_NODE_CELL_SIZE)}:${Math.floor(
-            node.y / RESOURCE_NODE_CELL_SIZE,
-          )}`,
-      ),
-    );
+    const map = landMap();
+    const nodes = resourceNodesForMap(map, "coverage-match");
+    const cellCount =
+      Math.ceil(map.width() / RESOURCE_NODE_CELL_SIZE) *
+      Math.ceil(map.height() / RESOURCE_NODE_CELL_SIZE);
 
-    expect(coveredCells.size).toBeGreaterThan(0);
-    expect(coveredCells.size).toBeLessThan(cellCount);
+    for (const resource of Object.values(NaturalResource)) {
+      const coveredCells = new Set(
+        nodes
+          .filter((node) => node.resource === resource)
+          .map(
+            (node) =>
+              `${Math.floor(node.x / RESOURCE_NODE_CELL_SIZE)}:${Math.floor(
+                node.y / RESOURCE_NODE_CELL_SIZE,
+              )}`,
+          ),
+      );
+
+      expect(coveredCells.size, resource).toBeGreaterThan(0);
+      expect(coveredCells.size, resource).toBeLessThan(cellCount);
+    }
   });
 
   test("allows independent resource belts to overlap without sharing every cell", () => {
