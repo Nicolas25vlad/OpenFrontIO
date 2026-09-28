@@ -130,15 +130,17 @@ Tanques produzidos continuam disponíveis no estoque estratégico e agora podem
 ser implantados como unidades móveis individuais. O core valida economia
 estratégica ativa, propriedade e terreno terrestre passável, reserva disponível
 e limite configurável de 24 tanques implantados por jogador. O cliente seleciona
-um tanque separadamente das tropas e aceita uma ordem de movimento até outra
-posição de terra própria passável. O caminho é determinístico, limitado a 250
-tiles e recalculado uma vez por ordem; a execução replica cada passo como update
-normal de unidade. Unidades móveis recebem sprite no carregamento do atlas, sem
-alterar o PNG compartilhado.
-
-O combate de tanques independentes, ordens para bots e captura/baixas ainda não
-estão implementados; a reserva antiga em ataques terrestres e comboios segue
-inalterada enquanto a issue permanece aberta.
+um tanque separadamente das tropas e aceita ordens de movimento por terra
+passável. Ordens a território neutro ou inimigo avançam tile a tile usando a
+fórmula de combate existente, aplicam baixas à guarnição, desgaste a postos e
+trincheiras, dano determinístico aos tanques envolvidos e capturam cada tile
+alcançado. Tanques implantados também se enfrentam quando disputam o mesmo tile;
+tiles bloqueados por tanques aliados encerram a ordem sem sobreposição. O
+caminho é determinístico, limitado a 250 tiles e calculado uma vez por ordem.
+Updates de unidade sincronizam movimento e saúde entre clientes e replay. A IA
+de nações e tribos pode implantar e ordenar até dois tanques quando há estoque,
+mantendo uma unidade de reserva para os ataques legados. Unidades móveis recebem
+sprite no carregamento do atlas, sem alterar o PNG compartilhado.
 
 Arquivos desta etapa: `src/core/game/Game.ts`, `src/core/game/PlayerImpl.ts`,
 `src/core/game/UnitImpl.ts`, `src/core/configuration/Config.ts`,
@@ -147,26 +149,31 @@ Arquivos desta etapa: `src/core/game/Game.ts`, `src/core/game/PlayerImpl.ts`,
 `src/core/execution/MoveTankExecution.ts`, `src/core/Schemas.ts`,
 `src/core/StatsSchemas.ts`, `src/client/controllers/TankSelectionController.ts`,
 `src/client/render/gl/passes/UnitPass.ts`, `resources/images/TankIcon.svg`,
+`src/core/execution/nation/AiTankBehavior.ts`, as execuções de nação e tribo,
 traduções e a tabela de estatísticas. Testes cobrem implantação, reserva,
-limite, economia legada, movimento determinístico, isolamento da infantaria e
-seleção/ordens próprias.
+limite e ocupação, economia legada, movimento e combate determinísticos,
+captura/baixas, uso da reserva pela IA, isolamento da infantaria e seleção.
 
 ### Validação manual pendente no PC principal
 
-1. Rode `npm run dev:host`, inicie uma partida com economia estratégica ativa e
-   produza tanques em uma Vehicle Factory.
+1. Rode `npm run dev:host` e inicie uma partida multiplayer com dois clientes,
+   economia estratégica ativa e tanques produzidos em uma Vehicle Factory.
 2. No menu Militar, implante um tanque em terra própria passável. Confirme que o
    estoque cai em uma unidade, aparece o sprite do tanque e a unidade recebe
    seleção independente.
-3. Clique em outra posição terrestre própria conectada. O tanque deve percorrer
-   o caminho tile a tile; tropas no território não devem se deslocar nem mudar.
-4. Tente implantar sem reserva, em terra alheia ou acima do limite. Nenhuma
-   unidade deve ser criada. Repita o movimento no replay e confirme a mesma
-   sequência de tiles.
+3. Clique em uma tile de terra própria conectada e depois numa tile inimiga
+   adjacente. O tanque deve avançar, reduzir tropas inimigas, sofrer dano e
+   capturar o território sem deslocar a infantaria. Se houver um tanque inimigo
+   no caminho, ambos devem trocar dano até um ser destruído; um tanque aliado
+   deve bloquear a rota sem empilhamento.
+4. Tente implantar sem reserva, em terra alheia, numa tile já ocupada por tanque
+   ou acima do limite. Nenhuma unidade deve ser criada. Veja também uma partida
+   com IA e confirme que ela implanta tanques sem gastar a última reserva.
+5. Compare posição e saúde nos dois clientes. Repita o ataque no replay e
+   confira a mesma sequência de tiles, baixas e captura.
 
-Esperado: implantação e movimento determinísticos em terra própria; ordens
-ilegais não alteram estoque ou posição. Teste de combate ainda não se aplica
-nesta etapa e será adicionado antes de fechar a issue.
+Esperado: implantação, movimento e combate determinísticos; ordens ilegais não
+alteram estoque ou posição e tanques aliados não ocupam o mesmo tile.
 
 Agora a interface estratégica também oferece um controle de 0–100% para a
 quantidade de tanques que acompanha cada ataque terrestre, calculada sobre o

@@ -116,6 +116,8 @@ export const STRATEGIC_COMBAT = {
   /** Independently deployed tanks each occupy a unit slot up to this limit. */
   maxDeployedTanksPerPlayer: 24,
   tankUnitMaxHealth: 1_000,
+  /** Direct damage applied to a deployed tank by another tank on its tile. */
+  tankUnitCombatDamage: 250,
   tankMoveTicksPerTile: 2,
   tankMaxMovementRange: 250,
   /** Combat strength contributed by one tank, measured in infantry equivalents. */

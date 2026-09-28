@@ -3,6 +3,7 @@ import { PseudoRandom } from "../PseudoRandom";
 import { simpleHash } from "../Util";
 import { AllianceExtensionExecution } from "./alliance/AllianceExtensionExecution";
 import { DeleteUnitExecution } from "./DeleteUnitExecution";
+import { AiTankBehavior } from "./nation/AiTankBehavior";
 import { AiAttackBehavior } from "./utils/AiAttackBehavior";
 
 export class TribeExecution implements Execution {
@@ -12,6 +13,7 @@ export class TribeExecution implements Execution {
   private neighborsTerraNullius = true;
 
   private attackBehavior: AiAttackBehavior | null = null;
+  private tankBehavior!: AiTankBehavior;
   private attackRate: number;
   private attackTick: number;
   private triggerRatio: number;
@@ -33,6 +35,7 @@ export class TribeExecution implements Execution {
 
   init(mg: Game) {
     this.mg = mg;
+    this.tankBehavior = new AiTankBehavior(mg, this.tribe);
   }
 
   tick(ticks: number) {
@@ -61,6 +64,7 @@ export class TribeExecution implements Execution {
 
     this.acceptAllAllianceRequests();
     this.deleteNextStructure();
+    this.tankBehavior.tick();
     this.maybeAttack();
   }
 

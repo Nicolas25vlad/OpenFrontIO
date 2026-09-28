@@ -1823,6 +1823,9 @@ export class PlayerImpl implements Player {
           this.tanks() > 0 &&
           this.unitCount(UnitType.Tank) <
             STRATEGIC_COMBAT.maxDeployedTanksPerPlayer &&
+          !this.mg
+            .units(UnitType.Tank)
+            .some((tank) => tank.isActive() && tank.tile() === targetTile) &&
           this.mg.owner(targetTile) === this
           ? this.landBasedUnitSpawn(targetTile)
           : false;
