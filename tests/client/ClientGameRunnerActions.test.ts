@@ -90,11 +90,13 @@ function makeRunner(overrides: {
   playerByClientID?: () => unknown;
   actions?: Record<string, unknown>;
   boatDistSquared?: number;
+  playerTroops?: number;
+  tankCommitmentRatio?: number;
 }) {
   const eventBus = new EventBus();
   const myPlayer = {
     actions: vi.fn(async () => overrides.actions ?? {}),
-    troops: () => 100,
+    troops: () => overrides.playerTroops ?? 100,
   };
   const gameView = {
     config: () => ({ isRandomSpawn: () => false, isReplay: () => false }),
@@ -115,7 +117,11 @@ function makeRunner(overrides: {
     {
       initialize: vi.fn(),
       tick: vi.fn(),
-      uiState: { attackRatio: 0.5, ghostStructure: null },
+      uiState: {
+        attackRatio: 0.5,
+        tankCommitmentRatio: overrides.tankCommitmentRatio,
+        ghostStructure: null,
+      },
       transformHandler: {
         screenToWorldCoordinates: vi.fn(() => ({ x: 1, y: 2 })),
       },
@@ -217,6 +223,25 @@ describe("auto boat", () => {
     expect(boats).toHaveLength(1);
     expect(boats[0].dst).toBe(TILE);
     expect(boats[0].troops).toBe(50);
+  });
+
+  it("includes the selected tank commitment in strategic naval orders", async () => {
+    const { eventBus } = makeRunner({
+      hasOwner: true,
+      actions: boatActions,
+      boatDistSquared: 99 * 99,
+      playerTroops: 25_000,
+      tankCommitmentRatio: 1,
+    });
+    const boats: SendBoatAttackIntentEvent[] = [];
+    eventBus.on(SendBoatAttackIntentEvent, (e) => boats.push(e));
+
+    eventBus.emit(new MouseUpEvent(CLICK.x, CLICK.y));
+    await flushPromises();
+
+    expect(boats).toHaveLength(1);
+    expect(boats[0].troops).toBe(12_500);
+    expect(boats[0].tanks).toBe(1);
   });
 
   it("does not boat-attack past the distance limit", async () => {

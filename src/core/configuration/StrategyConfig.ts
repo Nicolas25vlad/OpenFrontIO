@@ -111,13 +111,13 @@ export const STRATEGIC_COMBAT = {
   trenchTankCounterMax: 0.75,
   trenchWearPerResolvedTile: 1,
   trenchSteelPerLevel: 3,
-  /** One tank joins a land attack for every 10,000 infantry sent. */
+  /** One tank joins a land or naval attack for every 10,000 infantry sent. */
   infantryPerTank: 10_000,
   /** Combat strength contributed by one tank, measured in infantry equivalents. */
   tankCombatPower: 5_000,
   /** Tanks take casualties faster than infantry to keep them expendable. */
   tankCasualtyMultiplier: 100,
-  /** Each tank increases strategic land-attack advance speed by 5%, up to 50%. */
+  /** Each tank increases strategic attack advance speed by 5%, up to 50%. */
   tankAdvanceSpeedPerTankPercent: 5,
   tankAdvanceSpeedMaxPercent: 50,
 } as const;

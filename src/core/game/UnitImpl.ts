@@ -1,3 +1,4 @@
+import { STRATEGIC_COMBAT } from "../configuration/StrategyConfig";
 import { simpleHash, toInt, withinInt } from "../Util";
 import { ProductionStatus } from "./Economy";
 import {
@@ -21,7 +22,6 @@ import { TileRef } from "./GameMap";
 import { GameUpdateType, UnitUpdate } from "./GameUpdates";
 import { PlayerImpl } from "./PlayerImpl";
 import { maxHealthWithVeterancy } from "./Veterancy";
-import { STRATEGIC_COMBAT } from "../configuration/StrategyConfig";
 
 export class UnitImpl implements Unit {
   private _active = true;
@@ -80,7 +80,11 @@ export class UnitImpl implements Unit {
         ? (params.lastSetSafeFromPirates ?? 0)
         : 0;
     if (this._type === UnitType.TransportShip) {
-      this._transportShipState = { isRetreating: false, troops: 0 };
+      this._transportShipState = {
+        isRetreating: false,
+        troops: 0,
+        tanks: "tanks" in params ? (params.tanks ?? 0) : 0,
+      };
     }
     if (this._type === UnitType.SAMLauncher) {
       this._samLauncherState = {
@@ -294,8 +298,7 @@ export class UnitImpl implements Unit {
   maxHealth(): number {
     const base = this.info().maxHealth ?? 1;
     const levelHealth =
-      this._type === UnitType.DefensePost &&
-      this.mg.config().strategicEconomy()
+      this._type === UnitType.DefensePost && this.mg.config().strategicEconomy()
         ? (this._level - 1) * STRATEGIC_COMBAT.defensePostHealthPerLevel
         : 0;
     // veterancy() is 0 for non-warships, so this returns base for them.
@@ -488,6 +491,7 @@ export class UnitImpl implements Unit {
     return {
       isRetreating: this._transportShipState.isRetreating,
       troops: this._troops,
+      tanks: this._transportShipState.tanks ?? 0,
     };
   }
 
@@ -505,6 +509,16 @@ export class UnitImpl implements Unit {
       this._transportShipState = {
         ...this._transportShipState,
         isRetreating: update.isRetreating,
+      };
+      changed = true;
+    }
+    if (
+      update.tanks !== undefined &&
+      (this._transportShipState.tanks ?? 0) !== update.tanks
+    ) {
+      this._transportShipState = {
+        ...this._transportShipState,
+        tanks: update.tanks,
       };
       changed = true;
     }
@@ -559,7 +573,8 @@ export class UnitImpl implements Unit {
       this.tile() +
       simpleHash(this.type()) * this._id +
       this._level * 31 +
-      Number(this._health) * 37
+      Number(this._health) * 37 +
+      (this._transportShipState?.tanks ?? 0) * 41
     );
   }
 

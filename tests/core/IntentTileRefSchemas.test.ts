@@ -97,6 +97,9 @@ describe("intent schemas: troop and gold amounts stay fractional", () => {
   it("boat accepts fractional troops", () => {
     const intent = { type: "boat", troops: 12.5, dst: 10 };
     expect(BoatAttackIntentSchema.safeParse(intent).success).toBe(true);
+    expect(
+      BoatAttackIntentSchema.safeParse({ ...intent, tanks: 2 }).success,
+    ).toBe(true);
   });
 
   it("donations accept fractional amounts", () => {

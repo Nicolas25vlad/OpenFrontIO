@@ -129,10 +129,15 @@ export class AttackExecution implements Execution {
       // combined total, turning the leftover fractions into free troops.
       this.startTroops = this._owner.removeTroops(this.startTroops);
     }
-    // Tanks are a reserve asset and only join land attacks launched from the
-    // player's territory. Boat cargo remains infantry until transport is
-    // explicitly implemented.
-    if (
+    // Land orders reserve tanks here. Naval tanks were reserved when the ship
+    // departed and arrive as cargo, so their count is bounded but not debited
+    // a second time.
+    if (this.mg.config().strategicEconomy() && this.sourceTile !== null) {
+      this.startTanks = Math.min(
+        Math.floor(this.startTroops / STRATEGIC_COMBAT.infantryPerTank),
+        Math.max(0, Math.floor(this.requestedTanks ?? 0)),
+      );
+    } else if (
       this.removeTroops &&
       this.sourceTile === null &&
       this.mg.config().strategicEconomy()

@@ -37,10 +37,12 @@ export class PlayerActionHandler {
   }
 
   handleBoatAttack(player: PlayerView, targetTile: TileRef) {
+    const troops = this.uiState.attackRatio * player.troops();
     this.eventBus.emit(
       new SendBoatAttackIntentEvent(
         targetTile,
-        this.uiState.attackRatio * player.troops(),
+        troops,
+        requestedTanksForAttack(troops, this.uiState.tankCommitmentRatio),
       ),
     );
   }

@@ -142,7 +142,11 @@ describe("UnitView accessors", () => {
 
   it("transportShipState() forwards when set", () => {
     const game = makeGameView();
-    const state: TransportShipState = { isRetreating: true, troops: 50 };
+    const state: TransportShipState = {
+      isRetreating: true,
+      troops: 50,
+      tanks: 3,
+    };
     const u = new UnitView(game, makeUnitUpdate({ transportShipState: state }));
     expect(u.transportShipState()).toBe(state);
   });

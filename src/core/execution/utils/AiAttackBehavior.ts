@@ -1,4 +1,4 @@
-import { ECONOMY } from "../../configuration/StrategyConfig";
+import { ECONOMY, STRATEGIC_COMBAT } from "../../configuration/StrategyConfig";
 import {
   Difficulty,
   Game,
@@ -180,7 +180,12 @@ export class AiAttackBehavior {
     }
 
     this.game.addExecution(
-      new TransportShipExecution(this.player, dst, troops),
+      new TransportShipExecution(
+        this.player,
+        dst,
+        troops,
+        this.boatTankCommitment(troops),
+      ),
     );
   }
 
@@ -1015,7 +1020,12 @@ export class AiAttackBehavior {
         if (troops < 1) return false;
 
         this.game.addExecution(
-          new TransportShipExecution(this.player, tile, troops),
+          new TransportShipExecution(
+            this.player,
+            tile,
+            troops,
+            this.boatTankCommitment(troops),
+          ),
         );
         return true;
       }
@@ -1241,9 +1251,19 @@ export class AiAttackBehavior {
     }
 
     this.game.addExecution(
-      new TransportShipExecution(this.player, closest.y, troops),
+      new TransportShipExecution(
+        this.player,
+        closest.y,
+        troops,
+        this.boatTankCommitment(troops),
+      ),
     );
     return true;
+  }
+
+  private boatTankCommitment(troops: number): number {
+    if (!this.game.config().strategicEconomy()) return 0;
+    return Math.floor(troops / STRATEGIC_COMBAT.infantryPerTank);
   }
 
   private calculateBotAttackTroops(target: Player, maxTroops: number): number {

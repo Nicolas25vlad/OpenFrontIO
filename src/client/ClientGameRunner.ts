@@ -1476,10 +1476,15 @@ export class ClientGameRunner {
   private sendBoatAttackIntent(tile: TileRef) {
     if (!this.myPlayer) return;
 
+    const troops = this.myPlayer.troops() * this.renderer.uiState.attackRatio;
     this.eventBus.emit(
       new SendBoatAttackIntentEvent(
         tile,
-        this.myPlayer.troops() * this.renderer.uiState.attackRatio,
+        troops,
+        requestedTanksForAttack(
+          troops,
+          this.renderer.uiState.tankCommitmentRatio,
+        ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import { renderTroops } from "../../client/Utils";
+import { STRATEGIC_COMBAT } from "../configuration/StrategyConfig";
 import {
   Execution,
   Game,
@@ -45,6 +46,7 @@ export class TransportShipExecution implements Execution {
     private attacker: Player,
     private ref: TileRef,
     private troops: number,
+    private requestedTanks = 0,
   ) {
     this.originalOwner = this.attacker;
   }
@@ -127,9 +129,18 @@ export class TransportShipExecution implements Execution {
     }
 
     this.src = src;
+    const tankCapacity = Math.floor(
+      this.troops / STRATEGIC_COMBAT.infantryPerTank,
+    );
+    const tanks = this.mg.config().strategicEconomy()
+      ? this.attacker.removeTanks(
+          Math.min(tankCapacity, Math.max(0, Math.floor(this.requestedTanks))),
+        )
+      : 0;
 
     this.boat = this.attacker.buildUnit(UnitType.TransportShip, this.src, {
       troops: this.troops,
+      tanks,
       targetTile: this.dst,
     });
 
@@ -221,6 +232,7 @@ export class TransportShipExecution implements Execution {
           `TransportShipExecution: retreating but no retreat destination found`,
         );
         this.attacker.addTroops(this.boat.troops());
+        this.attacker.addTanks(this.boat.transportShipState().tanks ?? 0);
         this.boat.delete(false);
         this.active = false;
         return;
@@ -240,6 +252,10 @@ export class TransportShipExecution implements Execution {
           const deaths = this.boat.troops() * (malusForRetreat / 100);
           const survivors = this.boat.troops() - deaths;
           this.attacker.addTroops(survivors);
+          const boatTanks = this.boat.transportShipState().tanks ?? 0;
+          this.attacker.addTanks(
+            boatTanks - Math.ceil(boatTanks * (malusForRetreat / 100)),
+          );
           this.boat.delete(false);
           this.active = false;
 
@@ -261,6 +277,7 @@ export class TransportShipExecution implements Execution {
         this.attacker.conquer(this.dst);
         if (this.target.isPlayer() && this.attacker.isFriendly(this.target)) {
           this.attacker.addTroops(this.boat.troops());
+          this.attacker.addTanks(this.boat.transportShipState().tanks ?? 0);
         } else {
           this.mg.addExecution(
             new AttackExecution(
@@ -269,6 +286,8 @@ export class TransportShipExecution implements Execution {
               this.target.id(),
               this.dst,
               false,
+              null,
+              this.boat.transportShipState().tanks ?? 0,
             ),
           );
         }
@@ -291,6 +310,7 @@ export class TransportShipExecution implements Execution {
           `TransportShip path not found: boat@(${map.x(boatTile)},${map.y(boatTile)}) -> dst@(${map.x(this.dst)},${map.y(this.dst)}), attacker=${this.attacker.id()}, target=${this.target.id()}`,
         );
         this.attacker.addTroops(this.boat.troops());
+        this.attacker.addTanks(this.boat.transportShipState().tanks ?? 0);
         this.boat.delete(false);
         this.active = false;
         return;

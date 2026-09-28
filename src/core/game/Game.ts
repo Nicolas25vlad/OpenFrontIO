@@ -49,6 +49,8 @@ export type WarshipState = {
 export type TransportShipState = {
   isRetreating: boolean;
   troops: number;
+  /** Optional so older replay updates decode as infantry-only cargo. */
+  tanks?: number;
 };
 
 export type NukeState = {
@@ -281,6 +283,7 @@ export type TrajectoryTile = {
 export interface UnitParamsMap {
   [UnitType.TransportShip]: {
     troops?: number;
+    tanks?: number;
     targetTile?: TileRef;
   };
 

@@ -94,7 +94,12 @@ export class Executor {
           true,
         );
       case "boat":
-        return new TransportShipExecution(player, intent.dst, intent.troops);
+        return new TransportShipExecution(
+          player,
+          intent.dst,
+          intent.troops,
+          intent.tanks ?? 0,
+        );
       case "allianceRequest":
         return new AllianceRequestExecution(
           player,

@@ -89,7 +89,7 @@ export interface AttackLogicInput {
     numTiles: number;
     supply?: number;
     logistics?: number;
-    /** Tanks assigned to this land attack (boat attacks remain infantry-only). */
+    /** Tanks assigned to this land or naval attack. */
     tanks?: number;
   };
   /** null when attacking terra nullius. */

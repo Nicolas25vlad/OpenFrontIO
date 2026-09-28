@@ -631,6 +631,11 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
                 <div class="text-sm">
                   Troops: ${renderTroops(unit.troops())}
                 </div>
+                ${unit.transportShipState().tanks
+                  ? html`<div class="text-sm">
+                      Tanks: ${unit.transportShipState().tanks}
+                    </div>`
+                  : ""}
               `
             : ""}
         </div>

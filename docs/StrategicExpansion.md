@@ -115,16 +115,20 @@ infantes enviados (limitado ao estoque disponível). Cada tanque contribui forç
 equivalente a 5.000 infantes e dá 5% de velocidade de avanço, limitado a 50% por
 ataque. A velocidade é calculada no core e seus parâmetros ficam em
 `STRATEGIC_COMBAT`. Tanques podem sofrer baixas determinísticas; retiradas
-devolvem os tanques sobreviventes. Ataques por barco não carregam tanques. A
-contagem viaja no delta compacto e aparece nas listas e rótulos de ataques.
-Ainda faltam seleção/movimento de tanques como unidades independentes, carga
-naval de tanques e decisões específicas dos bots.
+devolvem os tanques sobreviventes. Ataques navais podem levar tanques como carga
+opcional, limitada pela proporção infantaria/tanques e pelo estoque disponível;
+o pedido antigo sem o campo `tanks` continua enviando apenas infantaria. O navio
+mantém a carga sincronizada durante a rota e a transfere para o ataque ao chegar.
+A contagem viaja nos updates de unidade e no delta compacto de ataques; aparece
+no detalhe do transporte e nas listas/rótulos de ataques. Ainda faltam
+seleção/movimento de tanques como unidades independentes.
 
 Agora a interface estratégica também oferece um controle de 0–100% para a
 quantidade de tanques que acompanha cada ataque terrestre, calculada sobre o
 limite permitido pelo número de tropas e pelo estoque. O padrão em 100% mantém
-o comportamento anterior; 0% envia apenas infantaria. O campo opcional no
-protocolo preserva clientes e partidas que ainda usam a alocação automática.
+o comportamento anterior; 0% envia apenas infantaria. O mesmo controle de
+compromisso vale para navios. O campo opcional no protocolo preserva clientes e
+partidas que ainda usam a alocação automática terrestre.
 
 Arquivos desta etapa: `src/client/hud/layers/ControlPanel.ts`,
 `src/client/hud/TankCommitment.ts`, `src/client/Transport.ts`,
@@ -177,11 +181,15 @@ arquivos e 5.607 testes, e a suíte de servidor com 63 arquivos e 656 testes.
    um jogador para observar baixas. Ajuste o controle de compromisso para 0%,
    50% e 100%; com 25.000 tropas, o ataque deve levar 0, 1 e 2 tanques,
    respectivamente, quando houver estoque suficiente.
-4. Em uma nação com pelo menos 25.000 tropas, aproxime a câmera da fronteira
+4. Faça uma investida naval com a economia estratégica ligada e o controle de
+   compromisso em 50% ou 100%. O transporte deve mostrar os tanques no detalhe;
+   após o desembarque, o ataque deve carregar a mesma quantidade. Se a rota for
+   cancelada, o estoque deve recuperar apenas os tanques sobreviventes.
+5. Em uma nação com pelo menos 25.000 tropas, aproxime a câmera da fronteira
    até os ícones aparecerem. Confira uma região interior e uma fronteira entre
    dois jogadores.
-5. Afaste a câmera até os ícones desaparecerem e aproxime novamente.
-6. Faça uma conquista na fronteira e confira se os grupos acompanham o novo
+6. Afaste a câmera até os ícones desaparecerem e aproxime novamente.
+7. Faça uma conquista na fronteira e confira se os grupos acompanham o novo
    território em até 50 ticks. Repita avançando e voltando em um replay.
 
 Esperado: pequenos grupos de duas silhuetas em pixel art, coloridos pelo dono
@@ -196,6 +204,42 @@ tanques embarcados sem ultrapassar o limite das tropas ou o estoque disponível.
 Registre navegador,
 mapa e resultado em `StrategicCompatibilityChecklist.md`; a aprovação visual
 continua pendente até essa execução.
+
+### Carga naval de tanques — validação desta etapa
+
+O intent naval agora pode solicitar tanques; o servidor reserva o estoque ao
+embarcar, replica a carga junto ao transporte, transfere os tanques ao ataque
+no desembarque e devolve os sobreviventes em retirada ou cancelamento. Bots
+também incluem a carga quando a economia estratégica está ativa. Intents
+antigos sem `tanks` e partidas sem economia estratégica continuam
+infantaria-only.
+
+Arquivos alterados nesta etapa: `src/core/game/Game.ts`,
+`src/core/game/UnitImpl.ts`, `src/core/Schemas.ts`,
+`src/core/configuration/StrategyConfig.ts`,
+`src/core/execution/ExecutionManager.ts`,
+`src/core/execution/AttackExecution.ts`,
+`src/core/execution/TransportShipExecution.ts`,
+`src/core/execution/utils/AiAttackBehavior.ts`,
+`src/client/Transport.ts`, `src/client/ClientGameRunner.ts`,
+`src/client/hud/layers/PlayerActionHandler.ts`,
+`src/client/hud/layers/PlayerInfoOverlay.ts` e os testes
+`tests/economy/NavalTankCargo.test.ts`,
+`tests/core/IntentTileRefSchemas.test.ts`,
+`tests/client/view/UnitView.test.ts` e
+`tests/client/ClientGameRunnerActions.test.ts`.
+
+Validação no homelab: 95 testes focados em 6 arquivos passaram; `tsc
+--noEmit`, lint, `npm run build-dev` e `git diff --check` passaram. O build
+emitiu somente avisos de bundle grande e tempo de plugins.
+
+No PC principal, faça o passo 4 da lista acima em multiplayer: envie um
+transporte com 25.000 tropas e pelo menos 2 tanques disponíveis, usando 100%
+de compromisso. O detalhe do navio deve mostrar 2 tanques; após o desembarque,
+o rótulo do ataque deve continuar mostrando 2. Em outra travessia, use o botão
+de cancelar do transporte: a rota deve retornar e o estoque recuperar apenas
+os tanques sobreviventes. Com a economia estratégica desligada, navio e ataque
+devem seguir sem tanques.
 
 ## Fortificações e trincheiras — issue #6 (parcial)
 
