@@ -178,6 +178,40 @@ describe("independent tank deployment", () => {
     expect(execution.isActive()).toBe(false);
   });
 
+  test("moves only the selected tank through the normal move_tank intent", async () => {
+    const game = await tankGame();
+    const player = game.player("army");
+    const source = game.ref(50, 50);
+    const destination = game.ref(51, 50);
+    player.conquer(source);
+    player.conquer(destination);
+    player.addTanks(1);
+    player.setTroops(25_000);
+
+    const deployment = new ConstructionExecution(player, UnitType.Tank, source);
+    deployment.init(game, 0);
+    deployment.tick(0);
+    const tank = player.units(UnitType.Tank)[0];
+    const executor = new Executor(game, "tank-move-intent", undefined);
+    game.addExecution(
+      executor.createExec({
+        type: "move_tank",
+        unitIds: [tank.id()],
+        tile: destination,
+        clientID: "army-client",
+      }),
+    );
+
+    game.executeNextTick(); // initialize the queued intent execution
+    for (let tick = 0; tick < STRATEGIC_COMBAT.tankMoveTicksPerTile; tick++) {
+      game.executeNextTick();
+    }
+
+    expect(tank.tile()).toBe(destination);
+    expect(player.troops()).toBe(25_000);
+    expect(tank.targetTile()).toBeUndefined();
+  });
+
   test("attacks and captures enemy land while applying territory casualties", async () => {
     const game = await setup(
       "big_plains",
