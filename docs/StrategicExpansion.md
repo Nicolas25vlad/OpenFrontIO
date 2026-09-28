@@ -477,6 +477,18 @@ ativos já presentes na simulação e não altera partidas legadas. Cobertura no
 em `tests/economy/NationTrenchPriority.test.ts` verifica construção e consumo
 de aço, além dos casos sem recursos e com economia legada.
 
+Na economia estratégica, nações Hard e Impossible também procuram responder
+quando um porto próprio está bloqueado: constroem um navio de guerra direcionado
+ao bloqueador mais próximo no mesmo setor e massa d'água. A prioridade respeita
+limite de frota, unidade desativada, ouro, aço e combustível. As prioridades
+existentes de criação inicial e retaliação naval também verificam os insumos
+antes de enfileirar a execução, evitando falhas de construção por estoque baixo.
+`tests/economy/NationBlockadeResponse.test.ts` cobre a resposta, a compatibilidade
+com a economia legada e a ausência de intent sem os insumos.
+Os testes focados de resposta a bloqueio e infestação naval passaram em 2
+arquivos/5 testes; `npm run build-dev`, `tsc --noEmit`, Oxlint, ESLint,
+Prettier e `git diff --check` também passaram no homelab.
+
 ### Validação manual pendente no PC principal
 
 1. Rode `npm run dev:host` e inicie partidas com nações usando
@@ -492,6 +504,10 @@ de aço, além dos casos sem recursos e com economia legada.
    ataques navais, aço insuficiente e economia legada não devem criar trincheiras.
 5. Repita com economia estratégica desligada; essas novas prioridades não devem
    atuar.
+6. Em dificuldade Hard ou Impossible, bloqueie o setor de um porto da nação
+   com navios inimigos. Com ouro, aço e combustível disponíveis, ela deve enviar
+   um navio de resposta ao setor; sem qualquer insumo, não deve enfileirar a
+   construção nem interromper a partida.
 
 Esperado: a nação tenta no máximo uma construção por vez, respeita o limite de
 reserva e continua a usar as regras de construção existentes. A issue permanece

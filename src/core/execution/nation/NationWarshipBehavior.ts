@@ -1,3 +1,4 @@
+import { hasResources } from "../../game/Economy";
 import {
   AllPlayers,
   Difficulty,
@@ -9,6 +10,7 @@ import {
   UnitType,
 } from "../../game/Game";
 import { TileRef } from "../../game/GameMap";
+import { isNavalSectorBlockaded } from "../../game/NavalSupremacy";
 import { PseudoRandom } from "../../PseudoRandom";
 import { ConstructionExecution } from "../ConstructionExecution";
 import {
@@ -46,7 +48,8 @@ export class NationWarshipBehavior {
     if (
       ports.length > 0 &&
       ships.length === 0 &&
-      this.player.gold() > this.cost(UnitType.Warship)
+      this.player.gold() > this.cost(UnitType.Warship) &&
+      this.canAffordWarship()
     ) {
       const port = this.random.randElement(ports);
       const targetTile = this.warshipSpawnTile(port.tile(), 250);
@@ -235,6 +238,8 @@ export class NationWarshipBehavior {
       return;
     }
 
+    if (!this.canAffordWarship()) return;
+
     const { difficulty } = this.game.config().gameConfig();
     // In Easy never retaliate. In Medium retaliate with 15% chance. Hard with 50%, Impossible with 80%.
     if (
@@ -281,9 +286,11 @@ export class NationWarshipBehavior {
     }
   }
 
-  // Prevent warship infestations: if current player is one of the 3 richest and an enemy has too many warships, send a counter-warship.
-  // What is a warship infestation? A player tries to dominate the entire ocean to block all trade and transport boats.
+  // Counter local blockades in strategic games, then check global naval
+  // infestations for the richest nations.
   counterWarshipInfestation(): void {
+    if (this.tryCounterNavalBlockade()) return;
+
     if (!this.shouldCounterWarshipInfestation()) {
       return;
     }
@@ -300,37 +307,77 @@ export class NationWarshipBehavior {
     }
   }
 
-  private shouldCounterWarshipInfestation(): boolean {
-    if (this.game.config().isUnitDisabled(UnitType.Warship)) {
-      return false;
-    }
-
-    // Only the smart nations can do this
-    const { difficulty } = this.game.config().gameConfig();
+  /** Hard and Impossible nations counter a strategic blockade at their port. */
+  private tryCounterNavalBlockade(): boolean {
     if (
-      difficulty !== Difficulty.Hard &&
-      difficulty !== Difficulty.Impossible
+      !this.game.config().strategicEconomy() ||
+      !this.canBuildCounterWarship()
     ) {
       return false;
     }
 
+    const sectorSize = this.game.config().navalSectorSize();
+    const sectorsPerRow = Math.ceil(this.game.width() / sectorSize);
+    const sectorID = (tile: TileRef) =>
+      Math.floor(this.game.y(tile) / sectorSize) * sectorsPerRow +
+      Math.floor(this.game.x(tile) / sectorSize);
+
+    for (const port of this.player.units(UnitType.Port)) {
+      if (!isNavalSectorBlockaded(this.game, port)) continue;
+
+      const portSector = sectorID(port.tile());
+      const portWaterComponent = this.game.getWaterComponent(port.tile());
+      if (portWaterComponent === null) continue;
+
+      const target = this.game
+        .nearbyUnits(
+          port.tile(),
+          Math.ceil(sectorSize * Math.SQRT2),
+          UnitType.Warship,
+        )
+        .filter(({ unit }) => {
+          if (
+            !unit.isActive() ||
+            unit.isUnderConstruction() ||
+            unit.warshipState().state === "docked" ||
+            sectorID(unit.tile()) !== portSector ||
+            !port.owner().canAttackPlayer(unit.owner())
+          ) {
+            return false;
+          }
+          const component = this.game.getWaterComponent(unit.tile());
+          return component !== null && component === portWaterComponent;
+        })
+        .sort(
+          (a, b) => a.distSquared - b.distSquared || a.unit.id() - b.unit.id(),
+        )[0]?.unit;
+
+      if (target === undefined) continue;
+      this.buildCounterWarship({ player: target.owner(), warship: target });
+      return true;
+    }
+
+    return false;
+  }
+
+  private canBuildCounterWarship(): boolean {
+    const { difficulty } = this.game.config().gameConfig();
+    return (
+      (difficulty === Difficulty.Hard ||
+        difficulty === Difficulty.Impossible) &&
+      !this.game.config().isUnitDisabled(UnitType.Warship) &&
+      this.cost(UnitType.Warship) <= this.player.gold() &&
+      this.canAffordWarship() &&
+      this.player.units(UnitType.Port).length > 0 &&
+      this.player.units(UnitType.Warship).length < 10
+    );
+  }
+
+  private shouldCounterWarshipInfestation(): boolean {
+    if (!this.canBuildCounterWarship()) return false;
+
     // Quit early if there aren't many warships in the game
     if (this.game.unitCount(UnitType.Warship) <= 10) {
-      return false;
-    }
-
-    // Quit early if we can't afford a warship
-    if (this.cost(UnitType.Warship) > this.player.gold()) {
-      return false;
-    }
-
-    // Quit early if we don't have a port to send warships from
-    if (this.player.units(UnitType.Port).length === 0) {
-      return false;
-    }
-
-    // Don't send too many warships
-    if (this.player.units(UnitType.Warship).length >= 10) {
       return false;
     }
 
@@ -461,5 +508,16 @@ export class NationWarshipBehavior {
 
   private cost(type: UnitType): Gold {
     return this.game.unitInfo(type).cost(this.game, this.player);
+  }
+
+  private canAffordWarship(): boolean {
+    if (!this.game.config().strategicEconomy()) return true;
+    return (
+      this.player.gold() >= this.cost(UnitType.Warship) &&
+      hasResources(
+        this.player,
+        this.game.config().resourceCost(UnitType.Warship),
+      )
+    );
   }
 }
