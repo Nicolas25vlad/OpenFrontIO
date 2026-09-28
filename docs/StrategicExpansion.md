@@ -563,6 +563,38 @@ com o comportamento anterior. A issue #8 continua aberta para outros termos de
 paz; capitulação está na
 [issue #12](https://github.com/Nicolas25vlad/OpenFrontIO/issues/12).
 
+## Capitulação explícita — issue #12 (implementada; validação manual pendente)
+
+A capitulação agora é uma proposta separada de aliança e cessão percentual. Um
+jogador vivo pode propô-la a um inimigo elegível; o destinatário precisa aceitar
+explicitamente. Recusa, cancelamento pelo remetente e expiração não mudam
+território. Bots não aceitam capitulação automaticamente, e uma contraproposta
+comum de aliança não aceita a rendição.
+
+O aceite valida ambos os jogadores e todos os tiles antes de alterar o estado.
+Transfere o território inteiro, inclusive o spawn, cancela ataques de entrada e
+saída, remove unidades e estruturas, encerra alianças e pedidos pendentes do
+rendido e registra a eliminação pelo evento de conquista existente. Aplica a
+regra usual de ouro de conquista; ouro restante e estoques de recursos são
+descartados. As mensagens e updates usam o fluxo determinístico já replicado e
+reproduzido pelo jogo.
+
+Arquivos principais: `src/core/execution/alliance/CapitulationExecution.ts`,
+`src/core/game/GameImpl.ts`, `src/core/game/AllianceRequestImpl.ts`,
+`src/core/Schemas.ts`, `src/client/Transport.ts`,
+`src/client/hud/layers/PlayerPanel.ts`,
+`src/client/hud/layers/ActionableEvents.ts` e
+`src/client/hud/layers/EventsDisplay.ts`. Termos, etapas manuais e comportamento
+esperado estão em [CapitulationDesign.md](CapitulationDesign.md).
+
+Validação no homelab: 35 testes focados passaram em seis arquivos, incluindo
+transferência do spawn, autorização, contraproposta, ataques ativos, estruturas,
+míssil e limpeza de estoques. Os testes de idioma/ordenação passaram em dois
+arquivos/4 testes; TypeScript, lint, Prettier, `git diff --check` e
+`npm run build-dev` também passaram. A conferência visual em dois clientes e
+replay ainda depende do PC principal; a issue #12 permanece aberta até essa
+etapa.
+
 ## Economia nuclear e Anti-ICBM — issue #9
 
 Na economia estratégica, a usina nuclear enriquece urânio com lotes limitados
