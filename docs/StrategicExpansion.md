@@ -766,11 +766,10 @@ naval com tanques, e a prioridade de fábrica cobre reservas baixas, no custo
 mínimo e altas; `tsc --noEmit`, lint, Prettier e `git diff --check` também
 passaram.
 
-A suíte completa mais recente executou 485 arquivos/5.666 testes: 484 arquivos
-passaram e `NationAllianceBehavior.test.ts` revelou fixtures sem o novo `kind()`.
-Após atualizar os fixtures e adicionar a cobertura de capitulação, esse arquivo
-passou isoladamente com 11 testes; a suíte completa não foi repetida após essa
-correção de teste.
+Na primeira execução completa, 484 de 485 arquivos passaram; os nove casos
+falhos em `NationAllianceBehavior.test.ts` usavam fixtures sem o novo `kind()`.
+Após atualizar os fixtures e cobrir capitulações, a suíte completa foi repetida
+e passou em 485 arquivos/5.667 testes. `tsc --noEmit` e lint também passaram.
 
 ### Validação manual pendente no PC principal
 
@@ -801,16 +800,12 @@ aberta para decisões adicionais de tanques, fortificações, marinha, bloqueios
 negociação de bots, além da cobertura adicional dos critérios de economia
 baixa/média/alta.
 
-### Revalidação geral do branch — 2026-09-27
+### Revalidação geral do branch — 2026-09-28
 
-Após as etapas de rotas comerciais, prioridades de fazenda e percentuais de paz,
-a suíte principal passou em 480 arquivos/5.639 testes e a suíte de servidor em
-63 arquivos/656 testes. `npm run lint` e `npm run build-dev` passaram; o build
-emite o aviso já existente de bundle JavaScript acima de 500 kB. A revisão
-visual de rotas e ofertas de paz continua pendente no PC principal conforme os
-procedimentos descritos nas respectivas seções.
-
-Essa execução completa precedeu a correção posterior de reserva para intents
-simultâneos de comboio. Depois dessa correção, os testes focados passaram em 3
-arquivos/21 testes e foram repetidos typecheck, lint do repositório e build;
-essa alteração ainda não foi incluída em uma nova execução da suíte completa.
+A suíte completa passou em 485 arquivos/5.667 testes após a correção dos
+fixtures de capitulação e inclui as regressões de carga/replay naval e tanques
+transportados por bots. `tsc --noEmit`, `npm run lint`, Prettier e
+`git diff --check` também passaram. `npm run build-dev` passou após a última
+alteração de código de runtime (carga naval); os commits posteriores só alteram
+testes e documentação. A revisão visual continua pendente no PC principal
+conforme os procedimentos descritos nas respectivas seções.
