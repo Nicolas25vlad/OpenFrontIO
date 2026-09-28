@@ -798,6 +798,11 @@ O cenário de compatibilidade também confirma proposta, aceite e transferência
 com `strategicEconomy` desligada no mapa legado `plains`.
 O round-trip wire de `capitulation` também está incluído em
 `tests/zbin/wire.test.ts` junto com o novo caso de trincheira.
+O hash determinístico agora inclui o tipo do pedido diplomático para distinguir
+aliança, paz e capitulação pendentes; `tests/core/game/GameImpl.test.ts` verifica
+que os três estados não colidem. A regressão focada de `GameImpl` e
+`CapitulationExecution` passou em 2 arquivos/16 testes; `tsc --noEmit`, ESLint
+e `git diff --check` passaram.
 Em 2026-09-28, a interface também ganhou cobertura para propor a capitulação,
 distingui-la de um pedido comum, remover o cartão após resolução e registrar o
 aceite como conquista. `ActionableEventsCapitulation`, `EventsDisplayHandlers`

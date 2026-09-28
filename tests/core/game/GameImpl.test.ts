@@ -65,6 +65,33 @@ describe("GameImpl", () => {
     defender = game.player(defenderInfo.id);
   });
 
+  test("includes the alliance request kind in the deterministic game hash", async () => {
+    const requestHash = async (kind: "alliance" | "peace" | "capitulation") => {
+      const hashGame = await setup(
+        "plains",
+        { infiniteGold: true },
+        [],
+        undefined,
+        undefined,
+        false,
+      );
+      const requestor = hashGame.addPlayer(
+        new PlayerInfo("requestor", PlayerType.Human, null, "requestor_id"),
+      );
+      const recipient = hashGame.addPlayer(
+        new PlayerInfo("recipient", PlayerType.Human, null, "recipient_id"),
+      );
+      requestor.createAllianceRequest(recipient, 0, kind);
+      return (hashGame as any).hash();
+    };
+
+    const allianceHash = await requestHash("alliance");
+    const peaceHash = await requestHash("peace");
+    const capitulationHash = await requestHash("capitulation");
+
+    expect(new Set([allianceHash, peaceHash, capitulationHash]).size).toBe(3);
+  });
+
   test("accepts a connected territory peace offer and starts a timed truce", async () => {
     const peaceGame = await setup(
       "plains",

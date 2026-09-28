@@ -824,7 +824,13 @@ export class GameImpl implements Game {
           request.requestor().smallID() * 31 +
           request.recipient().smallID() * 37 +
           request.createdAt() * 41 +
-          request.territoryPercent() * 43,
+          request.territoryPercent() * 43 +
+          (request.kind() === "alliance"
+            ? 1
+            : request.kind() === "peace"
+              ? 2
+              : 3) *
+            47,
         0,
       );
     this._players.forEach((p) => {
