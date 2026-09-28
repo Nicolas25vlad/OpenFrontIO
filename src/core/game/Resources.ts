@@ -188,6 +188,8 @@ type ResourceSeed = string | number;
 
 const NOISE_OCTAVES = 4;
 const NOISE_PERSISTENCE = 0.5;
+const NOISE_WARP_FREQUENCY = 0.38;
+const NOISE_WARP_STRENGTH = 0.18;
 const RICHNESS_THRESHOLDS = [0, 0.08, 0.18, 0.3];
 const RESOURCE_CACHE = new WeakMap<
   object,
@@ -229,13 +231,8 @@ function valueNoise(seed: number, x: number, y: number): number {
   return top * (1 - ty) + bottom * ty;
 }
 
-function fractalNoise(
-  seed: number,
-  x: number,
-  y: number,
-  config: ResourceNoiseConfig,
-): number {
-  let frequency = config.frequency;
+function fractalNoiseAt(seed: number, x: number, y: number): number {
+  let frequency = 1;
   let amplitude = 1;
   let total = 0;
   let amplitudeTotal = 0;
@@ -244,8 +241,8 @@ function fractalNoise(
     total +=
       valueNoise(
         hash(seed, octave, 0, 0xbb67ae85),
-        (x / config.scale) * frequency,
-        (y / config.scale) * frequency,
+        x * frequency,
+        y * frequency,
       ) * amplitude;
     amplitudeTotal += amplitude;
     frequency *= 2;
@@ -253,6 +250,41 @@ function fractalNoise(
   }
 
   return total / amplitudeTotal;
+}
+
+/**
+ * Domain-warp the broad field before thresholding it. Sampling two independent
+ * low-frequency fields bends the resource belts without adding isolated spots;
+ * all inputs are integer-seeded and the result is cached with the map catalog.
+ */
+function warpedFractalNoise(
+  seed: number,
+  x: number,
+  y: number,
+  config: ResourceNoiseConfig,
+): number {
+  const baseX = (x / config.scale) * config.frequency;
+  const baseY = (y / config.scale) * config.frequency;
+  const warpSeedX = hash(seed, 0, 0, 0x510e527f);
+  const warpSeedY = hash(seed, 1, 0, 0x9b05688c);
+  const warpX =
+    (valueNoise(
+      warpSeedX,
+      baseX * NOISE_WARP_FREQUENCY,
+      baseY * NOISE_WARP_FREQUENCY,
+    ) -
+      0.5) *
+    NOISE_WARP_STRENGTH;
+  const warpY =
+    (valueNoise(
+      warpSeedY,
+      baseX * NOISE_WARP_FREQUENCY,
+      baseY * NOISE_WARP_FREQUENCY,
+    ) -
+      0.5) *
+    NOISE_WARP_STRENGTH;
+
+  return fractalNoiseAt(seed, baseX + warpX, baseY + warpY);
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -382,7 +414,12 @@ export function resourceNodesForMap(
 
         const sampleX = originX + cellSize / 2;
         const sampleY = originY + cellSize / 2;
-        const noise = fractalNoise(resourceSeed, sampleX, sampleY, config);
+        const noise = warpedFractalNoise(
+          resourceSeed,
+          sampleX,
+          sampleY,
+          config,
+        );
         if (noise < threshold) continue;
 
         const minX = originX + margin;

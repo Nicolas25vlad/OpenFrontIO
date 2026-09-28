@@ -71,7 +71,9 @@ a riqueza amplia a área visual do depósito sem alterar posição ou reserva. A
 menor abundância do ouro foi
 ajustada para formar regiões produtoras conectadas sem tornar o recurso
 uniforme. A distribuição é cacheada por mapa e seed; o cálculo não roda durante
-os ticks da partida.
+os ticks da partida. O campo amplo também recebe uma distorção espacial suave
+por duas camadas determinísticas independentes, deixando as bordas dos cinturões
+menos regulares sem fragmentar as regiões produtoras.
 
 Arquivos: `src/core/game/Resources.ts`, `src/client/ResourceMap.ts` e
 `tests/core/game/Resources.test.ts`. A suíte testa determinismo e cache,
