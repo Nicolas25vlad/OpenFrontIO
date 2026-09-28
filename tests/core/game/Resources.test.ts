@@ -187,6 +187,31 @@ describe("deterministic resource deposits", () => {
     expect(coveredCells.size).toBeLessThan(cellCount);
   });
 
+  test("allows independent resource belts to overlap without sharing every cell", () => {
+    const map = landMap(2048, 1024);
+    const nodes = resourceNodesForMap(map, "geology-overlap-match");
+    const resourcesByCell = new Map<string, Set<NaturalResource>>();
+
+    for (const node of nodes) {
+      const cell = `${Math.floor(node.x / RESOURCE_NODE_CELL_SIZE)}:${Math.floor(
+        node.y / RESOURCE_NODE_CELL_SIZE,
+      )}`;
+      const resources = resourcesByCell.get(cell) ?? new Set<NaturalResource>();
+      resources.add(node.resource);
+      resourcesByCell.set(cell, resources);
+    }
+
+    const overlapCells = [...resourcesByCell.values()].filter(
+      (resources) => resources.size > 1,
+    );
+    const exclusiveCells = [...resourcesByCell.values()].filter(
+      (resources) => resources.size === 1,
+    );
+
+    expect(overlapCells.length).toBeGreaterThan(0);
+    expect(exclusiveCells.length).toBeGreaterThan(0);
+  });
+
   test("creates multiple producing regions without forcing every resource into each continent", () => {
     const map = landMap(2048, 1024);
     const nodes = resourceNodesForMap(map, "continent-coverage-match");

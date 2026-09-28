@@ -81,7 +81,9 @@ Arquivos: `src/core/game/Resources.ts`, `src/client/ResourceMap.ts` e
 `tests/core/game/Resources.test.ts`. A suíte testa determinismo e cache,
 independência das camadas, riqueza progressiva, regiões conectadas, áreas vazias,
 cobertura em múltiplas zonas de continente e exclusão de água/terreno
-intransitável. Também foram validados os fluxos de mineração, prioridades da IA,
+intransitável. Uma regressão determinística também confirma que cinturões de
+recursos diferentes se sobrepõem em algumas células e continuam exclusivos em
+outras. Também foram validados os fluxos de mineração, prioridades da IA,
 produção e replay: 30 testes passaram em 6 arquivos. A suíte completa passou
 com 474 arquivos/5.611 testes; a suíte de servidor, com 63 arquivos/656 testes.
 `tsc --noEmit`, lint, `npm run build-dev`, Prettier e `git diff --check` também
