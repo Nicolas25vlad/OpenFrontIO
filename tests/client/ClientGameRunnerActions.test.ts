@@ -92,6 +92,8 @@ function makeRunner(overrides: {
   boatDistSquared?: number;
   playerTroops?: number;
   tankCommitmentRatio?: number;
+  autoBoatEnabled?: boolean;
+  limitAutoBoatNearShore?: boolean;
 }) {
   const eventBus = new EventBus();
   const myPlayer = {
@@ -136,7 +138,11 @@ function makeRunner(overrides: {
     { start: vi.fn(), sendTurn: vi.fn(), cleanup: vi.fn() } as never,
     gameView as never,
     { playBackgroundMusic: vi.fn(), dispose: vi.fn() } as never,
-    { goToPlayer: () => false } as never,
+    {
+      goToPlayer: () => false,
+      autoBoatEnabled: () => overrides.autoBoatEnabled ?? true,
+      limitAutoBoatNearShore: () => overrides.limitAutoBoatNearShore ?? true,
+    } as never,
   );
   runner.start();
   return { runner, eventBus, gameView, myPlayer };
@@ -257,5 +263,36 @@ describe("auto boat", () => {
     await flushPromises();
 
     expect(boats).toHaveLength(0);
+  });
+
+  it("can disable automatic boat attacks", async () => {
+    const { eventBus } = makeRunner({
+      hasOwner: true,
+      actions: boatActions,
+      autoBoatEnabled: false,
+    });
+    const boats: SendBoatAttackIntentEvent[] = [];
+    eventBus.on(SendBoatAttackIntentEvent, (e) => boats.push(e));
+
+    eventBus.emit(new MouseUpEvent(CLICK.x, CLICK.y));
+    await flushPromises();
+
+    expect(boats).toHaveLength(0);
+  });
+
+  it("allows long automatic boat routes when the shore limit is disabled", async () => {
+    const { eventBus } = makeRunner({
+      hasOwner: true,
+      actions: boatActions,
+      boatDistSquared: 100 * 100,
+      limitAutoBoatNearShore: false,
+    });
+    const boats: SendBoatAttackIntentEvent[] = [];
+    eventBus.on(SendBoatAttackIntentEvent, (e) => boats.push(e));
+
+    eventBus.emit(new MouseUpEvent(CLICK.x, CLICK.y));
+    await flushPromises();
+
+    expect(boats).toHaveLength(1);
   });
 });

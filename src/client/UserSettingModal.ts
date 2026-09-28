@@ -495,6 +495,14 @@ export class UserSettingModal extends BaseModal {
     );
   }
 
+  private toggleAutoBoatEnabled() {
+    this.userSettings.toggleAutoBoatEnabled();
+  }
+
+  private toggleLimitAutoBoatNearShore() {
+    this.userSettings.toggleLimitAutoBoatNearShore();
+  }
+
   private sliderBackgroundMusicVolume(e: CustomEvent<{ value: number }>) {
     const value = e.detail?.value;
     if (typeof value !== "number") {
@@ -1616,6 +1624,26 @@ export class UserSettingModal extends BaseModal {
         id="attacking-troops-overlay-toggle"
         .checked=${this.userSettings.attackingTroopsOverlay()}
         @change=${this.toggleAttackingTroopsOverlay}
+      ></setting-toggle>
+
+      <setting-toggle
+        label="${translateText("user_setting.auto_boat_enabled_label")}"
+        description="${translateText("user_setting.auto_boat_enabled_desc")}"
+        id="auto-boat-enabled-toggle"
+        .checked=${this.userSettings.autoBoatEnabled()}
+        @change=${this.toggleAutoBoatEnabled}
+      ></setting-toggle>
+
+      <setting-toggle
+        label="${translateText(
+          "user_setting.limit_auto_boat_near_shore_label",
+        )}"
+        description="${translateText(
+          "user_setting.limit_auto_boat_near_shore_desc",
+        )}"
+        id="limit-auto-boat-near-shore-toggle"
+        .checked=${this.userSettings.limitAutoBoatNearShore()}
+        @change=${this.toggleLimitAutoBoatNearShore}
       ></setting-toggle>
 
       <!-- ⚔️ Attack Ratio -->

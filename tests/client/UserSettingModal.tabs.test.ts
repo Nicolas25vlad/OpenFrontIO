@@ -76,6 +76,25 @@ describe("user-setting tabs", () => {
     expect(el.querySelector("#attacking-troops-overlay-toggle")).not.toBeNull();
   });
 
+  it("persists the automatic boat preferences from the Gameplay controls", async () => {
+    const settings = new UserSettings();
+    settings.removeCached("settings.autoBoatEnabled", false);
+    settings.removeCached("settings.limitAutoBoatNearShore", false);
+    const el = await mount(false);
+    el.open({ tab: "gameplay" });
+    await el.updateComplete;
+
+    el.querySelector("#auto-boat-enabled-toggle")!.dispatchEvent(
+      new Event("change", { bubbles: true }),
+    );
+    el.querySelector("#limit-auto-boat-near-shore-toggle")!.dispatchEvent(
+      new Event("change", { bubbles: true }),
+    );
+
+    expect(settings.autoBoatEnabled()).toBe(false);
+    expect(settings.limitAutoBoatNearShore()).toBe(false);
+  });
+
   // The visual switches live on Graphics and nowhere else. Each selector is
   // asserted on both tabs, so moving one back to Gameplay fails the second
   // half of the pair rather than silently passing.
@@ -97,6 +116,8 @@ describe("user-setting tabs", () => {
     "#go-to-player-toggle",
     "#help-messages-toggle",
     "#attacking-troops-overlay-toggle",
+    "#auto-boat-enabled-toggle",
+    "#limit-auto-boat-near-shore-toggle",
     "#attack-ratio-slider",
   ];
 

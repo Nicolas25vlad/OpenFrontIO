@@ -309,6 +309,25 @@ export class UserSettings {
     return this.getBool("settings.attackingTroopsOverlay", true);
   }
 
+  autoBoatEnabled() {
+    return this.getBool("settings.autoBoatEnabled", true);
+  }
+
+  toggleAutoBoatEnabled() {
+    this.setBool("settings.autoBoatEnabled", !this.autoBoatEnabled());
+  }
+
+  limitAutoBoatNearShore() {
+    return this.getBool("settings.limitAutoBoatNearShore", true);
+  }
+
+  toggleLimitAutoBoatNearShore() {
+    this.setBool(
+      "settings.limitAutoBoatNearShore",
+      !this.limitAutoBoatNearShore(),
+    );
+  }
+
   toggleAttackingTroopsOverlay() {
     this.setBool(
       "settings.attackingTroopsOverlay",

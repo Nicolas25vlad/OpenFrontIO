@@ -88,6 +88,8 @@ import { SoundManager } from "./sound/SoundManager";
 import { themeProvider } from "./theme/ThemeProvider";
 import { GameView, PlayerView } from "./view";
 
+const AUTO_BOAT_NEAR_SHORE_DISTANCE = 100;
+
 export interface LobbyConfig {
   cosmetics: PlayerCosmeticRefs;
   playerName: string;
@@ -1494,14 +1496,11 @@ export class ClientGameRunner {
 
     const canBuild = this.canBoatAttack(buildables);
     if (canBuild === false) return false;
+    if (!this.userSettings.autoBoatEnabled()) return false;
+    if (!this.userSettings.limitAutoBoatNearShore()) return true;
 
-    // TODO: Global enable flag
-    // TODO: Global limit autoboat to nearby shore flag
-    // if (!enableAutoBoat) return false;
-    // if (!limitAutoBoatNear) return true;
     const distanceSquared = this.gameView.euclideanDistSquared(tile, canBuild);
-    const limit = 100;
-    const limitSquared = limit * limit;
+    const limitSquared = AUTO_BOAT_NEAR_SHORE_DISTANCE ** 2;
     return distanceSquared < limitSquared;
   }
 

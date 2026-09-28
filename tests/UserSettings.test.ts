@@ -93,6 +93,26 @@ describe("UserSettings tutorial dismissal", () => {
   });
 });
 
+describe("UserSettings automatic boat attacks", () => {
+  beforeEach(resetUserSettingsState);
+
+  it("preserves current defaults and persists both preferences", () => {
+    const settings = new UserSettings();
+    expect(settings.autoBoatEnabled()).toBe(true);
+    expect(settings.limitAutoBoatNearShore()).toBe(true);
+
+    settings.toggleAutoBoatEnabled();
+    settings.toggleLimitAutoBoatNearShore();
+
+    expect(settings.autoBoatEnabled()).toBe(false);
+    expect(settings.limitAutoBoatNearShore()).toBe(false);
+    expect(localStorage.getItem("settings.autoBoatEnabled")).toBe("false");
+    expect(localStorage.getItem("settings.limitAutoBoatNearShore")).toBe(
+      "false",
+    );
+  });
+});
+
 describe("UserSettings cosmetic loadouts", () => {
   beforeEach(resetUserSettingsState);
 

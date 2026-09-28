@@ -561,6 +561,15 @@ enfileirados. A regressão foi reproduzida e coberta em
 `tsc --noEmit`, `npm run lint`, `npm run build-dev`, Prettier e
 `git diff --check` também passaram.
 
+As preferências de Jogabilidade agora permitem desligar o auto-transporte por
+clique ou remover o limite de 100 tiles entre o ponto de lançamento e o alvo.
+Ambas as opções ficam ativadas por padrão, preservando a jogabilidade existente;
+os valores são salvos localmente no navegador. Os testes cobrem os dois limites,
+as rotas longas opcionais e a persistência das preferências.
+Validação desta etapa: 4 arquivos/95 testes passaram; também passaram `npm run
+lint`, `npm run build-dev`, TypeScript, Prettier e `git diff --check`. A revisão
+visual das duas opções está no passo 9 do roteiro manual abaixo.
+
 Os pathfinders marítimos agora recebem slots de reconstrução determinísticos por
 partida. O contador não é compartilhado entre jogos no mesmo processo, então a
 ordem de partidas anteriores não muda quando cada comboio recalcula sua rota.
@@ -614,6 +623,10 @@ passou em 6 arquivos/19 testes; `tsc --noEmit`, ESLint, Prettier e
    heatmap: vantagem aliada verde, equilíbrio amarelo, vantagem hostil vermelha.
    Mova, danifique ou retire navios; a cor/intensidade deve acompanhar os valores
    agregados. Desligue a camada sem afetar o mapa de recursos.
+9. Em Configurações > Jogabilidade, desligue “Ataque de barco automático ao
+   clicar”: cliques fora do alcance terrestre não devem enviar barco. Reative a
+   opção e desligue “Limitar alcance do barco automático”; um alvo além de 100
+   tiles do ponto de lançamento agora deve receber o intent de barco.
 
 Esperado: o resultado muda deterministicamente com presença, escolta e perdas;
 nenhum update por tile ou mapa inteiro é criado. O painel econômico mostra a
