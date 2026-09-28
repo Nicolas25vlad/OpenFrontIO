@@ -126,6 +126,8 @@ describe("CapitulationExecution", () => {
   });
 
   test("transfers land and cancels active attacks as one accepted surrender", () => {
+    const fortifiedTile = game.ref(21, 20);
+    game.setTrenchLevel(fortifiedTile, 2);
     game.addExecution(new AttackExecution(100, recipient, proposer.id()));
     game.addExecution(new AttackExecution(100, thirdParty, recipient.id()));
     game.executeNextTick();
@@ -155,6 +157,7 @@ describe("CapitulationExecution", () => {
     expect(recipient.units()).toHaveLength(0);
     expect(recipient.resourceAmount(NaturalResource.Oil)).toBe(0);
     expect(recipient.resourceAmount(ProcessedResource.Food)).toBe(0);
+    expect(game.trenchLevel(fortifiedTile)).toBe(0);
   });
 
   test("resolves the eliminated player's other pending diplomatic requests", () => {

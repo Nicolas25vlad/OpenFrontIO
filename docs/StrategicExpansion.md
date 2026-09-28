@@ -794,10 +794,11 @@ esperado estão em [CapitulationDesign.md](CapitulationDesign.md).
 Validação no homelab: 35 testes focados passaram em seis arquivos, incluindo
 transferência do spawn, autorização, contraproposta, ataques ativos, estruturas,
 míssil e limpeza de estoques. Em 2026-09-28, `tests/CapitulationExecution.test.ts`
-passou com 9 testes, incluindo hash repetível após aceite por intents do
+passou com 10 testes, incluindo hash repetível após aceite por intents do
 `Executor`, tentativa de aceite depois da recusa, resolução dos pedidos
-diplomáticos de entrada/saída após a eliminação e compatibilidade com economia
-legada; `tests/AiTankBehavior.test.ts`
+diplomáticos de entrada/saída após a eliminação, remoção de trincheiras na
+transferência do território e compatibilidade com economia legada;
+`tests/AiTankBehavior.test.ts`
 passou com 5 testes, incluindo os ciclos integrados de nação e tribo. Também
 passaram `tsc --noEmit`, ESLint, Prettier e `git diff --check`. A conferência
 visual em dois clientes e replay ainda depende do PC principal; a issue #12
@@ -815,6 +816,8 @@ Em 2026-09-28, a interface também ganhou cobertura para propor a capitulação,
 distingui-la de um pedido comum, remover o cartão após resolução e registrar o
 aceite como conquista. `ActionableEventsCapitulation`, `EventsDisplayHandlers`
 e `PlayerPanelActions` passaram em 3 arquivos/26 testes.
+O teste conjunto de `CapitulationExecution` e `BuildTrenchExecution` passou em
+2 arquivos/15 testes após cobrir essa transferência.
 
 ## Economia nuclear e Anti-ICBM — issue #9
 
