@@ -779,6 +779,14 @@ com 49 testes. A regressão focada em `NationTrenchPriority`,
 `NationVehicleFactoryPriority`, `NationStructureBehavior` e `BuildTrenchExecution`
 passou com 79 testes.
 
+Agora a IA também pode implantar até dois tanques controláveis quando tem pelo
+menos três na reserva, preservando uma unidade para o ataque legado. Unidades
+implantadas recebem ordens determinísticas contra uma fronteira hostil. A rotina
+roda nas execuções de nação e tribo, fica inativa na economia legada e não varre
+fronteiras quando não há tanques para ordenar. `tests/AiTankBehavior.test.ts`
+cobre implantação/ordens, reserva protegida e economia legada; o teste de
+salvas nucleares confirma que a IA mantém o tempo de resposta esperado.
+
 Na mesma prioridade, nações agora constroem trincheiras em frentes terrestres
 sob ameaça, desde que a economia estratégica esteja ativa e haja aço para o
 custo configurado. Cada decisão envia uma construção por vez; a quantidade de
@@ -844,6 +852,10 @@ e passou em 485 arquivos/5.667 testes. `tsc --noEmit` e lint também passaram.
 7. Envie ofertas de cessão de 10% e 11% para uma nação Medium. Ela só deve
    aceitar 10% se o solicitante tiver mais de 2,5 vezes suas tropas; em condições
    iguais, ou com pedido acima de 10%, deve recusar.
+8. Com pelo menos três tanques em reserva e economia estratégica ativa, observe
+   uma nação implantar até dois tanques e enviar ordens contra uma fronteira
+   hostil. Ela deve conservar um tanque para os ataques de infantaria. Com uma
+   reserva ou economia legada, não deve implantar unidades independentes.
 
 Esperado: a nação tenta no máximo uma construção por vez, respeita o limite de
 reserva e continua a usar as regras de construção existentes. A issue permanece

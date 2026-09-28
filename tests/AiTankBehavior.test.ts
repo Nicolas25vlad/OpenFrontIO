@@ -2,10 +2,10 @@ import { AiTankBehavior } from "../src/core/execution/nation/AiTankBehavior";
 import { Game, PlayerInfo, PlayerType, UnitType } from "../src/core/game/Game";
 import { setup } from "./util/Setup";
 
-async function botGame(): Promise<Game> {
+async function botGame(strategicEconomy = true): Promise<Game> {
   return setup(
     "big_plains",
-    { strategicEconomy: true, infiniteGold: true, instantBuild: true },
+    { strategicEconomy, infiniteGold: true, instantBuild: true },
     [
       new PlayerInfo("bot", PlayerType.Bot, null, "bot"),
       new PlayerInfo("rival", PlayerType.Human, "rival-client", "rival"),
@@ -40,5 +40,21 @@ describe("AI tank behavior", () => {
     expect(orderTarget).toBeDefined();
     expect(bot.canAttack(orderTarget!)).toBe(true);
     expect(game.owner(orderTarget!)).not.toBe(bot);
+  });
+
+  test.each([
+    { label: "with only the protected legacy reserve", strategicEconomy: true },
+    { label: "when strategic economy is disabled", strategicEconomy: false },
+  ])("does not deploy tanks $label", async ({ strategicEconomy }) => {
+    const game = await botGame(strategicEconomy);
+    const bot = game.player("bot");
+    bot.conquer(game.ref(50, 50));
+    bot.addTanks(strategicEconomy ? 1 : 3);
+
+    new AiTankBehavior(game, bot).tick();
+    game.executeNextTick();
+
+    expect(bot.units(UnitType.Tank)).toHaveLength(0);
+    expect(bot.tanks()).toBe(strategicEconomy ? 1 : 3);
   });
 });
