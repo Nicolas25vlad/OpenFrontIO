@@ -678,7 +678,7 @@
     "exhausted": "Deposit exhausted",
     "in_transit": "underway",
     "missing": "Missing resources",
-    "naval_sectors": "Naval presence by sector (friendly / other)",
+    "naval_sectors": "Naval strength by sector (friendly / other)",
     "naval_status": "Sea sectors and trade routes",
     "naval_supply": "Naval supply",
     "period": "Last completed production period (1 second)",

@@ -298,17 +298,19 @@ Arquivos desta etapa: `src/core/configuration/StrategyConfig.ts`,
 e `tests/client/ResourcePanel.test.ts`.
 
 O painel econômico também lista os setores que contêm portos próprios, com suas
-coordenadas na grade, quantidade de portos e presença de navios de guerra
-aliados e de outros jogadores. A seção de comboios lista navios ativos ligados
-ao jogador ou a um aliado, indicando os donos do navio/destino e o setor do
-porto de destino. Essa leitura usa os updates de unidades existentes e não
-altera decisões ou regras autoritativas do core.
+coordenadas na grade, quantidade de portos e força naval aliada/de outros
+jogadores. A força segue a mesma fórmula do core (fração de saúde efetiva,
+incluindo veterania, multiplicada pelo nível). O painel agrega pela coordenada
+do setor; o filtro por massa d'água permanece na decisão autoritativa de bloqueio
+no core. A seção de comboios lista navios ativos ligados ao jogador ou a um
+aliado, indicando os donos do navio/destino e o setor do porto de destino. Essa
+leitura usa os updates de unidades existentes e não altera as regras do core.
 
 Também há uma camada visual opcional com a grade quadrada dos setores de 64
 tiles, coordenadas `x,y` e preenchimento azul translúcido. O renderer a recorta
 para tiles de água; o botão “Setores marítimos” alterna essa camada
 independentemente do mapa geológico. Ela mostra a divisão espacial estática; as
-contagens de navios continuam no painel e são atualizadas pelos snapshots de
+força naval estimada continua no painel e é atualizada pelos snapshots de
 unidades existentes.
 
 Validação automatizada: os testes cobrem bloqueio por presença, contrapressão
@@ -321,6 +323,10 @@ A UI e a camada passaram nos testes de `ResourcePanel`, `NavalSectorMap` e
 `ResourceMapController`: cobertura do botão, emissão de evento, desenho das
 coordenadas, grade parcial nas bordas do mapa e controle independente das duas
 camadas. A camada usa o placement `water` já suportado pelo renderer.
+O painel também mostra força naval estimada, validada com navio danificado,
+nível, veterania e exclusão de navio fora dos setores com portos próprios. As
+regressões focadas passaram em 4 arquivos/6 testes; `npm run build-dev`, lint
+direcionado, Prettier e `git diff --check` passaram.
 
 ### Validação manual pendente no PC principal
 
@@ -343,20 +349,22 @@ camadas. A camada usa o placement `water` já suportado pelo renderer.
    Afunde um comboio carregado: carga e depósito devem ser perdidos. Repita com
    `strategicEconomy` desligado e confirme que não há carga automática.
 6. Com portos próprios e navios de guerra em setores diferentes, abra “Setores e
-   rotas marítimas” no painel econômico. Mova ou retire navios aliados/inimigos
-   e confira as contagens. Observe um comboio próprio ou aliado e confira o dono
-   do porto de destino e as coordenadas do setor. Repita em replay e multiplayer.
+   rotas marítimas” no painel econômico. Mova ou retire navios aliados/inimigos,
+   danifique um navio e melhore outro; a força estimada deve acompanhar saúde,
+   nível e veterania. Navios em outro setor não devem entrar na conta.
+   Observe um comboio próprio ou aliado e confira o dono do porto de destino e
+   as coordenadas do setor. Repita em replay e multiplayer.
 7. Clique em “Setores marítimos”. Confira as bordas e coordenadas da grade sobre
    a água, compare `x,y` com as coordenadas exibidas no painel e desligue a camada
    sem afetar o mapa de recursos.
 
 Esperado: o resultado muda deterministicamente com presença, escolta e perdas;
 nenhum update por tile ou mapa inteiro é criado. O painel econômico mostra a
-grade setorial dos portos próprios e os comboios ativos relacionados ao
-jogador. A camada do mapa mostra a grade setorial estática na água, mas não uma
-heatmap dinâmica de supremacia nem rotas do comboio. O jogador ainda não pode
-definir rotas. A validação visual em multiplayer/replay continua pendente no PC
-principal.
+força naval estimada nos setores dos portos próprios e os comboios ativos
+relacionados ao jogador. A camada do mapa mostra a grade setorial estática na
+água; ainda não há heatmap dinâmica de supremacia nem rotas do comboio. O jogador
+ainda não pode definir rotas. A validação visual em multiplayer/replay continua
+pendente no PC principal.
 
 ## Cancelamento de proposta de aliança — issue #8 (parcial)
 

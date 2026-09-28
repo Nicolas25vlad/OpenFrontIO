@@ -599,7 +599,7 @@
     "exhausted": "Depósito esgotado",
     "in_transit": "em viagem",
     "missing": "Faltam recursos",
-    "naval_sectors": "Presença naval por setor (aliados / outros)",
+    "naval_sectors": "Força naval por setor (aliados / outros)",
     "naval_status": "Setores e rotas marítimas",
     "naval_supply": "Supply naval",
     "trade_routes": "Comboios em rota",

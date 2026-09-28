@@ -76,12 +76,21 @@ test("shows owned-port sectors and active trade routes", async () => {
     tile: () => 10,
     owner: () => me,
   };
-  const warship = (owner: unknown, tile: number) => ({
+  const warship = (
+    owner: unknown,
+    tile: number,
+    health = 1000,
+    level = 1,
+    veterancy = 0,
+  ) => ({
     isActive: () => true,
     isUnderConstruction: () => false,
     warshipState: () => ({ state: "patrolling" }),
     tile: () => tile,
     owner: () => owner,
+    health: () => health,
+    level: () => level,
+    veterancy: () => veterancy,
   });
   const tradeShip = {
     targetUnitId: () => 7,
@@ -96,13 +105,22 @@ test("shows owned-port sectors and active trade routes", async () => {
   };
   const panel = new ResourcePanel();
   panel.game = {
-    config: () => ({ strategicEconomy: () => true, navalSectorSize: () => 64 }),
+    config: () => ({
+      strategicEconomy: () => true,
+      navalSectorSize: () => 64,
+      warshipVeterancyHealthBonus: () => 20,
+    }),
     myPlayer: () => player,
     x: (tile: number) => tile,
     y: () => 0,
+    unitInfo: () => ({ maxHealth: 1000 }),
     units: (type: UnitType) =>
       type === UnitType.Warship
-        ? [warship(me, 12), warship(trader, 20)]
+        ? [
+            warship(me, 12, 600, 2, 1),
+            warship(trader, 20, 1000, 2),
+            warship(trader, 70, 1000, 5),
+          ]
         : type === UnitType.TradeShip
           ? [tradeShip]
           : [],
@@ -119,8 +137,9 @@ test("shows owned-port sectors and active trade routes", async () => {
 
   expect(panel.textContent).toContain("economy.naval_status");
   expect(panel.textContent).toContain("economy.naval_sectors");
-  expect(panel.textContent).toContain("1+");
-  expect(panel.textContent).toContain("1−");
+  expect(panel.textContent).toContain("1.0+");
+  expect(panel.textContent).toContain("2.0−");
+  expect(panel.textContent).not.toContain("5.0−");
   expect(panel.textContent?.replace(/\s+/g, " ")).toContain("Trader → Me");
   expect(panel.textContent).toContain("economy.in_transit");
 

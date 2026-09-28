@@ -9,6 +9,7 @@ import {
   ResourceType,
   STOCK_RESOURCES,
 } from "../../../core/game/Resources";
+import { maxHealthWithVeterancy } from "../../../core/game/Veterancy";
 import { Controller } from "../../Controller";
 import {
   ToggleNavalSectorMapEvent,
@@ -77,9 +78,20 @@ export class ResourcePanel extends LitElement implements Controller {
     if (ports.length === 0) return [];
     const player = this.game.myPlayer()!;
     const sectorSize = this.game.config().navalSectorSize();
+    const baseWarshipHealth =
+      this.game.unitInfo(UnitType.Warship).maxHealth ?? 1;
+    const veterancyHealthBonus = this.game
+      .config()
+      .warshipVeterancyHealthBonus();
     const sectors = new Map<
       string,
-      { x: number; y: number; ports: number; friendly: number; hostile: number }
+      {
+        x: number;
+        y: number;
+        ports: number;
+        friendlyStrength: number;
+        hostileStrength: number;
+      }
     >();
     for (const port of ports) {
       const x = Math.floor(this.game.x(port.tile()) / sectorSize);
@@ -89,8 +101,8 @@ export class ResourcePanel extends LitElement implements Controller {
         x,
         y,
         ports: 0,
-        friendly: 0,
-        hostile: 0,
+        friendlyStrength: 0,
+        hostileStrength: 0,
       };
       sector.ports++;
       sectors.set(key, sector);
@@ -108,10 +120,16 @@ export class ResourcePanel extends LitElement implements Controller {
       const y = Math.floor(this.game.y(ship.tile()) / sectorSize);
       const sector = sectors.get(`${x},${y}`);
       if (sector === undefined) continue;
+      const maxHealth = maxHealthWithVeterancy(
+        baseWarshipHealth,
+        ship.veterancy(),
+        veterancyHealthBonus,
+      );
+      const strength = (ship.health() / Math.max(1, maxHealth)) * ship.level();
       if (ship.owner().isMe() || ship.owner().isFriendly(player)) {
-        sector.friendly++;
+        sector.friendlyStrength += strength;
       } else {
-        sector.hostile++;
+        sector.hostileStrength += strength;
       }
     }
     return [...sectors.values()].sort((a, b) => a.y - b.y || a.x - b.x);
@@ -246,10 +264,12 @@ export class ResourcePanel extends LitElement implements Controller {
                         >
                         <span>
                           <span class="text-emerald-300"
-                            >${sector.friendly}+</span
+                            >${sector.friendlyStrength.toFixed(1)}+</span
                           >
                           /
-                          <span class="text-red-300">${sector.hostile}−</span>
+                          <span class="text-red-300"
+                            >${sector.hostileStrength.toFixed(1)}−</span
+                          >
                         </span>
                       </div>`,
                   )}
