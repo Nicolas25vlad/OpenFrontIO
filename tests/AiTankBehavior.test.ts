@@ -1,7 +1,15 @@
 import { ConstructionExecution } from "../src/core/execution/ConstructionExecution";
 import { AiTankBehavior } from "../src/core/execution/nation/AiTankBehavior";
+import { NationExecution } from "../src/core/execution/NationExecution";
 import { TribeExecution } from "../src/core/execution/TribeExecution";
-import { Game, PlayerInfo, PlayerType, UnitType } from "../src/core/game/Game";
+import {
+  Cell,
+  Game,
+  Nation,
+  PlayerInfo,
+  PlayerType,
+  UnitType,
+} from "../src/core/game/Game";
 import { setup } from "./util/Setup";
 
 async function botGame(strategicEconomy = true): Promise<Game> {
@@ -85,5 +93,31 @@ describe("AI tank behavior", () => {
     expect(addExecution).toHaveBeenCalledWith(
       expect.any(ConstructionExecution),
     );
+  });
+
+  test("nation execution deploys a tank and preserves its legacy reserve", async () => {
+    const info = new PlayerInfo("nation", PlayerType.Nation, null, "nation");
+    const game = await setup(
+      "big_plains",
+      { strategicEconomy: true, infiniteGold: true, instantBuild: true },
+      [info],
+    );
+    const nation = new Nation(new Cell(50, 50), info);
+    const player = game.player(info.id);
+    player.conquer(game.ref(50, 50));
+    player.conquer(game.ref(51, 50));
+    player.addTanks(2);
+    game.endSpawnPhase();
+
+    const execution = new NationExecution("tank-ai-integration", nation);
+    execution.init(game);
+    for (let tick = 0; tick < 1_000; tick++) {
+      execution.tick(tick);
+      game.executeNextTick();
+      if (player.units(UnitType.Tank).length > 0) break;
+    }
+
+    expect(player.units(UnitType.Tank)).toHaveLength(1);
+    expect(player.tanks()).toBe(1);
   });
 });
