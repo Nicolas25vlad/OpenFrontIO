@@ -958,6 +958,12 @@ Na economia estratégica, o bot limita a uma ordem naval por tick para não
 duplicar um navio ainda pendente; partidas legadas preservam a cadência anterior.
 `tests/economy/NationBlockadeResponse.test.ts` cobre a resposta, a compatibilidade
 com a economia legada e a ausência de intent sem os insumos.
+Na prioridade de infraestrutura, o bot também considera logística quando a
+infantaria ou a marinha está abaixo de 100% de suprimento, mesmo que todas as
+estruturas de produção já recebam o bônus. A pontuação então favorece tiles
+próximos de estações existentes. Um teste em
+`tests/economy/NationInfrastructurePriority.test.ts` cobre o pedido com déficit
+e a ausência de construção redundante com suprimento completo.
 Em ofertas de paz, o bot agora só cede até 10% do território quando o emissor é
 uma ameaça pela heurística de dificuldade e não é traidor; pedidos maiores ou de
 atores que não são ameaça são recusados. `tests/NationAllianceBehavior.test.ts`
