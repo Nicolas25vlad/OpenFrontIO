@@ -1,5 +1,6 @@
 import { GameID } from "../../../src/core/Schemas";
 import { AttackExecution } from "../../../src/core/execution/AttackExecution";
+import { PlayerExecution } from "../../../src/core/execution/PlayerExecution";
 import { SpawnExecution } from "../../../src/core/execution/SpawnExecution";
 //import { TransportShipExecution } from "../../../src/core/execution/TransportShipExecution";
 import { AllianceRequestExecution } from "../../../src/core/execution/alliance/AllianceRequestExecution";
@@ -104,9 +105,23 @@ describe("GameImpl", () => {
     expect(cedingPlayer.canAttackPlayer(requestor)).toBe(false);
     expect((peaceGame as any).hash()).not.toBe(hashBeforePeace);
 
-    truce.expire();
+    const addUpdate = vi.spyOn(peaceGame, "addUpdate");
+    peaceGame.addExecution(new PlayerExecution(requestor));
+    peaceGame.addExecution(new PlayerExecution(cedingPlayer));
+    for (
+      let tick = 0;
+      tick <= PEACE_TRUCE_DURATION_TICKS &&
+      requestor.allianceWith(cedingPlayer) !== null;
+      tick++
+    ) {
+      peaceGame.executeNextTick();
+    }
+
     expect(requestor.allianceWith(cedingPlayer)).toBeNull();
     expect(requestor.canAttackPlayer(cedingPlayer)).toBe(true);
+    expect(addUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ type: GameUpdateType.AllianceExpired }),
+    );
   });
 
   test("rejects stale peace terms without changing land or creating an alliance", async () => {

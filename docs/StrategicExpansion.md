@@ -615,6 +615,9 @@ primeiro valor negociável.
 Uma cessão válida cria uma trégua de 180 segundos usando o estado temporário de
 aliança existente: ataques ficam bloqueados, a quebra mantém a penalidade de
 traição e a expiração é sincronizada pelo fluxo de updates/replay já existente.
+`tests/core/game/GameImpl.test.ts` avança o ciclo real de `PlayerExecution` até
+o prazo vencer e confirma que a aliança termina, ataques voltam a ser permitidos
+e o update `AllianceExpired` é emitido.
 As mensagens de proposta e resultado mostram a porcentagem. O planejador ordena
 tiles por referência e resolve empates de regiões da mesma forma em todos os
 clientes. Para bots, uma oferta de cessão só é aceita se o solicitante for uma
@@ -633,6 +636,9 @@ passou em 3 arquivos/19 testes; `tsc --noEmit`, Oxlint, ESLint, Prettier,
 Os testes focados de painel, proposta, cancelamento, transferência territorial e
 comportamento dos bots passaram em 5 arquivos/30 testes. `npm run build-dev`,
 `tsc --noEmit`, Oxlint, ESLint, Prettier e `git diff --check` passaram.
+Em 2026-09-28, `tests/core/game/GameImpl.test.ts` passou com 5 testes incluindo
+a expiração automática da trégua pelo ciclo real da simulação; também passaram
+`tsc --noEmit`, ESLint, Prettier e `git diff --check`.
 
 Arquivos desta etapa: `src/core/game/TerritoryTransfer.ts`,
 `src/core/game/GameImpl.ts`, `src/core/game/AllianceImpl.ts`,
