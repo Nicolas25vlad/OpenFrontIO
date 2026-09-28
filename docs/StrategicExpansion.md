@@ -794,7 +794,7 @@ esperado estão em [CapitulationDesign.md](CapitulationDesign.md).
 Validação no homelab: 35 testes focados passaram em seis arquivos, incluindo
 transferência do spawn, autorização, contraproposta, ataques ativos, estruturas,
 míssil e limpeza de estoques. Em 2026-09-28, `tests/CapitulationExecution.test.ts`
-passou com 10 testes, incluindo hash repetível após aceite por intents do
+passou com 9 testes, incluindo hash repetível após aceite por intents do
 `Executor`, tentativa de aceite depois da recusa, resolução dos pedidos
 diplomáticos de entrada/saída após a eliminação, remoção de trincheiras na
 transferência do território e compatibilidade com economia legada;
