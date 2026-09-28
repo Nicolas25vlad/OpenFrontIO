@@ -727,6 +727,7 @@ export const BuildUnitIntentSchema = z.object({
 export const BuildTrenchIntentSchema = z.object({
   type: z.literal("build_trench"),
   tile: zb.uint(),
+  tiles: zb.uint().array().min(1).max(512).optional(),
 });
 
 export const UpgradeStructureIntentSchema = z.object({

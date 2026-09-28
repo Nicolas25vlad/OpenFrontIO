@@ -1096,3 +1096,38 @@ Validação manual pendente no PC principal:
    escolha deve priorizar relações aliadas/amigáveis entre fornecedores aptos;
    sem fornecedor elegível, sem excedente ou durante guerra, nenhum comboio
    automático novo deve ser enviado.
+
+### Trincheiras por pincel
+
+A ação Trincheira agora aparece na categoria Militar. Ela ativa um pincel local:
+arrastar sobre a própria fronteira destaca os tiles selecionados e soltar envia
+um único intent em lote. O core valida cada tile no momento de execução, aumenta
+um nível e cobra o custo correspondente por tile; entradas antigas de tile
+único continuam válidas. Tile inválido, fora da fronteira, capturado ou no nível
+máximo é ignorado. A resolução de combate já aplica bônus defensivo e atraso de
+avanço, com desgaste ao conquistar o tile.
+
+Arquivos alterados: `src/core/Schemas.ts`, `src/core/execution/ExecutionManager.ts`,
+`src/core/execution/BuildTrenchExecution.ts`, `src/client/Transport.ts`,
+`src/client/UIState.ts`, `src/client/InputHandler.ts`,
+`src/client/hud/BuildCategories.ts`, `src/client/hud/layers/UnitDisplay.ts`,
+`src/client/hud/layers/BuildMenu.ts`, traduções em `resources/lang/` e testes
+de execução, wire, categoria e painel.
+
+Validação no homelab: os testes de trincheira, wire, categoria, pincel,
+`InputHandler` e ordenação de traduções passaram em 6 arquivos/115 testes;
+`tsc --noEmit`, `npm run lint`
+e Prettier passaram. A validação visual com WebGL permanece pendente no PC
+principal:
+
+1. Rode `npm run dev:host`, ative a economia estratégica e selecione a categoria
+   Militar.
+2. Escolha Trincheira e arraste sobre tiles próprios da fronteira. Cada tile
+   válido deve receber um marcador de prévia; o contador deve acompanhar o
+   traçado. Soltar deve construir um nível por tile e cobrar 3 de aço por nível.
+3. Arraste também sobre água, território alheio e tiles no nível máximo; esses
+   tiles não devem receber marcador nem trincheira. Use Cancelar no banner para
+   encerrar o pincel sem enviar o intent.
+4. Envie tropas contra uma fronteira com trincheiras: o defensor deve resistir
+   melhor e o avanço deve ser mais lento. Tanques reduzem parte desse efeito e
+   cada tile conquistado perde um nível conforme o desgaste configurado.

@@ -143,11 +143,13 @@
       "port": "Envie navios de troca para gerar ouro",
       "sam_launcher": "Defende Contra Chegada de Bombas Nucleares",
       "tank": "Implanta um tanque controlável usando seu estoque de reserva.",
-      "trench": "Fortalece este tile da fronteira contra ataques terrestres.",
+      "trench": "Arraste pela fronteira para construir trincheiras contra ataques terrestres.",
       "vehicle_factory": "Fabrica tanques usando aço e combustível.",
       "warship": "Capture navios comerciais, destrua navios e barcos"
     },
     "not_enough_money": "Sem Dinheiro Suficiente",
+    "trench_brush_cancel": "Cancelar",
+    "trench_brush_hint": "Arraste pela sua fronteira para selecionar trincheiras ({count} tiles); solte para construir.",
     "trench_requirements": "Trincheiras exigem um tile próprio de fronteira e aço suficiente.",
     "upgrade_amount": "x{amount}",
     "warship_shift_hint": "Mantenha pressionado Shift e arraste para selecionar múltiplos navios de guerra de uma vez"

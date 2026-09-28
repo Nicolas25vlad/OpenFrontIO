@@ -15,11 +15,12 @@ import {
   ToggleStructureEvent,
 } from "../../InputHandler";
 import { Platform } from "../../Platform";
+import { StartTrenchBrushEvent } from "../../Transport";
 import { UIState } from "../../UIState";
 import { renderNumber, translateText } from "../../Utils";
 import { GameView } from "../../view";
 import { BUILD_CATEGORIES, BuildCategoryId } from "../BuildCategories";
-import { goldCoinIcon } from "../HotbarIcons";
+import { defensePostIcon, goldCoinIcon } from "../HotbarIcons";
 import { TutorialHighlight, TutorialHighlightEvent } from "../Tutorial";
 import { flattenedBuildTable } from "./BuildMenu";
 
@@ -175,12 +176,21 @@ export class UnitDisplay extends LitElement implements Controller {
                   : (this.keybinds[legacyKeys[unitType] ?? ""] ?? ""),
               );
             })}
+          ${category.actions?.map((action, index) =>
+            this.renderCategoryAction(
+              action,
+              category.unitTypes.length + index,
+            ),
+          )}
         </div>
         <div class="flex justify-center gap-0.5">
           ${BUILD_CATEGORIES.map((entry) => {
-            const enabled = entry.unitTypes.some(
-              (unitType) => !this.game.config().isUnitDisabled(unitType),
-            );
+            const enabled =
+              entry.unitTypes.some(
+                (unitType) => !this.game.config().isUnitDisabled(unitType),
+              ) ||
+              (entry.actions?.includes("trench") === true &&
+                this.game.config().strategicEconomy());
             return html`
               <button
                 class="border rounded-sm px-1.5 py-0.5 text-white text-[10px] flex items-center gap-1 ${this
@@ -333,6 +343,26 @@ export class UnitDisplay extends LitElement implements Controller {
         </button>
       </div>
     `;
+  }
+
+  private renderCategoryAction(action: "trench", index: number) {
+    if (action !== "trench" || !this.game.config().strategicEconomy()) {
+      return html``;
+    }
+    const cost = this.game.config().trenchCost();
+    return html`<button
+      class="flex flex-col items-center justify-center min-w-10 px-1 text-white hover:bg-slate-400/20 rounded-sm"
+      title=${translateText("build_menu.trench_brush_hint", { count: 0 })}
+      aria-label=${translateText("unit_type.trench")}
+      @click=${() => this.eventBus.emit(new StartTrenchBrushEvent())}
+    >
+      <img src=${defensePostIcon} alt="" class="size-5" />
+      <span class="text-[9px]">${translateText("unit_type.trench")}</span>
+      <span class="text-[8px] text-amber-200"
+        >${cost.steel ?? 0} ${translateText("resource.steel")}</span
+      >
+      <span class="sr-only">${index + 1}</span>
+    </button>`;
   }
 
   private displayHotkey(hotkey: string): string {

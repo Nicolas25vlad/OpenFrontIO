@@ -101,6 +101,7 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     amount: 3,
   },
   { type: "build_trench", clientID: P2, tile: 9 },
+  { type: "build_trench", clientID: P2, tile: 9, tiles: [9, 10] },
   {
     type: "upgrade_structure",
     clientID: P2,

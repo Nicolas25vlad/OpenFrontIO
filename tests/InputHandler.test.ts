@@ -3,6 +3,7 @@ import {
   ConfirmGhostStructureEvent,
   ContextMenuEvent,
   InputHandler,
+  MouseUpEvent,
   SelectBuildCategoryEvent,
   UnitSelectionEvent,
   WarshipSelectionBoxCancelEvent,
@@ -77,6 +78,29 @@ describe("InputHandler AutoUpgrade", () => {
 
   afterEach(() => {
     inputHandler.destroy();
+  });
+
+  test("emits MouseUpEvent after a drag while trench brush mode is active", () => {
+    const mockEmit = vi.spyOn(eventBus, "emit");
+    inputHandler["uiState"].trenchBrushMode = true;
+    inputHandler["onPointerDown"](
+      new PointerEvent("pointerdown", {
+        button: 0,
+        clientX: 10,
+        clientY: 10,
+        pointerId: 1,
+      }),
+    );
+    inputHandler["onPointerUp"](
+      new PointerEvent("pointerup", {
+        button: 0,
+        clientX: 100,
+        clientY: 100,
+        pointerId: 1,
+      }),
+    );
+
+    expect(mockEmit).toHaveBeenCalledWith(expect.any(MouseUpEvent));
   });
 
   describe("Middle Mouse Button Handling", () => {

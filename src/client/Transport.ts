@@ -126,8 +126,19 @@ export class BuildUnitIntentEvent implements GameEvent {
 }
 
 export class BuildTrenchIntentEvent implements GameEvent {
-  constructor(public readonly tile: TileRef) {}
+  public readonly tile: TileRef;
+  public readonly tiles: TileRef[];
+
+  constructor(tiles: TileRef | readonly TileRef[]) {
+    this.tiles = [...new Set(Array.isArray(tiles) ? tiles : [tiles])].sort(
+      (a, b) => a - b,
+    );
+    this.tile = this.tiles[0];
+  }
 }
+
+/** Starts the local brush mode; only the completed stroke is sent to the core. */
+export class StartTrenchBrushEvent implements GameEvent {}
 
 export class SendTargetPlayerIntentEvent implements GameEvent {
   constructor(public readonly targetID: PlayerID) {}
@@ -350,7 +361,11 @@ export class Transport {
     );
     this.eventBus.on(BuildUnitIntentEvent, (e) => this.onBuildUnitIntent(e));
     this.eventBus.on(BuildTrenchIntentEvent, (e) =>
-      this.sendIntent({ type: "build_trench", tile: e.tile }),
+      this.sendIntent({
+        type: "build_trench",
+        tile: e.tile,
+        tiles: e.tiles,
+      }),
     );
 
     this.eventBus.on(PauseGameIntentEvent, (e) => this.onPauseGameIntent(e));

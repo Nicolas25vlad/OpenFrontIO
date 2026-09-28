@@ -176,11 +176,13 @@
       "port": "Sends trade ships to generate gold",
       "sam_launcher": "Defends against incoming nukes",
       "tank": "Deploys one independently controlled tank from your reserve.",
-      "trench": "Fortifies this border tile against land attacks.",
+      "trench": "Drag across your border to paint trenches against land attacks.",
       "vehicle_factory": "Manufactures tanks using steel and fuel.",
       "warship": "Captures trade ships, destroys ships and boats"
     },
     "not_enough_money": "Not enough money",
+    "trench_brush_cancel": "Cancel",
+    "trench_brush_hint": "Drag across your border to select trenches ({count} tiles); release to build.",
     "trench_requirements": "Trenches require an owned border tile and enough steel.",
     "upgrade_amount": "x{amount}",
     "warship_shift_hint": "Hold Shift and drag to select multiple warships at once"

@@ -140,7 +140,7 @@ export class Executor {
           intent.amount,
         );
       case "build_trench":
-        return new BuildTrenchExecution(player, intent.tile);
+        return new BuildTrenchExecution(player, intent.tiles ?? [intent.tile]);
       case "allianceExtension": {
         return new AllianceExtensionExecution(player, intent.recipient);
       }

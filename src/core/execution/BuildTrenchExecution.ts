@@ -1,16 +1,21 @@
+import { STRATEGIC_COMBAT } from "../configuration/StrategyConfig";
 import { consumeResources, hasResources } from "../game/Economy";
 import { Execution, Game, Player } from "../game/Game";
 import { TileRef } from "../game/GameMap";
-import { STRATEGIC_COMBAT } from "../configuration/StrategyConfig";
 
 /** Paints one deterministic trench level on an owned border tile. */
 export class BuildTrenchExecution implements Execution {
   private active = true;
+  private readonly tiles: TileRef[];
 
   constructor(
     private readonly player: Player,
-    private readonly tile: TileRef,
-  ) {}
+    tiles: TileRef | readonly TileRef[],
+  ) {
+    this.tiles = [...new Set(Array.isArray(tiles) ? tiles : [tiles])].sort(
+      (a, b) => a - b,
+    );
+  }
 
   activeDuringSpawnPhase(): boolean {
     return false;
@@ -22,28 +27,22 @@ export class BuildTrenchExecution implements Execution {
       this.active = false;
       return;
     }
-    if (
-      !game.isValidRef(this.tile) ||
-      !game.isLand(this.tile) ||
-      game.isImpassable(this.tile) ||
-      game.ownerID(this.tile) !== this.player.smallID() ||
-      !game.isBorder(this.tile)
-    ) {
-      this.active = false;
-      return;
-    }
-
-    const level = game.trenchLevel(this.tile);
-    if (level >= STRATEGIC_COMBAT.trenchMaxLevel) {
-      this.active = false;
-      return;
-    }
     const cost = game.config().trenchCost();
-    if (!hasResources(this.player, cost) || !consumeResources(this.player, cost)) {
-      this.active = false;
-      return;
+    for (const tile of this.tiles) {
+      if (
+        !game.isValidRef(tile) ||
+        !game.isLand(tile) ||
+        game.isImpassable(tile) ||
+        game.ownerID(tile) !== this.player.smallID() ||
+        !game.isBorder(tile) ||
+        game.trenchLevel(tile) >= STRATEGIC_COMBAT.trenchMaxLevel ||
+        !hasResources(this.player, cost) ||
+        !consumeResources(this.player, cost)
+      ) {
+        continue;
+      }
+      game.setTrenchLevel(tile, game.trenchLevel(tile) + 1);
     }
-    game.setTrenchLevel(this.tile, level + 1);
     this.active = false;
   }
 

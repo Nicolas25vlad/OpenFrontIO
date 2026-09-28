@@ -55,6 +55,32 @@ describe("BuildTrenchExecution", () => {
     expect(game.trenchLevel(tile)).toBe(1);
   });
 
+  test("builds a brushed stroke on every valid owned border tile", () => {
+    const firstTile = game.ref(50, 50);
+    const secondTile = game.ref(52, 50);
+    player.conquer(firstTile);
+    player.conquer(secondTile);
+    const steelBefore = player.resourceAmount(ProcessedResource.Steel);
+    const executor = new Executor(game, "trench-brush", undefined);
+
+    game.addExecution(
+      executor.createExec({
+        type: "build_trench",
+        clientID: "client",
+        tile: firstTile,
+        tiles: [secondTile, firstTile, firstTile],
+      }),
+    );
+    game.executeNextTick();
+
+    expect(game.trenchLevel(firstTile)).toBe(1);
+    expect(game.trenchLevel(secondTile)).toBe(1);
+    expect(player.resourceAmount(ProcessedResource.Steel)).toBe(
+      steelBefore -
+        2 * (game.config().trenchCost()[ProcessedResource.Steel] ?? 0),
+    );
+  });
+
   test("serializes simultaneous trench intents against the shared steel stock", () => {
     const firstTile = game.ref(50, 50);
     const secondTile = game.ref(52, 50);

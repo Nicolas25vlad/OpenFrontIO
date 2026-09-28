@@ -6,6 +6,7 @@ import { EventBus } from "../../../core/EventBus";
 import {
   BuildableUnit,
   BuildMenus,
+  Cell,
   Gold,
   PlayerBuildableUnitType,
   UnitType,
@@ -16,6 +17,8 @@ import { Controller } from "../../Controller";
 import {
   CloseViewEvent,
   MouseDownEvent,
+  MouseMoveEvent,
+  MouseUpEvent,
   ShowBuildMenuEvent,
   ShowEmojiMenuEvent,
 } from "../../InputHandler";
@@ -24,6 +27,7 @@ import {
   BuildTrenchIntentEvent,
   BuildUnitIntentEvent,
   SendUpgradeStructureIntentEvent,
+  StartTrenchBrushEvent,
 } from "../../Transport";
 import { UIState } from "../../UIState";
 import { renderNumber } from "../../Utils";
@@ -154,6 +158,13 @@ export class BuildMenu extends LitElement implements Controller {
   public playerBuildables: BuildableUnit[] | null = null;
   private filteredBuildTable: BuildItemDisplay[][] = buildTable;
   public transformHandler: TransformHandler;
+  private trenchBrushMode = false;
+  private drawingTrenchStroke = false;
+  private lastBrushTile: TileRef | null = null;
+  private trenchBrushTiles = new Set<TileRef>();
+
+  @state()
+  private trenchBrushCount = 0;
 
   init() {
     this.eventBus.on(ShowBuildMenuEvent, (e) => {
@@ -175,9 +186,50 @@ export class BuildMenu extends LitElement implements Controller {
       const tile = this.game.ref(clickedCell.x, clickedCell.y);
       this.showMenu(tile);
     });
-    this.eventBus.on(CloseViewEvent, () => this.hideMenu());
+    this.eventBus.on(StartTrenchBrushEvent, () => {
+      this.trenchBrushMode = true;
+      if (this.uiState) this.uiState.trenchBrushMode = true;
+      this.trenchBrushTiles.clear();
+      this.trenchBrushCount = 0;
+      this.hideMenu();
+    });
+    this.eventBus.on(CloseViewEvent, () => {
+      this.trenchBrushMode = false;
+      if (this.uiState) this.uiState.trenchBrushMode = false;
+      this.drawingTrenchStroke = false;
+      this.hideMenu();
+    });
     this.eventBus.on(ShowEmojiMenuEvent, () => this.hideMenu());
-    this.eventBus.on(MouseDownEvent, () => this.hideMenu());
+    this.eventBus.on(MouseDownEvent, (e) => {
+      if (!this.trenchBrushMode) {
+        this.hideMenu();
+        return;
+      }
+      this.drawingTrenchStroke = true;
+      this.trenchBrushTiles.clear();
+      this.trenchBrushCount = 0;
+      this.lastBrushTile = null;
+      this.addBrushTileAtScreen(e.x, e.y);
+    });
+    this.eventBus.on(MouseMoveEvent, (e) => {
+      if (this.trenchBrushMode && this.drawingTrenchStroke) {
+        this.addBrushTileAtScreen(e.x, e.y);
+      }
+    });
+    this.eventBus.on(MouseUpEvent, (e) => {
+      if (!this.trenchBrushMode || !this.drawingTrenchStroke) return;
+      this.addBrushTileAtScreen(e.x, e.y);
+      const tiles = [...this.trenchBrushTiles].sort((a, b) => a - b);
+      if (tiles.length > 0)
+        this.eventBus.emit(new BuildTrenchIntentEvent(tiles));
+      this.trenchBrushMode = false;
+      if (this.uiState) this.uiState.trenchBrushMode = false;
+      this.drawingTrenchStroke = false;
+      this.lastBrushTile = null;
+      this.trenchBrushTiles.clear();
+      this.trenchBrushCount = 0;
+      this.requestUpdate();
+    });
   }
 
   tick() {
@@ -301,6 +353,33 @@ export class BuildMenu extends LitElement implements Controller {
     .build-count {
       font-weight: bold;
       font-size: 14px;
+    }
+    .trench-brush-banner {
+      position: fixed;
+      top: 1rem;
+      left: 50%;
+      z-index: 10000;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #a89b74;
+      border-radius: 0.5rem;
+      background: rgba(24, 24, 20, 0.95);
+      color: white;
+    }
+    .trench-brush-tile {
+      position: fixed;
+      z-index: 9999;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #e8d7a3;
+      border-radius: 50%;
+      background: rgba(115, 93, 52, 0.55);
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
     }
 
     @media (max-width: 768px) {
@@ -427,6 +506,39 @@ export class BuildMenu extends LitElement implements Controller {
 
   render() {
     return html`
+      ${this.trenchBrushMode
+        ? html`<div class="trench-brush-banner">
+            <span
+              >${translateText("build_menu.trench_brush_hint", {
+                count: this.trenchBrushCount,
+              })}</span
+            >
+            <button
+              class="border border-white/40 rounded px-2 py-1"
+              @click=${() => {
+                this.trenchBrushMode = false;
+                if (this.uiState) this.uiState.trenchBrushMode = false;
+                this.drawingTrenchStroke = false;
+                this.trenchBrushTiles.clear();
+                this.trenchBrushCount = 0;
+                this.requestUpdate();
+              }}
+            >
+              ${translateText("build_menu.trench_brush_cancel")}
+            </button>
+          </div>`
+        : ""}
+      ${this.trenchBrushMode
+        ? [...this.trenchBrushTiles].map((tile) => {
+            const screen = this.transformHandler.worldToScreenCoordinates(
+              new Cell(this.game.x(tile), this.game.y(tile)),
+            );
+            return html`<div
+              class="trench-brush-tile"
+              style="left:${screen.x}px;top:${screen.y}px"
+            ></div>`;
+          })
+        : ""}
       <div
         class="build-menu ${this._hidden ? "hidden" : ""}"
         @contextmenu=${(e: MouseEvent) => e.preventDefault()}
@@ -557,7 +669,7 @@ export class BuildMenu extends LitElement implements Controller {
             ? ""
             : translateText("build_menu.trench_requirements")}
           @click=${() => {
-            this.eventBus.emit(new BuildTrenchIntentEvent(this.clickedTile));
+            this.eventBus.emit(new StartTrenchBrushEvent());
             this.hideMenu();
           }}
         >
@@ -575,6 +687,49 @@ export class BuildMenu extends LitElement implements Controller {
         </button>
       </div>
     `;
+  }
+
+  private addBrushTileAtScreen(screenX: number, screenY: number): void {
+    const cell = this.transformHandler.screenToWorldCoordinates(
+      screenX,
+      screenY,
+    );
+    if (!this.game.isValidCoord(cell.x, cell.y)) return;
+    const tile = this.game.ref(cell.x, cell.y);
+    if (this.lastBrushTile === null) {
+      this.addBrushTile(tile);
+      this.lastBrushTile = tile;
+      return;
+    }
+
+    const x0 = this.game.x(this.lastBrushTile);
+    const y0 = this.game.y(this.lastBrushTile);
+    const x1 = this.game.x(tile);
+    const y1 = this.game.y(tile);
+    const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+    for (let step = 1; step <= steps; step++) {
+      const x = Math.round(x0 + ((x1 - x0) * step) / steps);
+      const y = Math.round(y0 + ((y1 - y0) * step) / steps);
+      if (this.game.isValidCoord(x, y)) this.addBrushTile(this.game.ref(x, y));
+    }
+    this.lastBrushTile = tile;
+  }
+
+  private addBrushTile(tile: TileRef): void {
+    const player = this.game.myPlayer();
+    if (
+      !player ||
+      this.trenchBrushTiles.has(tile) ||
+      this.trenchBrushTiles.size >= 512 ||
+      this.game.ownerID(tile) !== player.smallID() ||
+      !this.game.isBorder(tile) ||
+      this.game.trenchLevel(tile) >= this.game.config().trenchMaxLevel()
+    ) {
+      return;
+    }
+    this.trenchBrushTiles.add(tile);
+    this.trenchBrushCount = this.trenchBrushTiles.size;
+    this.requestUpdate();
   }
 
   private getBuildableUnits(): BuildItemDisplay[][] {

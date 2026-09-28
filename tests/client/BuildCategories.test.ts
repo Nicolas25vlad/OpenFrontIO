@@ -33,4 +33,10 @@ describe("build categories", () => {
     expect(buildCategoryFor(UnitType.DefensePost)?.id).toBe("military");
     expect(buildCategoryFor(UnitType.MissileSilo)?.id).toBe("nuclear");
   });
+
+  test("exposes trench brush as a military build action", () => {
+    expect(
+      BUILD_CATEGORIES.find((category) => category.id === "military")?.actions,
+    ).toContain("trench");
+  });
 });

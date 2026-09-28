@@ -1,7 +1,15 @@
 import { render } from "lit";
 import "../../../../src/client/hud/layers/BuildMenu";
 import type { BuildMenu } from "../../../../src/client/hud/layers/BuildMenu";
-import { BuildTrenchIntentEvent } from "../../../../src/client/Transport";
+import {
+  MouseDownEvent,
+  MouseMoveEvent,
+  MouseUpEvent,
+} from "../../../../src/client/InputHandler";
+import {
+  BuildTrenchIntentEvent,
+  StartTrenchBrushEvent,
+} from "../../../../src/client/Transport";
 import type { GameView } from "../../../../src/client/view/GameView";
 import { EventBus } from "../../../../src/core/EventBus";
 import { ProcessedResource } from "../../../../src/core/game/Resources";
@@ -46,10 +54,10 @@ describe("BuildMenu trench option", () => {
     return { container, eventBus, menu, tile };
   }
 
-  it("shows the current level and emits the trench intent for an eligible tile", () => {
+  it("shows the current level and starts the trench brush for an eligible tile", () => {
     const { container, eventBus, tile } = mountOption({ trenchLevel: 1 });
-    let sent: BuildTrenchIntentEvent | undefined;
-    eventBus.on(BuildTrenchIntentEvent, (event) => (sent = event));
+    let sent: StartTrenchBrushEvent | undefined;
+    eventBus.on(StartTrenchBrushEvent, (event) => (sent = event));
 
     const button = container.querySelector("button");
     expect(button).not.toBeNull();
@@ -57,8 +65,8 @@ describe("BuildMenu trench option", () => {
     expect(button?.textContent).toContain("1/3");
     button?.click();
 
-    expect(sent).toBeInstanceOf(BuildTrenchIntentEvent);
-    expect(sent?.tile).toBe(tile);
+    expect(sent).toBeInstanceOf(StartTrenchBrushEvent);
+    expect(tile).toBe(42);
   });
 
   it.each([
@@ -79,5 +87,39 @@ describe("BuildMenu trench option", () => {
     const { container } = mountOption({ strategicEconomy: false });
 
     expect(container.querySelector("button")).toBeNull();
+  });
+
+  it("turns a drag across eligible tiles into one deterministic brush intent", () => {
+    const menu = document.createElement("build-menu") as BuildMenu;
+    const eventBus = new EventBus();
+    const game = {
+      config: () => ({
+        strategicEconomy: () => true,
+        trenchMaxLevel: () => 3,
+      }),
+      myPlayer: () => ({ smallID: () => 7 }),
+      isValidCoord: (x: number, y: number) => x >= 0 && x < 10 && y === 0,
+      ref: (x: number, y: number) => y * 10 + x,
+      x: (tile: number) => tile % 10,
+      y: (tile: number) => Math.floor(tile / 10),
+      ownerID: () => 7,
+      isBorder: () => true,
+      trenchLevel: () => 0,
+    } as unknown as GameView;
+    menu.game = game;
+    menu.eventBus = eventBus;
+    menu.transformHandler = {
+      screenToWorldCoordinates: (x: number) => ({ x, y: 0 }),
+    } as any;
+    menu.init();
+
+    let sent: BuildTrenchIntentEvent | undefined;
+    eventBus.on(BuildTrenchIntentEvent, (event) => (sent = event));
+    eventBus.emit(new StartTrenchBrushEvent());
+    eventBus.emit(new MouseDownEvent(0, 0));
+    eventBus.emit(new MouseMoveEvent(2, 0));
+    eventBus.emit(new MouseUpEvent(2, 0));
+
+    expect(sent?.tiles).toEqual([0, 1, 2]);
   });
 });

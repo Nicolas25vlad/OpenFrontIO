@@ -7,6 +7,7 @@ import {
 } from "./HotbarIcons";
 
 export type BuildCategoryId = "civil" | "industry" | "military" | "nuclear";
+export type BuildCategoryAction = "trench";
 
 export interface BuildCategory {
   id: BuildCategoryId;
@@ -14,6 +15,7 @@ export interface BuildCategory {
   icon: string;
   keybind: string;
   unitTypes: readonly PlayerBuildableUnitType[];
+  actions?: readonly BuildCategoryAction[];
 }
 
 /** Data source for the category bar; adding a category does not change its renderer. */
@@ -43,6 +45,7 @@ export const BUILD_CATEGORIES: readonly BuildCategory[] = [
     icon: defensePostIcon,
     keybind: "buildCategoryMilitary",
     unitTypes: [UnitType.DefensePost, UnitType.Warship],
+    actions: ["trench"],
   },
   {
     id: "nuclear",
