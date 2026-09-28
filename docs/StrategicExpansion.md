@@ -704,7 +704,9 @@ Validação automatizada: 76 testes passaram nos cenários de fazenda, fábrica 
 veículos e `NationStructureBehavior`. Os casos incluem exércitos pequeno, médio
 e grande, estoque de tanque cheio, insumos insuficientes, economia legada,
 repetição sem duplicar pedido e posicionamento da fazenda até enfileirar sua
-construção. Agora a cobertura de 5.000, 25.000 e 100.000 tropas usa partidas
+construção. A decisão de fábrica agora também tem cenários de estoque baixo,
+médio (exatamente os insumos do primeiro tanque) e alto. Agora a cobertura de
+5.000, 25.000 e 100.000 tropas usa partidas
 reais e confirma que a fazenda é construída após o pedido. A regressão de
 economia da IA passou em mais 7 arquivos/24 testes,
 cobrindo prioridades de mina, infraestrutura, expansão de recursos, usinas
@@ -749,6 +751,10 @@ passaram. O único snapshot divergente identificou a mudança de cadência em mo
 legado; após limitar a trava à economia estratégica, o benchmark
 `NationGoldPerMinute` e os testes de bots passaram juntos em 3 arquivos/6 testes.
 A suíte de servidor passou em 63 arquivos/656 testes.
+
+Atualização de cobertura em 2026-09-28: `tests/economy/NationVehicleFactoryPriority.test.ts`
+passou com 8 testes, incluindo reservas baixas, no custo mínimo e altas de
+materiais; `tsc --noEmit`, lint, Prettier e `git diff --check` também passaram.
 
 ### Validação manual pendente no PC principal
 

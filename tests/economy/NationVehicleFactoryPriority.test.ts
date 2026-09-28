@@ -40,6 +40,31 @@ describe("nation strategic vehicle factory priority", () => {
     },
   );
 
+  it.each([
+    { economy: "low", steel: 4, fuel: 2, shouldBuild: false },
+    { economy: "medium", steel: 5, fuel: 2, shouldBuild: true },
+    { economy: "high", steel: 50, fuel: 20, shouldBuild: true },
+  ])(
+    "uses safe tank-production decisions with $economy material reserves",
+    ({ steel, fuel, shouldBuild }) => {
+      player.addTroops(50_000 - player.troops());
+      for (const resource of [
+        ProcessedResource.Steel,
+        ProcessedResource.Fuel,
+      ]) {
+        player.removeResource(resource, player.resourceAmount(resource));
+      }
+      player.addResource(ProcessedResource.Steel, steel);
+      player.addResource(ProcessedResource.Fuel, fuel);
+      const build = vi
+        .spyOn(behavior as any, "maybeSpawnStructure")
+        .mockReturnValue(true);
+
+      expect((behavior as any).tryBuildVehicleFactory()).toBe(shouldBuild);
+      expect(build).toHaveBeenCalledTimes(Number(shouldBuild));
+    },
+  );
+
   it("does not build without recipe inputs or when the tank reserve is full", () => {
     const build = vi
       .spyOn(behavior as any, "maybeSpawnStructure")
