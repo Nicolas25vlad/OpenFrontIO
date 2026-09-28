@@ -64,8 +64,7 @@ export class DispatchTradeRouteExecution implements Execution {
       source.owner() !== this.owner ||
       !this.owner.canTrade(destination.owner()) ||
       source === destination ||
-      this.owner.units(UnitType.TradeShip).length >=
-        NAVAL_TRADE.manualRouteLimitPerPlayer ||
+      !this.hasRouteCapacity(game) ||
       isNavalSectorBlockaded(game, destination) ||
       this.owner.canBuild(UnitType.TradeShip, source.tile()) === false
     ) {
@@ -85,5 +84,30 @@ export class DispatchTradeRouteExecution implements Execution {
       if (game.hasWaterComponent(destination.tile(), component)) return true;
     }
     return false;
+  }
+
+  private hasRouteCapacity(game: Game): boolean {
+    const executions = game.executions?.() ?? [];
+    const thisIndex = executions.indexOf(this);
+    const earlierRequests = executions
+      .slice(0, thisIndex < 0 ? 0 : thisIndex)
+      .filter(
+        (execution) =>
+          execution instanceof DispatchTradeRouteExecution &&
+          execution.owner === this.owner &&
+          execution.isActive(),
+      ).length;
+    const pendingTradeShips = executions.filter(
+      (execution) =>
+        execution instanceof TradeShipExecution &&
+        execution.isActive() &&
+        execution.originatingPlayer() === this.owner,
+    ).length;
+    return (
+      this.owner.units(UnitType.TradeShip).length +
+        pendingTradeShips +
+        earlierRequests <
+      NAVAL_TRADE.manualRouteLimitPerPlayer
+    );
   }
 }

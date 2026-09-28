@@ -944,6 +944,8 @@ export interface Game extends GameMap {
   ): Array<{ unit: Unit; distSquared: number }>;
 
   addExecution(...exec: Execution[]): void;
+  /** Active and queued executions, when exposed by the concrete game. */
+  executions?(): Execution[];
   displayMessage(
     message: string,
     type: MessageType,

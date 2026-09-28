@@ -280,4 +280,8 @@ export class TradeShipExecution implements Execution {
   dstPort(): TileRef {
     return this._dstPort.tile();
   }
+
+  originatingPlayer(): Player {
+    return this.origOwner;
+  }
 }

@@ -104,6 +104,24 @@ describe("DispatchTradeRouteExecution", () => {
     expect(sourceOwner.units(UnitType.TradeShip)).toHaveLength(3);
   });
 
+  test("enforces the convoy limit for simultaneous route intents", async () => {
+    const { game, sourceOwner, sourcePort, destinationPort } =
+      await routeFixture();
+    for (let index = 0; index < 5; index++) {
+      game.addExecution(
+        new DispatchTradeRouteExecution(
+          sourceOwner,
+          sourcePort.id(),
+          destinationPort.id(),
+        ),
+      );
+    }
+
+    for (let tick = 0; tick < 6; tick++) game.executeNextTick();
+
+    expect(sourceOwner.units(UnitType.TradeShip).length).toBeLessThanOrEqual(3);
+  });
+
   test("rejects a destination port under naval blockade", async () => {
     const { game, sourceOwner, sourcePort, destinationPort } =
       await routeFixture();
