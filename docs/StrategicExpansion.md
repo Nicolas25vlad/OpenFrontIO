@@ -121,7 +121,8 @@ o pedido antigo sem o campo `tanks` continua enviando apenas infantaria. O navio
 mantém a carga sincronizada durante a rota e a transfere para o ataque ao chegar.
 A contagem viaja nos updates de unidade e no delta compacto de ataques; aparece
 no detalhe do transporte e nas listas/rótulos de ataques. Ainda faltam
-seleção/movimento de tanques como unidades independentes.
+seleção/movimento de tanques como unidades independentes, acompanhados agora na
+[issue #13](https://github.com/Nicolas25vlad/OpenFrontIO/issues/13).
 
 Agora a interface estratégica também oferece um controle de 0–100% para a
 quantidade de tanques que acompanha cada ataque terrestre, calculada sobre o
