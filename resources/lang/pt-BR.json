@@ -1391,6 +1391,7 @@
   },
   "naval_map": {
     "button": "Setores marítimos",
+    "legend": "Força estimada: verde aliada, amarelo equilibrada, vermelho hostil. Bloqueios também exigem água conectada.",
     "toggle": "Alternar setores marítimos"
   },
   "new_lobby_prompt": {

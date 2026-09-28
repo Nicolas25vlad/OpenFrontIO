@@ -7,6 +7,7 @@ import {
 
 export const RESOURCE_MAP_LAYER_ID = "openfront-resource-map";
 export const NAVAL_SECTOR_MAP_LAYER_ID = "openfront-naval-sectors";
+export const NAVAL_CONTROL_MAP_LAYER_ID = "openfront-naval-control";
 
 export const RESOURCE_COLORS: Record<NaturalResource, string> = {
   [NaturalResource.Oil]: "#ef4444",
@@ -287,6 +288,51 @@ export async function createNavalSectorMapImage(
         Math.max(0, width - 8),
       );
     }
+  }
+
+  return createImageBitmap(canvas);
+}
+
+export interface NavalSectorStrength {
+  x: number;
+  y: number;
+  friendly: number;
+  hostile: number;
+}
+
+/** Build the estimated friendly/hostile warship-strength heatmap by sector. */
+export async function createNavalControlMapImage(
+  map: GameMap,
+  sectorSize: number,
+  sectors: readonly NavalSectorStrength[],
+): Promise<ImageBitmap> {
+  if (!Number.isInteger(sectorSize) || sectorSize <= 0) {
+    throw new Error("naval sector size must be a positive integer");
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = map.width();
+  canvas.height = map.height();
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("naval control map canvas is unavailable");
+
+  for (const sector of sectors) {
+    const x = sector.x * sectorSize;
+    const y = sector.y * sectorSize;
+    const width = Math.min(sectorSize, map.width() - x);
+    const height = Math.min(sectorSize, map.height() - y);
+    const totalStrength = sector.friendly + sector.hostile;
+    if (width <= 0 || height <= 0 || totalStrength <= 0) continue;
+
+    const difference = sector.friendly - sector.hostile;
+    const color =
+      Math.abs(difference) < 0.15
+        ? "234, 179, 8"
+        : difference > 0
+          ? "16, 185, 129"
+          : "239, 68, 68";
+    const alpha = Math.min(0.42, 0.12 + totalStrength * 0.06);
+    context.fillStyle = `rgba(${color}, ${alpha})`;
+    context.fillRect(x, y, width, height);
   }
 
   return createImageBitmap(canvas);

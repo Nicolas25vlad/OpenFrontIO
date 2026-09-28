@@ -1450,6 +1450,11 @@ export class GPURenderer {
     this.mapLayerPasses.get(layerId)?.setVisible(visible);
   }
 
+  /** Update one existing layer's image while preserving its GPU pass. */
+  updateMapLayerImage(layerId: string, image: ImageBitmap): void {
+    this.mapLayerPasses.get(layerId)?.updateImage(image);
+  }
+
   /** Set the alpha multiplier for a single layer (0–1). */
   setLayerAlpha(layerId: string, alpha: number): void {
     this.layerAlpha.set(layerId, alpha);

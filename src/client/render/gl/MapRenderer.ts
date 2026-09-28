@@ -41,6 +41,7 @@ export class MapRenderer {
   // Stored layer data for context-restore re-creation.
   private storedLayers: MapLayer[] = [];
   private storedLayerImages: Map<string, ImageBitmap> = new Map();
+  private pendingLayerImages: Map<string, ImageBitmap> = new Map();
   // Layer state that survives context loss (GPU textures do not).
   private layerVisibility = new Map<string, boolean>();
   private layerAlpha = new Map<string, number>();
@@ -285,8 +286,25 @@ export class MapRenderer {
   /** Set up map-layer passes from the loaded layer data. */
   setMapLayers(layers: MapLayer[], images: Map<string, ImageBitmap>): void {
     this.storedLayers = layers;
-    this.storedLayerImages = images;
-    this.renderer?.setMapLayers(layers, images);
+    const resolvedImages = new Map(images);
+    for (const [id, image] of this.pendingLayerImages) {
+      const replaced = resolvedImages.get(id);
+      resolvedImages.set(id, image);
+      if (replaced !== undefined && replaced !== image) replaced.close();
+    }
+    this.storedLayerImages = resolvedImages;
+    this.renderer?.setMapLayers(layers, resolvedImages);
+  }
+
+  /** Replace a layer image, including while its initial async load is pending. */
+  updateMapLayerImage(layerId: string, image: ImageBitmap): void {
+    const previous =
+      this.storedLayerImages.get(layerId) ??
+      this.pendingLayerImages.get(layerId);
+    this.pendingLayerImages.set(layerId, image);
+    this.storedLayerImages.set(layerId, image);
+    this.renderer?.updateMapLayerImage(layerId, image);
+    if (previous !== undefined && previous !== image) previous.close();
   }
 
   /** Toggle visibility of a single map layer. */

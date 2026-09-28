@@ -16,8 +16,10 @@ import {
 import { UserSettings } from "../../core/game/UserSettings";
 import { Controller } from "../Controller";
 import {
+  createNavalControlMapImage,
   createNavalSectorMapImage,
   createResourceMapImage,
+  NAVAL_CONTROL_MAP_LAYER_ID,
   NAVAL_SECTOR_MAP_LAYER_ID,
   RESOURCE_MAP_LAYER_ID,
 } from "../ResourceMap";
@@ -83,6 +85,26 @@ export class MapLayerController implements Controller {
     }
     try {
       images.set(
+        NAVAL_CONTROL_MAP_LAYER_ID,
+        await createNavalControlMapImage(
+          this.gameMap.gameMap,
+          NAVAL_SUPREMACY.sectorSize,
+          [],
+        ),
+      );
+      layers.push({
+        id: NAVAL_CONTROL_MAP_LAYER_ID,
+        placement: "water",
+        alpha: 0.55,
+      });
+    } catch (e) {
+      console.warn(
+        "[MapLayerController] Failed to create naval control map:",
+        e,
+      );
+    }
+    try {
+      images.set(
         NAVAL_SECTOR_MAP_LAYER_ID,
         await createNavalSectorMapImage(
           this.gameMap.gameMap,
@@ -105,6 +127,7 @@ export class MapLayerController implements Controller {
     this.applyVisibility(layers);
     this.applyAlpha(layers);
     this.view.setLayerVisible(RESOURCE_MAP_LAYER_ID, false);
+    this.view.setLayerVisible(NAVAL_CONTROL_MAP_LAYER_ID, false);
     this.view.setLayerVisible(NAVAL_SECTOR_MAP_LAYER_ID, false);
   }
 

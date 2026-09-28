@@ -107,6 +107,23 @@ export class MapLayerPass {
     this._alpha = Math.max(0, Math.min(1, alpha));
   }
 
+  /** Replace the layer texture without rebuilding its shader and buffers. */
+  updateImage(image: ImageBitmap): void {
+    if (image.width !== this.mapW || image.height !== this.mapH) {
+      throw new Error("map layer image dimensions do not match the map");
+    }
+    this.gl.bindTexture(this.gl.TEXTURE_2D, this.layerTex);
+    this.gl.texSubImage2D(
+      this.gl.TEXTURE_2D,
+      0,
+      0,
+      0,
+      this.gl.RGBA,
+      this.gl.UNSIGNED_BYTE,
+      image,
+    );
+  }
+
   /**
    * Upload a per-tile destroyed mask.  Each element is 0 (intact) or 1
    * (destroyed by a nuke).  Only meaningful for nukeable layers.

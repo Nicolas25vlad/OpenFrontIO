@@ -149,5 +149,6 @@ test("shows owned-port sectors and active trade routes", async () => {
   toggle.click();
   await panel.updateComplete;
   expect(toggle.getAttribute("aria-pressed")).toBe("true");
+  expect(panel.textContent).toContain("naval_map.legend");
   expect(navalMapToggle).toHaveBeenCalledWith(true);
 });

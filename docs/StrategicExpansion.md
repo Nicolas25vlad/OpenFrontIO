@@ -303,6 +303,9 @@ contrapressão de escolta e perdas.
 Arquivos desta etapa: `src/core/configuration/StrategyConfig.ts`,
 `src/core/configuration/Config.ts`, `src/core/game/NavalSupremacy.ts`,
 `src/core/execution/PortExecution.ts`, `src/core/execution/TradeShipExecution.ts`,
+`src/client/controllers/MapLayerController.ts`,
+`src/client/controllers/ResourceMapController.ts`,
+`src/client/render/gl/passes/MapLayerPass.ts`, `src/client/ResourceMap.ts`,
 `src/client/hud/layers/ResourcePanel.ts`, traduções em `resources/lang/`,
 `tests/PortExecution.test.ts`, `tests/core/executions/TradeShipExecution.test.ts`
 e `tests/client/ResourcePanel.test.ts`.
@@ -319,9 +322,16 @@ leitura usa os updates de unidades existentes e não altera as regras do core.
 Também há uma camada visual opcional com a grade quadrada dos setores de 64
 tiles, coordenadas `x,y` e preenchimento azul translúcido. O renderer a recorta
 para tiles de água; o botão “Setores marítimos” alterna essa camada
-independentemente do mapa geológico. Ela mostra a divisão espacial estática; as
+independentemente do mapa geológico. Ela mostra a divisão espacial estática; a
 força naval estimada continua no painel e é atualizada pelos snapshots de
 unidades existentes.
+
+O mesmo botão agora mostra uma heatmap estimada de força naval: verde indica
+vantagem aliada, amarelo equilíbrio e vermelho vantagem hostil. O cliente agrega
+somente navios ativos por setor, atualiza a textura a cada 500 ms enquanto a
+camada está visível e só redesenha quando a força/setor muda. A estimativa visual
+não é autoritativa e não separa massas d'água dentro do mesmo setor; o core ainda
+filtra por água conectada ao porto ao decidir bloqueios.
 
 Validação automatizada: os testes cobrem bloqueio por presença, contrapressão
 de escolta, retomada após perda de navio, carga/pagamento na chegada, respeito à
@@ -335,8 +345,9 @@ coordenadas, grade parcial nas bordas do mapa e controle independente das duas
 camadas. A camada usa o placement `water` já suportado pelo renderer.
 O painel também mostra força naval estimada, validada com navio danificado,
 nível, veterania e exclusão de navio fora dos setores com portos próprios. As
-regressões focadas passaram em 4 arquivos/6 testes; `npm run build-dev`, lint
-direcionado, Prettier e `git diff --check` passaram.
+regressões focadas passaram em 4 arquivos/7 testes. A heatmap atualiza a textura
+quando força/setor muda e mantém a imagem quando os dados são iguais.
+`npm run build-dev`, lint direcionado, Prettier e `git diff --check` passaram.
 
 ### Validação manual pendente no PC principal
 
@@ -365,16 +376,18 @@ direcionado, Prettier e `git diff --check` passaram.
    Observe um comboio próprio ou aliado e confira o dono do porto de destino e
    as coordenadas do setor. Repita em replay e multiplayer.
 7. Clique em “Setores marítimos”. Confira as bordas e coordenadas da grade sobre
-   a água, compare `x,y` com as coordenadas exibidas no painel e desligue a camada
-   sem afetar o mapa de recursos.
+   a água, compare `x,y` com as coordenadas exibidas no painel e confira a
+   heatmap: vantagem aliada verde, equilíbrio amarelo, vantagem hostil vermelha.
+   Mova, danifique ou retire navios; a cor/intensidade deve acompanhar os valores
+   agregados. Desligue a camada sem afetar o mapa de recursos.
 
 Esperado: o resultado muda deterministicamente com presença, escolta e perdas;
 nenhum update por tile ou mapa inteiro é criado. O painel econômico mostra a
 força naval estimada nos setores dos portos próprios e os comboios ativos
-relacionados ao jogador. A camada do mapa mostra a grade setorial estática na
-água; ainda não há heatmap dinâmica de supremacia nem rotas do comboio. O jogador
-ainda não pode definir rotas. A validação visual em multiplayer/replay continua
-pendente no PC principal.
+relacionados ao jogador. A camada do mapa mostra a grade setorial e uma heatmap
+agregada estimada na água, sem substituir o bloqueio autoritativo do core. O
+jogador ainda não pode definir rotas. A validação visual em multiplayer/replay
+continua pendente no PC principal.
 
 ## Cancelamento de proposta de aliança — issue #8 (parcial)
 

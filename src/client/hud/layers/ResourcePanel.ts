@@ -209,6 +209,11 @@ export class ResourcePanel extends LitElement implements Controller {
           </button>
         </div>
       </div>
+      ${this.navalMapVisible
+        ? html`<p class="mb-1 text-[10px] text-sky-200">
+            ${translateText("naval_map.legend")}
+          </p>`
+        : null}
       <div class="grid grid-cols-2 gap-x-3 gap-y-1">
         ${compact.map(
           (resource) =>

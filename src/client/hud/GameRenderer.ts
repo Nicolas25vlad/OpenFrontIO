@@ -342,7 +342,7 @@ export function createRenderer(
     new AttackingTroopsController(game, eventBus, userSettings, view),
     new SoundEffectController(game, eventBus),
     ...(mapLayerController ? [mapLayerController] : []),
-    new ResourceMapController(eventBus, view),
+    new ResourceMapController(eventBus, view, game),
     eventsDisplay,
     actionableEvents,
     attacksDisplay,
