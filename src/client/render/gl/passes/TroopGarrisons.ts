@@ -86,6 +86,10 @@ export function deriveTroopGarrisons(
       if (request === undefined || request.allocated === 0) continue;
 
       const hasDifferentNeighbor =
+        x === 0 ||
+        x + 1 === mapWidth ||
+        y === 0 ||
+        y + 1 === mapHeight ||
         (x > 0 && (tileState[ref - 1] & OWNER_MASK) !== ownerID) ||
         (x + 1 < mapWidth && (tileState[ref + 1] & OWNER_MASK) !== ownerID) ||
         (y > 0 && (tileState[ref - mapWidth] & OWNER_MASK) !== ownerID) ||

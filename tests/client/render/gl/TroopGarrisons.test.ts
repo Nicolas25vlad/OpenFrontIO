@@ -37,6 +37,25 @@ describe("troop garrison layout", () => {
     }
   });
 
+  it("treats the map edge as a frontier for territories reaching the bounds", () => {
+    const width = 3;
+    const height = 3;
+    const tiles = new Uint16Array(width * height).fill(7);
+    const layout = deriveTroopGarrisons(
+      tiles,
+      width,
+      height,
+      new Map([[7, player(TROOPS_PER_GARRISON_SQUAD)]]),
+    );
+
+    expect(layout.count).toBe(1);
+    const x = layout.instances[0];
+    const y = layout.instances[1];
+    expect(x === 0 || x === width - 1 || y === 0 || y === height - 1).toBe(
+      true,
+    );
+  });
+
   it("keeps identical layouts deterministic and caps total sprite instances", () => {
     const width = 200;
     const height = 20;

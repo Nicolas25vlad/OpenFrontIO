@@ -108,6 +108,11 @@ jogador e 2.048 instâncias por mapa. A camada é visual, não cria unidades no
 core nem altera combate, updates ou replay. A lista de grupos é recalculada a
 cada 50 ticks por padrão, com tamanho, zoom mínimo, opacidade e limite no
 `render-settings.json`.
+Tiles nos limites externos do mapa também contam como fronteira, para que
+territórios encostados na borda não fiquem sem grupos visuais.
+`tests/client/render/gl/TroopGarrisons.test.ts` confirma esse caso, além da
+amostragem determinística e do limite de instâncias; os 4 testes passaram.
+`npm run build-dev`, Oxlint, ESLint, Prettier e `git diff --check` passaram.
 
 Como início da etapa de tanques da mesma issue, a Vehicle Factory já produz
 reservas autoritativas: cada lote consome 5 unidades de aço e 2 de combustível,
