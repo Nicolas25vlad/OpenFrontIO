@@ -109,12 +109,9 @@ export class RailNetworkImpl implements RailNetwork {
   private railCompatible(type: UnitType): boolean {
     if (this.game.config().strategicEconomy?.())
       return this.game.unitInfo(type).logisticsNode === true;
-    return [
-      UnitType.City,
-      UnitType.Port,
-      UnitType.Factory,
-      UnitType.Infrastructure,
-    ].includes(type);
+    return [UnitType.City, UnitType.Port, UnitType.Infrastructure].includes(
+      type,
+    );
   }
 
   connectStation(station: TrainStation) {
@@ -125,106 +122,15 @@ export class RailNetworkImpl implements RailNetwork {
     ) {
       const cluster = new Cluster();
       cluster.addStation(station);
-      this.connectToExistingRails(station);
+      const connected = this.connectToExistingRails(station);
+      if (!connected && station.unit.type() === UnitType.Infrastructure) {
+        this.connectToNearbyStations(station);
+      }
       return;
     }
     if (!this.connectToExistingRails(station)) {
       this.connectToNearbyStations(station);
     }
-  }
-
-  planInfrastructureRoute(units: Unit[]): TileRef[][] | null {
-    if (units.length < 2) return null;
-    const paths: TileRef[][] = [];
-    for (let i = 1; i < units.length; i++) {
-      const path = this.pathService.findTilePath(
-        units[i - 1].tile(),
-        units[i].tile(),
-      );
-      if (
-        path.length === 0 ||
-        path.length >= this.game.config().railroadMaxSize()
-      ) {
-        return null;
-      }
-      paths.push(path);
-    }
-    return paths;
-  }
-
-  connectInfrastructureRoute(units: Unit[], paths: TileRef[][]): boolean {
-    if (units.length < 2 || paths.length !== units.length - 1) return false;
-    const stations = units.map((unit) => {
-      let station = this._stationManager.findStation(unit);
-      if (station === null) {
-        station = new TrainStation(this.game, unit);
-        this._stationManager.addStation(station);
-        unit.setTrainStation(true);
-        new Cluster().addStation(station);
-      }
-      return station;
-    });
-
-    for (let i = 0; i < paths.length; i++) {
-      const path = paths[i];
-      const from = stations[i];
-      const to = stations[i + 1];
-      if (from.getRailroadTo(to) !== null) continue;
-      if (
-        path.length === 0 ||
-        path[0] !== from.tile() ||
-        path[path.length - 1] !== to.tile() ||
-        path.length >= this.game.config().railroadMaxSize()
-      ) {
-        return false;
-      }
-      const railroad = new Railroad(from, to, path, this.nextId++);
-      this.game.addUpdate({
-        type: GameUpdateType.RailroadConstructionEvent,
-        id: railroad.id,
-        tiles: railroad.tiles,
-      });
-      from.addRailroad(railroad);
-      to.addRailroad(railroad);
-      this.railGrid.register(railroad);
-      const clusters = new Set(
-        [from.getCluster(), to.getCluster()].filter(
-          (cluster): cluster is Cluster => cluster !== null,
-        ),
-      );
-      if (clusters.size > 1) this.mergeClusters(clusters);
-    }
-
-    // Route corridors automatically serve compatible owned buildings that lie close to the line.
-    const routeOwner = units[0].owner();
-    const logisticsTypes = Object.values(UnitType).filter(
-      (type) => this.game.unitInfo(type).logisticsNode,
-    );
-    for (const path of paths) {
-      for (const tile of path) {
-        for (const { unit } of this.game.nearbyUnits(
-          tile,
-          this.stationRadius,
-          logisticsTypes,
-        )) {
-          if (
-            unit.owner() !== routeOwner ||
-            !unit.isActive() ||
-            unit.isUnderConstruction()
-          )
-            continue;
-          let station = this._stationManager.findStation(unit);
-          if (station === null) {
-            station = new TrainStation(this.game, unit);
-            this._stationManager.addStation(station);
-            unit.setTrainStation(true);
-            new Cluster().addStation(station);
-          }
-          this.connectToExistingRails(station);
-        }
-      }
-    }
-    return true;
   }
 
   recomputeClusters() {
@@ -372,6 +278,13 @@ export class RailNetworkImpl implements RailNetwork {
     if (!this.railCompatible(unitType)) {
       return [];
     }
+    if (
+      this.game.config().strategicEconomy?.() &&
+      !this.game.config().isReplay?.() &&
+      unitType !== UnitType.Infrastructure
+    ) {
+      return [];
+    }
 
     if (this.canSnapToExistingRailway(tile)) {
       return [];
@@ -381,31 +294,17 @@ export class RailNetworkImpl implements RailNetwork {
     const minRangeSquared = this.game.config().trainStationMinRange() ** 2;
     const maxPathSize = this.game.config().railroadMaxSize();
 
-    // A City or Port only joins the rail network when a Factory is already in
-    // range (see CityExecution/PortExecution). A Factory always becomes a
-    // station and pulls nearby City/Port/Factory into the network itself, so
-    // it needs no pre-existing factory to connect to.
-    const buildingFactory =
-      unitType === UnitType.Factory || unitType === UnitType.Infrastructure;
-    if (
-      !buildingFactory &&
-      !this.game.hasUnitNearby(tile, maxRange, UnitType.Factory) &&
-      !this.game.hasUnitNearby(tile, maxRange, UnitType.Infrastructure)
-    ) {
-      return [];
-    }
+    // Only a point-placed Infrastructure building creates new rail segments.
+    // Other stations may join an existing track, but cannot initiate a route.
+    const buildingInfrastructure = unitType === UnitType.Infrastructure;
+    if (!buildingInfrastructure) return [];
 
     const neighbors = this.game.nearbyUnits(
       tile,
       maxRange,
       this.game.config().strategicEconomy?.()
         ? this.logisticsTypes()
-        : [
-            UnitType.City,
-            UnitType.Factory,
-            UnitType.Port,
-            UnitType.Infrastructure,
-          ],
+        : [UnitType.City, UnitType.Port, UnitType.Infrastructure],
     );
     neighbors.sort((a, b) => a.distSquared - b.distSquared);
 
@@ -418,9 +317,8 @@ export class RailNetworkImpl implements RailNetwork {
 
       const neighborStation = this._stationManager.findStation(neighbor.unit);
 
-      // Building a factory connects to nearby structures even if they aren't
-      // stations yet — they get promoted to stations when the factory is
-      // built. For a city/port, only existing stations are relevant.
+      // Infrastructure can promote nearby logistics buildings into stations.
+      // Other buildings may only connect if they already have a station.
       let targetTile: TileRef;
       if (neighborStation) {
         const alreadyReachable = connectedStations.some(
@@ -433,15 +331,13 @@ export class RailNetworkImpl implements RailNetwork {
         );
         if (alreadyReachable) continue;
         targetTile = neighborStation.tile();
-      } else if (buildingFactory) {
+      } else if (buildingInfrastructure) {
         targetTile = neighbor.unit.tile();
       } else {
         continue;
       }
 
-      // A completed city has already made its one-time station check, so the
-      // factory promotes it after creating its own station. The city then
-      // initiates the real connection back to the factory.
+      // Preserve the pathfinder's city-to-infrastructure orientation.
       const path =
         !neighborStation && neighbor.unit.type() === UnitType.City
           ? this.pathService.findTilePath(targetTile, tile)
@@ -461,7 +357,9 @@ export class RailNetworkImpl implements RailNetwork {
     const neighbors = this.game.nearbyUnits(
       station.tile(),
       this.game.config().trainStationMaxRange(),
-      [UnitType.City, UnitType.Factory, UnitType.Port, UnitType.Infrastructure],
+      this.game.config().strategicEconomy?.()
+        ? this.logisticsTypes()
+        : [UnitType.City, UnitType.Port, UnitType.Infrastructure],
     );
 
     const editedClusters = new Set<Cluster>();

@@ -37,13 +37,7 @@ export class CityExecution implements Execution {
         this.mg.addExecution(new TrainStationExecution(this.city));
       return;
     }
-    const nearbyFactory = this.mg.hasUnitNearby(
-      this.city.tile()!,
-      this.mg.config().trainStationMaxRange(),
-      UnitType.Factory,
-    );
     if (
-      nearbyFactory ||
       this.mg.hasUnitNearby(
         this.city.tile(),
         this.mg.config().trainStationMaxRange(),

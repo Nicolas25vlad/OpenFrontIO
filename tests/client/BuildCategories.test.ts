@@ -14,6 +14,7 @@ describe("build categories", () => {
     expect(units).toEqual(
       expect.arrayContaining([
         UnitType.City,
+        UnitType.Infrastructure,
         UnitType.Factory,
         UnitType.Port,
         UnitType.DefensePost,
@@ -29,12 +30,13 @@ describe("build categories", () => {
 
   test("resolves a unit to its data category", () => {
     expect(buildCategoryFor(UnitType.City)?.id).toBe("civil");
+    expect(buildCategoryFor(UnitType.Infrastructure)?.id).toBe("civil");
     expect(buildCategoryFor(UnitType.Factory)?.id).toBe("industry");
     expect(buildCategoryFor(UnitType.DefensePost)?.id).toBe("military");
     expect(buildCategoryFor(UnitType.MissileSilo)?.id).toBe("nuclear");
   });
 
-  test("exposes trench brush as a military build action", () => {
+  test("exposes point-placed trenches as a military build action", () => {
     expect(
       BUILD_CATEGORIES.find((category) => category.id === "military")?.actions,
     ).toContain("trench");

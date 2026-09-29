@@ -169,12 +169,10 @@ export function productionEfficiency(game: Game, unit: Unit): ProductionStatus {
   for (const { unit: nearby, distSquared } of game.nearbyUnits(
     unit.tile(),
     Math.max(ECONOMY.urbanRadius, ECONOMY.infrastructureRadius),
-    [UnitType.City, UnitType.Infrastructure, UnitType.Factory, UnitType.Port],
+    [UnitType.City, UnitType.Infrastructure, UnitType.Port],
   )) {
     if (nearby.owner() !== owner) continue;
-    if (!strategic)
-      connected ||=
-        (stations.findStation(nearby)?.getCluster()?.size() ?? 0) > 1;
+    connected ||= (stations.findStation(nearby)?.getCluster()?.size() ?? 0) > 1;
     if (
       nearby.type() === UnitType.City &&
       distSquared <= ECONOMY.urbanRadius ** 2

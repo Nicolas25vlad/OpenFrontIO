@@ -47,11 +47,9 @@ export type Intent =
   | DonateTroopsIntent
   | BuildUnitIntent
   | BuildTrenchIntent
-  | InfrastructureRouteIntent
   | EmbargoIntent
   | QuickChatIntent
   | MoveWarshipIntent
-  | DispatchTradeRouteIntent
   | MarkDisconnectedIntent
   | EmbargoAllIntent
   | UpgradeStructureIntent
@@ -79,16 +77,10 @@ export type DonateTroopsIntent = z.infer<typeof DonateTroopIntentSchema>;
 export type EmbargoIntent = z.infer<typeof EmbargoIntentSchema>;
 export type BuildUnitIntent = z.infer<typeof BuildUnitIntentSchema>;
 export type BuildTrenchIntent = z.infer<typeof BuildTrenchIntentSchema>;
-export type InfrastructureRouteIntent = z.infer<
-  typeof InfrastructureRouteIntentSchema
->;
 export type UpgradeStructureIntent = z.infer<
   typeof UpgradeStructureIntentSchema
 >;
 export type MoveWarshipIntent = z.infer<typeof MoveWarshipIntentSchema>;
-export type DispatchTradeRouteIntent = z.infer<
-  typeof DispatchTradeRouteIntentSchema
->;
 export type QuickChatIntent = z.infer<typeof QuickChatIntentSchema>;
 export type MarkDisconnectedIntent = z.infer<
   typeof MarkDisconnectedIntentSchema
@@ -731,13 +723,6 @@ export const BuildUnitIntentSchema = z.object({
 export const BuildTrenchIntentSchema = z.object({
   type: z.literal("build_trench"),
   tile: zb.uint(),
-  tiles: zb.uint().array().min(1).max(512).optional(),
-});
-
-export const InfrastructureRouteIntentSchema = z.object({
-  type: z.literal("infrastructure_route"),
-  // Kept in sync with INFRASTRUCTURE_ROUTE.maxNodes (Config also revalidates).
-  unitIds: zb.uint().array().min(2).max(16),
 });
 
 export const UpgradeStructureIntentSchema = z.object({
@@ -761,12 +746,6 @@ export const MoveWarshipIntentSchema = z.object({
   type: z.literal("move_warship"),
   unitIds: z.array(zb.int()).nonempty(),
   tile: zb.uint(),
-});
-
-export const DispatchTradeRouteIntentSchema = z.object({
-  type: z.literal("dispatch_trade_route"),
-  sourcePortID: zb.uint(),
-  destinationPortID: zb.uint(),
 });
 
 export const DeleteUnitIntentSchema = z.object({
@@ -833,12 +812,10 @@ export const IntentSchema = z.discriminatedUnion("type", [
   DonateTroopIntentSchema,
   BuildUnitIntentSchema,
   BuildTrenchIntentSchema,
-  InfrastructureRouteIntentSchema,
   UpgradeStructureIntentSchema,
   EmbargoIntentSchema,
   EmbargoAllIntentSchema,
   MoveWarshipIntentSchema,
-  DispatchTradeRouteIntentSchema,
   QuickChatIntentSchema,
   AllianceExtensionIntentSchema,
   DeleteUnitIntentSchema,

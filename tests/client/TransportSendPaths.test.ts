@@ -50,7 +50,6 @@ vi.mock("../../src/client/Utils", () => ({
 import type { LobbyConfig } from "../../src/client/ClientGameRunner";
 import {
   CancelAttackIntentEvent,
-  DispatchTradeRouteIntentEvent,
   SendAllianceRequestIntentEvent,
   SendAttackIntentEvent,
   SendDonateGoldIntentEvent,
@@ -205,7 +204,6 @@ describe("Transport send paths", () => {
         ),
       );
       eventBus.emit(new CancelAttackIntentEvent("atk-1"));
-      eventBus.emit(new DispatchTradeRouteIntentEvent(12, 42));
 
       expect(decodeFrames(ws)).toEqual([
         { type: "intent", intent: { type: "spawn", tile: 123 } },
@@ -249,14 +247,6 @@ describe("Transport send paths", () => {
         {
           type: "intent",
           intent: { type: "cancel_attack", attackID: "atk-1" },
-        },
-        {
-          type: "intent",
-          intent: {
-            type: "dispatch_trade_route",
-            sourcePortID: 12,
-            destinationPortID: 42,
-          },
         },
       ]);
     });

@@ -2,7 +2,7 @@
  * End-to-end trade-ship and train economy benchmarks on real maps.
  *
  * Each scenario sets up territories with real ports / factories / cities,
- * registers the real PortExecution / FactoryExecution spawners and runs the
+ * registers the real PortExecution / InfrastructureExecution spawners and runs the
  * simulation for a fixed number of ticks. The resulting metrics — ships and
  * trains spawned, arrivals, gold earned by each side and the per-minute /
  * per-trip rates — are pinned in a snapshot.
@@ -18,7 +18,7 @@
  * PseudoRandom seeded from game ticks, so runs are deterministic.
  */
 import { Config } from "../src/core/configuration/Config";
-import { FactoryExecution } from "../src/core/execution/FactoryExecution";
+import { InfrastructureExecution } from "../src/core/execution/InfrastructureExecution";
 import { PortExecution } from "../src/core/execution/PortExecution";
 import {
   Game,
@@ -33,6 +33,15 @@ import {
   GOLD_INDEX_TRAIN_SELF,
 } from "../src/core/StatsSchemas";
 import { setup } from "./util/Setup";
+import { TestConfig } from "./util/TestConfig";
+
+class LegacyInfrastructureConfig extends TestConfig {
+  override isUnitDisabled(type: UnitType): boolean {
+    return type === UnitType.Infrastructure
+      ? false
+      : super.isUnitDisabled(type);
+  }
+}
 
 function sig(x: number): number {
   return Number(x.toPrecision(4));
@@ -386,8 +395,10 @@ describe("trade ship scenarios", () => {
 });
 
 interface TrainScenario {
-  /** Factories owned by player a (factories spawn the trains). */
+  /** Industry buildings owned by player a. */
   factories: [number, number][];
+  /** Infrastructure points owned by player a (these spawn and connect trains). */
+  infrastructures: [number, number][];
   /** Cities owned by player a. */
   cities: [number, number][];
   /** Cities owned by player b (external trade stations). */
@@ -407,10 +418,16 @@ interface TrainMetrics {
 
 async function runTrainScenario(s: TrainScenario): Promise<TrainMetrics> {
   // plains is 100x100, all land.
-  const game = await setup("plains", { instantBuild: true }, [
-    new PlayerInfo("a", PlayerType.Human, "a", "a"),
-    new PlayerInfo("b", PlayerType.Human, "b", "b"),
-  ]);
+  const game = await setup(
+    "plains",
+    { instantBuild: true },
+    [
+      new PlayerInfo("a", PlayerType.Human, "a", "a"),
+      new PlayerInfo("b", PlayerType.Human, "b", "b"),
+    ],
+    undefined,
+    LegacyInfrastructureConfig,
+  );
   const a = game.player("a");
   const b = game.player("b");
   a.addGold(100_000_000n);
@@ -424,10 +441,11 @@ async function runTrainScenario(s: TrainScenario): Promise<TrainMetrics> {
     build(game, a, UnitType.City, x, y);
   }
   for (const [x, y] of s.factories) {
-    const factory = build(game, a, UnitType.Factory, x, y);
-    // The real spawner: creates the factory's own (train-spawning) station
-    // and stations for every structure in range.
-    game.addExecution(new FactoryExecution(factory));
+    build(game, a, UnitType.Factory, x, y);
+  }
+  for (const [x, y] of s.infrastructures) {
+    const infrastructure = build(game, a, UnitType.Infrastructure, x, y);
+    game.addExecution(new InfrastructureExecution(infrastructure));
   }
   const goldA = a.gold();
   const goldB = b.gold();
@@ -457,6 +475,7 @@ describe("train scenarios", () => {
     expect(
       await runTrainScenario({
         factories: [[50, 50]],
+        infrastructures: [[65, 65]],
         cities: [[70, 50]],
         ticks: 3_000,
       }),
@@ -467,6 +486,7 @@ describe("train scenarios", () => {
     expect(
       await runTrainScenario({
         factories: [[50, 50]],
+        infrastructures: [[65, 65]],
         cities: [
           [30, 50],
           [70, 50],
@@ -478,15 +498,18 @@ describe("train scenarios", () => {
     ).toMatchSnapshot();
   }, 60_000);
 
-  // A second factory halves nothing outright but lowers the per-station
-  // spawn chance (trainSpawnRate grows with factory count) while doubling
-  // the number of spawning stations.
-  test("two factories and two cities", async () => {
+  // Two explicitly built infrastructure nodes create two train stations;
+  // nearby factories contribute production but do not create tracks.
+  test("two factories, two infrastructure points and two cities", async () => {
     expect(
       await runTrainScenario({
         factories: [
           [40, 50],
           [60, 50],
+        ],
+        infrastructures: [
+          [40, 70],
+          [60, 70],
         ],
         cities: [
           [25, 50],
@@ -503,6 +526,7 @@ describe("train scenarios", () => {
     expect(
       await runTrainScenario({
         factories: [[50, 50]],
+        infrastructures: [[50, 65]],
         cities: [[30, 50]],
         otherCities: [[70, 50]],
         ticks: 3_000,

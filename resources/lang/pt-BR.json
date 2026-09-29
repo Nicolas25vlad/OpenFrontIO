@@ -132,10 +132,10 @@
       "atom_bomb": "Explosão Pequena",
       "city": "Aumenta o máximo de população",
       "defense_post": "Aumenta as defesas das fronteiras próximas",
-      "factory": "Cria trilhos e spawna trens",
+      "factory": "Processa recursos e recebe bônus da infraestrutura conectada.",
       "farm": "Produz comida; fertilizante dobra o rendimento básico.",
       "hydrogen_bomb": "Explosão Grande",
-      "infrastructure": "Conecta edifícios logísticos por ferrovia.",
+      "infrastructure": "Uma construção pontual que conecta edifícios logísticos próximos por ferrovia.",
       "mine": "Extrai recursos dos depósitos",
       "mirv": "Explosão Imensa, apenas mira o jogador escolhido",
       "missile_silo": "Usado para lançar bombas nucleares",
@@ -144,14 +144,13 @@
       "sam_launcher": "Defende Contra Chegada de Bombas Nucleares",
       "supply_center": "Amplia o abastecimento quando conectado à capital por ferrovia.",
       "tank": "Implanta um tanque controlável usando seu estoque de reserva.",
-      "trench": "Arraste pela fronteira para construir trincheiras contra ataques terrestres.",
+      "trench": "Construa uma trincheira em um tile próprio da fronteira para defender ataques terrestres.",
       "vehicle_factory": "Fabrica tanques usando aço e combustível.",
       "warship": "Capture navios comerciais, destrua navios e barcos"
     },
     "not_enough_money": "Sem Dinheiro Suficiente",
-    "trench_brush_cancel": "Cancelar",
-    "trench_brush_hint": "Arraste pela sua fronteira para selecionar trincheiras ({count} tiles); solte para construir.",
-    "trench_requirements": "Trincheiras exigem um tile próprio de fronteira e aço suficiente.",
+    "trench_placement_cancel": "Cancelar posicionamento",
+    "trench_placement_hint": "Clique em um tile próprio da fronteira para construir uma trincheira.",
     "upgrade_amount": "x{amount}",
     "warship_shift_hint": "Mantenha pressionado Shift e arraste para selecionar múltiplos navios de guerra de uma vez"
   },
@@ -945,7 +944,7 @@
     "build_city_desc": "Aumenta sua população máxima. Útil quando não é possível expandir seu território ou você está prestes a atingir seu limite populacional.",
     "build_defense_desc": "Reforça as defesas ao longo das fronteiras próximas, que exibem um padrão quadriculado. Os ataques inimigos tornam-se mais lentos e resultam em mais baixas.",
     "build_desc": "Descrição",
-    "build_factory_desc": "Constrói automaticamente ferrovias para cidades, portos e outras fábricas próximas, e também pode se conectar com vizinhos amigáveis. Os trens aparecem regularmente e te dão uma quantia fixa de ouro para cada construção que eles visitam ao longo da rota, com ouro extra para visitar as construções de seus vizinhos.",
+    "build_factory_desc": "Processa recursos e os transforma em produtos industriais. A infraestrutura ferroviária conectada nas proximidades aumenta a eficiência da produção.",
     "build_hydrogen_desc": "Grande bomba explosiva. Criada do Silo de Míssil mais próximo e cai na área que você clicou primeiro para construí-la.",
     "build_icon": "Ícone",
     "build_menu_desc": "Construa ou veja quantos de cada um você já construiu:",
@@ -1054,11 +1053,6 @@
     "visibility_private": "Privado",
     "visibility_public": "Público",
     "waiting": "Aguardando jogadores..."
-  },
-  "infrastructure": {
-    "route_confirm": "Construir rota",
-    "route_cost_variable": "Custo varia conforme o comprimento da rota",
-    "route_hint": "Clique nos edifícios logísticos próprios em ordem ({count} selecionados) e confirme."
   },
   "inventory": {
     "equipped": "Equipado",
@@ -1411,12 +1405,7 @@
   },
   "naval_map": {
     "button": "Setores marítimos",
-    "destination_port": "Porto de destino",
-    "dispatch": "Enviar comboio",
-    "dispatch_route": "Escolher rota comercial",
     "legend": "Força estimada: verde aliada, amarelo equilibrada, vermelho hostil. Bloqueios também exigem água conectada.",
-    "route_limit": "No máximo {limit} comboios por jogador podem ficar ativos.",
-    "source_port": "Porto de origem",
     "toggle": "Alternar setores marítimos"
   },
   "new_lobby_prompt": {

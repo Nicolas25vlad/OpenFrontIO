@@ -2,7 +2,6 @@ import {
   Execution,
   Game,
   Player,
-  PlayerType,
   Structures,
   Tick,
   Unit,
@@ -11,7 +10,7 @@ import {
 import { TileRef } from "../game/GameMap";
 import { CityExecution } from "./CityExecution";
 import { DefensePostExecution } from "./DefensePostExecution";
-import { FactoryExecution } from "./FactoryExecution";
+import { InfrastructureExecution } from "./InfrastructureExecution";
 import { MineExecution } from "./MineExecution";
 import { MirvExecution } from "./MIRVExecution";
 import { MissileSiloExecution } from "./MissileSiloExecution";
@@ -19,7 +18,6 @@ import { NukeExecution } from "./NukeExecution";
 import { PortExecution } from "./PortExecution";
 import { ProductionExecution } from "./ProductionExecution";
 import { SAMLauncherExecution } from "./SAMLauncherExecution";
-import { SupplyCenterRouteExecution } from "./SupplyCenterRouteExecution";
 import { TrainStationExecution } from "./TrainStationExecution";
 import { WarshipExecution } from "./WarshipExecution";
 
@@ -40,18 +38,6 @@ export class ConstructionExecution implements Execution {
 
   init(mg: Game, ticks: number): void {
     this.mg = mg;
-
-    if (
-      this.constructionType === UnitType.Infrastructure &&
-      this.mg.config().strategicEconomy() &&
-      !this.mg.config().isReplay()
-    ) {
-      console.warn(
-        "point infrastructure is disabled in strategic games; submit an infrastructure route",
-      );
-      this.active = false;
-      return;
-    }
 
     if (this.mg.config().isUnitDisabled(this.constructionType)) {
       console.warn(
@@ -174,7 +160,6 @@ export class ConstructionExecution implements Execution {
         this.mg.addExecution(new CityExecution(this.structure!));
         break;
       case UnitType.Factory:
-        this.mg.addExecution(new FactoryExecution(this.structure!));
         if (this.mg.config().strategicEconomy())
           this.mg.addExecution(new ProductionExecution(this.structure!));
         break;
@@ -186,14 +171,9 @@ export class ConstructionExecution implements Execution {
         this.mg.addExecution(new ProductionExecution(this.structure!));
         break;
       case UnitType.Infrastructure:
-        this.mg.addExecution(new FactoryExecution(this.structure!));
+        this.mg.addExecution(new InfrastructureExecution(this.structure!));
         break;
       case UnitType.SupplyCenter:
-        if (player.type() === PlayerType.Nation) {
-          this.mg.addExecution(
-            new SupplyCenterRouteExecution(player, this.structure!),
-          );
-        }
         break;
       case UnitType.VehicleFactory:
         this.mg.addExecution(new ProductionExecution(this.structure!));
@@ -210,7 +190,12 @@ export class ConstructionExecution implements Execution {
       this.structure?.info().logisticsNode === true &&
       !this.structure.hasTrainStation()
     ) {
-      this.mg.addExecution(new TrainStationExecution(this.structure));
+      this.mg.addExecution(
+        new TrainStationExecution(
+          this.structure,
+          this.structure.type() === UnitType.Infrastructure,
+        ),
+      );
     }
   }
 

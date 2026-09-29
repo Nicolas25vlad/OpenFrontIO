@@ -1145,7 +1145,7 @@ export class ClientGameRunner {
     if (
       !this.isActive ||
       this.renderer.uiState.ghostStructure !== null ||
-      this.renderer.uiState.infrastructureRouteMode
+      this.renderer.uiState.trenchPlacementMode
     ) {
       return;
     }

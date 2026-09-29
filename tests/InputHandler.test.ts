@@ -80,9 +80,9 @@ describe("InputHandler AutoUpgrade", () => {
     inputHandler.destroy();
   });
 
-  test("emits MouseUpEvent after a drag while trench brush mode is active", () => {
+  test("emits MouseUpEvent after a click while trench placement is active", () => {
     const mockEmit = vi.spyOn(eventBus, "emit");
-    inputHandler["uiState"].trenchBrushMode = true;
+    inputHandler["uiState"].trenchPlacementMode = true;
     inputHandler["onPointerDown"](
       new PointerEvent("pointerdown", {
         button: 0,

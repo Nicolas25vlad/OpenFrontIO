@@ -90,8 +90,6 @@ export class AlternateViewEvent implements GameEvent {
 
 export class CloseViewEvent implements GameEvent {}
 
-export class StartInfrastructureRouteEvent implements GameEvent {}
-
 export class RefreshGraphicsEvent implements GameEvent {}
 
 export class ToggleRenderDebugGuiEvent implements GameEvent {}
@@ -880,11 +878,7 @@ export class InputHandler {
       }
     }
 
-    if (this.uiState.trenchBrushMode) {
-      this.eventBus.emit(new MouseUpEvent(event.x, event.y));
-      return;
-    }
-    if (this.uiState.infrastructureRouteMode) {
+    if (this.uiState.trenchPlacementMode) {
       this.eventBus.emit(new MouseUpEvent(event.x, event.y));
       return;
     }
@@ -1096,14 +1090,6 @@ export class InputHandler {
   }
 
   private setGhostStructure(ghostStructure: PlayerBuildableUnitType | null) {
-    if (
-      ghostStructure === UnitType.Infrastructure &&
-      this.gameView.config().strategicEconomy()
-    ) {
-      this.uiState.ghostStructure = null;
-      this.eventBus.emit(new StartInfrastructureRouteEvent());
-      return;
-    }
     if (
       this.uiState.ghostStructure === ghostStructure &&
       ghostStructure !== null

@@ -101,12 +101,6 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     amount: 3,
   },
   { type: "build_trench", clientID: P2, tile: 9 },
-  { type: "build_trench", clientID: P2, tile: 9, tiles: [9, 10] },
-  {
-    type: "infrastructure_route",
-    clientID: P2,
-    unitIds: [11, 12, 13],
-  },
   {
     type: "upgrade_structure",
     clientID: P2,
@@ -116,12 +110,6 @@ const SAMPLE_INTENTS: StampedIntent[] = [
   { type: "embargo", clientID: P1, targetID: P2, action: "start" },
   { type: "embargo_all", clientID: P1, action: "stop" },
   { type: "move_warship", clientID: P3, unitIds: [1, 2, 3], tile: 555 },
-  {
-    type: "dispatch_trade_route",
-    clientID: P3,
-    sourcePortID: 12,
-    destinationPortID: 42,
-  },
   { type: "delete_unit", clientID: P3, unitId: 9 },
   { type: "mark_disconnected", clientID: P1, isDisconnected: true },
   { type: "kick_player", clientID: P1, targetClientID: P2 },

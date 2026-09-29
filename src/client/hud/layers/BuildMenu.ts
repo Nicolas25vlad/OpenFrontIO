@@ -21,20 +21,17 @@ import {
   MouseUpEvent,
   ShowBuildMenuEvent,
   ShowEmojiMenuEvent,
-  StartInfrastructureRouteEvent,
 } from "../../InputHandler";
 import { TransformHandler } from "../../TransformHandler";
 import {
   BuildTrenchIntentEvent,
   BuildUnitIntentEvent,
-  SendInfrastructureRouteIntentEvent,
   SendUpgradeStructureIntentEvent,
-  StartTrenchBrushEvent,
+  StartTrenchPlacementEvent,
 } from "../../Transport";
 import { UIState } from "../../UIState";
 import { renderNumber } from "../../Utils";
 import { GameView } from "../../view";
-import { UnitView } from "../../view/UnitView";
 const warshipIcon = assetUrl("images/BattleshipIconWhite.svg");
 const cityIcon = assetUrl("images/CityIconWhite.svg");
 const factoryIcon = assetUrl("images/FactoryIconWhite.svg");
@@ -162,15 +159,10 @@ export class BuildMenu extends LitElement implements Controller {
   public playerBuildables: BuildableUnit[] | null = null;
   private filteredBuildTable: BuildItemDisplay[][] = buildTable;
   public transformHandler: TransformHandler;
-  private trenchBrushMode = false;
-  private drawingTrenchStroke = false;
-  private lastBrushTile: TileRef | null = null;
-  private trenchBrushTiles = new Set<TileRef>();
-  private infrastructureRouteMode = false;
-  private infrastructureRouteUnits: UnitView[] = [];
+  private trenchPlacementMode = false;
 
   @state()
-  private trenchBrushCount = 0;
+  private hoveredTrenchTile: TileRef | null = null;
 
   init() {
     this.eventBus.on(ShowBuildMenuEvent, (e) => {
@@ -192,62 +184,32 @@ export class BuildMenu extends LitElement implements Controller {
       const tile = this.game.ref(clickedCell.x, clickedCell.y);
       this.showMenu(tile);
     });
-    this.eventBus.on(StartTrenchBrushEvent, () => {
-      this.trenchBrushMode = true;
-      if (this.uiState) this.uiState.trenchBrushMode = true;
-      this.trenchBrushTiles.clear();
-      this.trenchBrushCount = 0;
-      this.hideMenu();
-    });
-    this.eventBus.on(StartInfrastructureRouteEvent, () => {
-      this.infrastructureRouteMode = true;
-      this.infrastructureRouteUnits = [];
-      if (this.uiState) this.uiState.infrastructureRouteMode = true;
+    this.eventBus.on(StartTrenchPlacementEvent, () => {
+      this.trenchPlacementMode = true;
+      this.hoveredTrenchTile = null;
+      if (this.uiState) this.uiState.trenchPlacementMode = true;
       this.hideMenu();
       this.requestUpdate();
     });
     this.eventBus.on(CloseViewEvent, () => {
-      this.trenchBrushMode = false;
-      if (this.uiState) this.uiState.trenchBrushMode = false;
-      this.drawingTrenchStroke = false;
-      this.cancelInfrastructureRoute();
+      this.cancelTrenchPlacement();
       this.hideMenu();
     });
     this.eventBus.on(ShowEmojiMenuEvent, () => this.hideMenu());
-    this.eventBus.on(MouseDownEvent, (e) => {
-      if (this.infrastructureRouteMode) return;
-      if (!this.trenchBrushMode) {
-        this.hideMenu();
-        return;
-      }
-      this.drawingTrenchStroke = true;
-      this.trenchBrushTiles.clear();
-      this.trenchBrushCount = 0;
-      this.lastBrushTile = null;
-      this.addBrushTileAtScreen(e.x, e.y);
+    this.eventBus.on(MouseDownEvent, () => {
+      if (!this.trenchPlacementMode) this.hideMenu();
     });
     this.eventBus.on(MouseMoveEvent, (e) => {
-      if (this.trenchBrushMode && this.drawingTrenchStroke) {
-        this.addBrushTileAtScreen(e.x, e.y);
-      }
+      if (!this.trenchPlacementMode) return;
+      this.hoveredTrenchTile = this.tileAtScreen(e.x, e.y);
+      this.requestUpdate();
     });
     this.eventBus.on(MouseUpEvent, (e) => {
-      if (this.infrastructureRouteMode) {
-        this.selectInfrastructureNode(e.x, e.y);
-        return;
-      }
-      if (!this.trenchBrushMode || !this.drawingTrenchStroke) return;
-      this.addBrushTileAtScreen(e.x, e.y);
-      const tiles = [...this.trenchBrushTiles].sort((a, b) => a - b);
-      if (tiles.length > 0)
-        this.eventBus.emit(new BuildTrenchIntentEvent(tiles));
-      this.trenchBrushMode = false;
-      if (this.uiState) this.uiState.trenchBrushMode = false;
-      this.drawingTrenchStroke = false;
-      this.lastBrushTile = null;
-      this.trenchBrushTiles.clear();
-      this.trenchBrushCount = 0;
-      this.requestUpdate();
+      if (!this.trenchPlacementMode) return;
+      const tile = this.tileAtScreen(e.x, e.y);
+      if (tile === null || !this.canPlaceTrench(tile)) return;
+      this.eventBus.emit(new BuildTrenchIntentEvent(tile));
+      this.cancelTrenchPlacement();
     });
   }
 
@@ -373,7 +335,7 @@ export class BuildMenu extends LitElement implements Controller {
       font-weight: bold;
       font-size: 14px;
     }
-    .trench-brush-banner {
+    .trench-placement-banner {
       position: fixed;
       top: 1rem;
       left: 50%;
@@ -388,17 +350,21 @@ export class BuildMenu extends LitElement implements Controller {
       background: rgba(24, 24, 20, 0.95);
       color: white;
     }
-    .trench-brush-tile {
+    .trench-placement-tile {
       position: fixed;
       z-index: 9999;
       width: 12px;
       height: 12px;
       border: 2px solid #e8d7a3;
-      border-radius: 50%;
+      border-radius: 2px;
       background: rgba(115, 93, 52, 0.55);
       box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
       pointer-events: none;
       transform: translate(-50%, -50%);
+    }
+    .trench-placement-tile.invalid {
+      border-color: #e56b6f;
+      background: rgba(150, 35, 40, 0.45);
     }
 
     @media (max-width: 768px) {
@@ -480,32 +446,8 @@ export class BuildMenu extends LitElement implements Controller {
     if (this.game?.myPlayer() === null || this.playerBuildables === null) {
       return false;
     }
-    if (
-      item.unitType === UnitType.Infrastructure &&
-      this.game.config().strategicEconomy()
-    ) {
-      return this.canRouteInfrastructure();
-    }
     const unit = this.playerBuildables.find((u) => u.type === item.unitType);
     return unit ? unit.canBuild !== false || unit.canUpgrade !== false : false;
-  }
-
-  private canRouteInfrastructure(): boolean {
-    const player = this.game?.myPlayer();
-    return (
-      (player
-        ?.units()
-        .filter(
-          (unit) => this.game.unitInfo(unit.type()).logisticsNode === true,
-        ).length ?? 0) >= 2
-    );
-  }
-
-  private isInfrastructureRoute(type: UnitType): boolean {
-    return (
-      type === UnitType.Infrastructure &&
-      this.game?.config()?.strategicEconomy() === true
-    );
   }
 
   public cost(item: BuildItemDisplay): Gold {
@@ -527,14 +469,6 @@ export class BuildMenu extends LitElement implements Controller {
   }
 
   public sendBuildOrUpgrade(buildableUnit: BuildableUnit, tile: TileRef): void {
-    if (
-      buildableUnit.type === UnitType.Infrastructure &&
-      this.game?.config()?.strategicEconomy()
-    ) {
-      this.eventBus.emit(new StartInfrastructureRouteEvent());
-      this.hideMenu();
-      return;
-    }
     if (buildableUnit.canUpgrade !== false) {
       this.eventBus.emit(
         new SendUpgradeStructureIntentEvent(
@@ -555,158 +489,36 @@ export class BuildMenu extends LitElement implements Controller {
     this.hideMenu();
   }
 
-  private selectInfrastructureNode(screenX: number, screenY: number): void {
-    const player = this.game.myPlayer();
-    const cell = this.transformHandler.screenToWorldCoordinates(
-      screenX,
-      screenY,
-    );
-    if (!player || !this.game.isValidCoord(cell.x, cell.y)) return;
-    const clicked = this.game.ref(cell.x, cell.y);
-    const candidates = player
-      .units()
-      .filter(
-        (unit) =>
-          this.game.unitInfo(unit.type()).logisticsNode === true &&
-          unit.isActive() &&
-          !unit.isUnderConstruction(),
-      )
-      .map((unit) => ({
-        unit,
-        distance: Math.hypot(
-          this.game.x(unit.tile()) - this.game.x(clicked),
-          this.game.y(unit.tile()) - this.game.y(clicked),
-        ),
-      }))
-      .filter(({ distance }) => distance <= 7)
-      .sort((a, b) => a.distance - b.distance);
-    const selected = candidates[0]?.unit;
-    if (!selected) return;
-    const previousIndex = this.infrastructureRouteUnits.findIndex(
-      (unit) => unit.id() === selected.id(),
-    );
-    if (previousIndex >= 0) {
-      this.infrastructureRouteUnits.splice(previousIndex);
-    } else if (
-      this.infrastructureRouteUnits.length <
-      this.game.config().infrastructureRoute().maxNodes
-    ) {
-      this.infrastructureRouteUnits.push(selected);
-    }
-    this.requestUpdate();
-  }
-
-  private cancelInfrastructureRoute(): void {
-    this.infrastructureRouteMode = false;
-    this.infrastructureRouteUnits = [];
-    if (this.uiState) this.uiState.infrastructureRouteMode = false;
-    this.requestUpdate();
-  }
-
-  private confirmInfrastructureRoute(): void {
-    if (this.infrastructureRouteUnits.length < 2) return;
-    this.eventBus.emit(
-      new SendInfrastructureRouteIntentEvent(
-        this.infrastructureRouteUnits.map((unit) => unit.id()),
-      ),
-    );
-    this.cancelInfrastructureRoute();
-  }
-
   render() {
     return html`
-      ${this.infrastructureRouteMode
-        ? html`<svg
-            class="fixed inset-0 z-[9998] h-screen w-screen pointer-events-none"
-            aria-hidden="true"
-          >
-            <polyline
-              points=${this.infrastructureRouteUnits
-                .map((unit) => {
-                  const point = this.transformHandler.worldToScreenCoordinates(
-                    new Cell(
-                      this.game.x(unit.tile()),
-                      this.game.y(unit.tile()),
-                    ),
-                  );
-                  return `${point.x},${point.y}`;
-                })
-                .join(" ")}
-              fill="none"
-              stroke="#f2d58a"
-              stroke-width="3"
-              stroke-dasharray="6 5"
-            />
-          </svg>`
-        : ""}
-      ${this.infrastructureRouteMode
-        ? html`<div class="trench-brush-banner">
-            <span
-              >${translateText("infrastructure.route_hint", {
-                count: this.infrastructureRouteUnits.length,
-              })}</span
-            >
+      ${this.trenchPlacementMode
+        ? html`<div class="trench-placement-banner">
+            <span>${translateText("build_menu.trench_placement_hint")}</span>
             <button
               class="border border-white/40 rounded px-2 py-1"
-              ?disabled=${this.infrastructureRouteUnits.length < 2}
-              @click=${() => this.confirmInfrastructureRoute()}
+              @click=${() => this.cancelTrenchPlacement()}
             >
-              ${translateText("infrastructure.route_confirm")}
-            </button>
-            <button
-              class="border border-white/40 rounded px-2 py-1"
-              @click=${() => this.cancelInfrastructureRoute()}
-            >
-              ${translateText("build_menu.trench_brush_cancel")}
+              ${translateText("build_menu.trench_placement_cancel")}
             </button>
           </div>`
         : ""}
-      ${this.infrastructureRouteMode
-        ? this.infrastructureRouteUnits.map((unit, index) => {
+      ${this.trenchPlacementMode && this.hoveredTrenchTile !== null
+        ? (() => {
             const screen = this.transformHandler.worldToScreenCoordinates(
-              new Cell(this.game.x(unit.tile()), this.game.y(unit.tile())),
+              new Cell(
+                this.game.x(this.hoveredTrenchTile!),
+                this.game.y(this.hoveredTrenchTile!),
+              ),
             );
             return html`<div
-              class="trench-brush-tile"
-              style="left:${screen.x}px;top:${screen.y}px"
-              title=${`${index + 1}. ${unit.type()}`}
-            >
-              ${index + 1}
-            </div>`;
-          })
-        : ""}
-      ${this.trenchBrushMode
-        ? html`<div class="trench-brush-banner">
-            <span
-              >${translateText("build_menu.trench_brush_hint", {
-                count: this.trenchBrushCount,
-              })}</span
-            >
-            <button
-              class="border border-white/40 rounded px-2 py-1"
-              @click=${() => {
-                this.trenchBrushMode = false;
-                if (this.uiState) this.uiState.trenchBrushMode = false;
-                this.drawingTrenchStroke = false;
-                this.trenchBrushTiles.clear();
-                this.trenchBrushCount = 0;
-                this.requestUpdate();
-              }}
-            >
-              ${translateText("build_menu.trench_brush_cancel")}
-            </button>
-          </div>`
-        : ""}
-      ${this.trenchBrushMode
-        ? [...this.trenchBrushTiles].map((tile) => {
-            const screen = this.transformHandler.worldToScreenCoordinates(
-              new Cell(this.game.x(tile), this.game.y(tile)),
-            );
-            return html`<div
-              class="trench-brush-tile"
+              class="trench-placement-tile ${this.canPlaceTrench(
+                this.hoveredTrenchTile!,
+              )
+                ? "valid"
+                : "invalid"}"
               style="left:${screen.x}px;top:${screen.y}px"
             ></div>`;
-          })
+          })()
         : ""}
       <div
         class="build-menu ${this._hidden ? "hidden" : ""}"
@@ -722,10 +534,9 @@ export class BuildMenu extends LitElement implements Controller {
                 if (buildableUnit === undefined) {
                   return html``;
                 }
-                const enabled = this.isInfrastructureRoute(item.unitType)
-                  ? this.canRouteInfrastructure()
-                  : buildableUnit.canBuild !== false ||
-                    buildableUnit.canUpgrade !== false;
+                const enabled =
+                  buildableUnit.canBuild !== false ||
+                  buildableUnit.canUpgrade !== false;
                 return html`
                   <button
                     class="build-button"
@@ -754,13 +565,9 @@ export class BuildMenu extends LitElement implements Controller {
                       translateText(item.description)}</span
                     >
                     <span class="build-cost" translate="no">
-                      ${this.isInfrastructureRoute(item.unitType)
-                        ? translateText("infrastructure.route_cost_variable")
-                        : renderNumber(
-                            this.game && this.game.myPlayer()
-                              ? this.cost(item)
-                              : 0,
-                          )}
+                      ${renderNumber(
+                        this.game && this.game.myPlayer() ? this.cost(item) : 0,
+                      )}
                       <img
                         src=${goldCoinIcon}
                         alt="gold"
@@ -788,7 +595,6 @@ export class BuildMenu extends LitElement implements Controller {
             </div>
           `,
         )}
-        ${this.renderTrenchOption()}
       </div>
     `;
   }
@@ -817,92 +623,38 @@ export class BuildMenu extends LitElement implements Controller {
     this.filteredBuildTable = this.getBuildableUnits();
   }
 
-  private renderTrenchOption() {
-    if (
-      this.clickedTile === undefined ||
-      !this.game?.config()?.strategicEconomy()
-    ) {
-      return html``;
-    }
-    const player = this.game.myPlayer();
-    const maxLevel = this.game.config().trenchMaxLevel();
-    const steelCost =
-      this.game.config().trenchCost()[ProcessedResource.Steel] ?? 0;
-    const enabled =
-      !!player &&
-      this.game.ownerID(this.clickedTile) === player.smallID() &&
-      this.game.isBorder(this.clickedTile) &&
-      this.game.trenchLevel(this.clickedTile) < maxLevel &&
-      player.resourceAmount(ProcessedResource.Steel) >= steelCost;
-    return html`
-      <div class="build-row">
-        <button
-          class="build-button"
-          ?disabled=${!enabled}
-          title=${enabled
-            ? ""
-            : translateText("build_menu.trench_requirements")}
-          @click=${() => {
-            this.eventBus.emit(new StartTrenchBrushEvent());
-            this.hideMenu();
-          }}
-        >
-          <img src=${shieldIcon} alt="trincheira" width="40" height="40" />
-          <span class="build-name"
-            >${translateText("unit_type.trench")}
-            ${this.game.trenchLevel(this.clickedTile)}/${maxLevel}</span
-          >
-          <span class="build-description"
-            >${translateText("build_menu.desc.trench")}</span
-          >
-          <span class="build-cost"
-            >${steelCost} ${translateText("resource.steel")}</span
-          >
-        </button>
-      </div>
-    `;
-  }
-
-  private addBrushTileAtScreen(screenX: number, screenY: number): void {
+  private tileAtScreen(screenX: number, screenY: number): TileRef | null {
     const cell = this.transformHandler.screenToWorldCoordinates(
       screenX,
       screenY,
     );
-    if (!this.game.isValidCoord(cell.x, cell.y)) return;
-    const tile = this.game.ref(cell.x, cell.y);
-    if (this.lastBrushTile === null) {
-      this.addBrushTile(tile);
-      this.lastBrushTile = tile;
-      return;
-    }
-
-    const x0 = this.game.x(this.lastBrushTile);
-    const y0 = this.game.y(this.lastBrushTile);
-    const x1 = this.game.x(tile);
-    const y1 = this.game.y(tile);
-    const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
-    for (let step = 1; step <= steps; step++) {
-      const x = Math.round(x0 + ((x1 - x0) * step) / steps);
-      const y = Math.round(y0 + ((y1 - y0) * step) / steps);
-      if (this.game.isValidCoord(x, y)) this.addBrushTile(this.game.ref(x, y));
-    }
-    this.lastBrushTile = tile;
+    return this.game.isValidCoord(cell.x, cell.y)
+      ? this.game.ref(cell.x, cell.y)
+      : null;
   }
 
-  private addBrushTile(tile: TileRef): void {
+  private canPlaceTrench(tile: TileRef): boolean {
     const player = this.game.myPlayer();
     if (
       !player ||
-      this.trenchBrushTiles.has(tile) ||
-      this.trenchBrushTiles.size >= 512 ||
+      !this.game.config().strategicEconomy() ||
+      !this.game.isLand(tile) ||
+      this.game.isImpassable(tile) ||
       this.game.ownerID(tile) !== player.smallID() ||
       !this.game.isBorder(tile) ||
-      this.game.trenchLevel(tile) >= this.game.config().trenchMaxLevel()
+      this.game.trenchLevel(tile) >= this.game.config().trenchMaxLevel() ||
+      player.resourceAmount(ProcessedResource.Steel) <
+        (this.game.config().trenchCost()[ProcessedResource.Steel] ?? 0)
     ) {
-      return;
+      return false;
     }
-    this.trenchBrushTiles.add(tile);
-    this.trenchBrushCount = this.trenchBrushTiles.size;
+    return true;
+  }
+
+  private cancelTrenchPlacement(): void {
+    this.trenchPlacementMode = false;
+    this.hoveredTrenchTile = null;
+    if (this.uiState) this.uiState.trenchPlacementMode = false;
     this.requestUpdate();
   }
 

@@ -1,7 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { ResourcePanel } from "../../src/client/hud/layers/ResourcePanel";
 import { ToggleNavalSectorMapEvent } from "../../src/client/InputHandler";
-import { DispatchTradeRouteIntentEvent } from "../../src/client/Transport";
 import { GameView } from "../../src/client/view";
 import { EventBus } from "../../src/core/EventBus";
 import { emptyResourceRates, FULL_SUPPLY } from "../../src/core/game/Economy";
@@ -178,12 +177,8 @@ test("shows owned-port sectors and active trade routes", async () => {
   } as unknown as GameView;
   panel.eventBus = new EventBus();
   const navalMapToggle = vi.fn();
-  const dispatchedRoute = vi.fn();
   panel.eventBus.on(ToggleNavalSectorMapEvent, (event) =>
     navalMapToggle(event.visible),
-  );
-  panel.eventBus.on(DispatchTradeRouteIntentEvent, (event) =>
-    dispatchedRoute(event.sourcePortID, event.destinationPortID),
   );
   document.body.append(panel);
   panel.init();
@@ -196,7 +191,7 @@ test("shows owned-port sectors and active trade routes", async () => {
   expect(panel.textContent).not.toContain("5.0−");
   expect(panel.textContent?.replace(/\s+/g, " ")).toContain("Trader → Me");
   expect(panel.textContent).toContain("economy.in_transit");
-  expect(panel.textContent).toContain("naval_map.dispatch_route");
+  expect(panel.textContent).not.toContain("naval_map.dispatch_route");
 
   const toggle = panel.querySelector<HTMLButtonElement>(
     'button[aria-label="naval_map.button"]',
@@ -206,15 +201,4 @@ test("shows owned-port sectors and active trade routes", async () => {
   expect(toggle.getAttribute("aria-pressed")).toBe("true");
   expect(panel.textContent).toContain("naval_map.legend");
   expect(navalMapToggle).toHaveBeenCalledWith(true);
-
-  const routeDetails = [...panel.querySelectorAll("details")].find((item) =>
-    item.textContent?.includes("naval_map.dispatch_route"),
-  )!;
-  (routeDetails.querySelector("summary") as HTMLElement).click();
-  await panel.updateComplete;
-  const dispatchButton = [...routeDetails.querySelectorAll("button")].find(
-    (button) => button.textContent?.includes("naval_map.dispatch"),
-  )!;
-  dispatchButton.click();
-  expect(dispatchedRoute).toHaveBeenCalledWith(6, 7);
 });

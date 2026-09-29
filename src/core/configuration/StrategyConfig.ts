@@ -144,8 +144,6 @@ export const NAVAL_TRANSPORT = {
 export const NAVAL_TRADE = {
   cargoUnits: 5,
   cargoPricePerUnit: 100n,
-  /** Manual route orders share one small cap per player to bound active work. */
-  manualRouteLimitPerPlayer: 3,
   /** Hard strategic cap; legacy trade ships keep their existing behavior. */
   globalRouteLimit: 800,
   exportReserve: {
@@ -243,8 +241,8 @@ export const STRATEGIC_BUILDINGS = {
 /** Eligible strategic logistics nodes; rendering, routing and economy use this metadata. */
 export const LOGISTICS_NODES: Partial<Record<UnitType, true>> = {
   [UnitType.City]: true,
+  [UnitType.Infrastructure]: true,
   [UnitType.SupplyCenter]: true,
-  [UnitType.Factory]: true,
   [UnitType.Mine]: true,
   [UnitType.Farm]: true,
   [UnitType.VehicleFactory]: true,
@@ -256,11 +254,3 @@ export const LOGISTICS_NODES: Partial<Record<UnitType, true>> = {
 export const LOGISTICS_CAPACITY: Partial<Record<UnitType, number>> = {
   [UnitType.SupplyCenter]: 3,
 };
-
-/** Configurable costs and limits for player-built infrastructure routes. */
-export const INFRASTRUCTURE_ROUTE = {
-  minNodes: 2,
-  maxNodes: 16,
-  goldPerTile: 250,
-  steelPerTiles: 40,
-} as const;

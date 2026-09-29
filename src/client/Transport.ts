@@ -126,23 +126,11 @@ export class BuildUnitIntentEvent implements GameEvent {
 }
 
 export class BuildTrenchIntentEvent implements GameEvent {
-  public readonly tile: TileRef;
-  public readonly tiles: TileRef[];
-
-  constructor(tiles: TileRef | readonly TileRef[]) {
-    this.tiles = [...new Set(Array.isArray(tiles) ? tiles : [tiles])].sort(
-      (a, b) => a - b,
-    );
-    this.tile = this.tiles[0];
-  }
+  constructor(public readonly tile: TileRef) {}
 }
 
-export class SendInfrastructureRouteIntentEvent implements GameEvent {
-  constructor(public readonly unitIds: number[]) {}
-}
-
-/** Starts the local brush mode; only the completed stroke is sent to the core. */
-export class StartTrenchBrushEvent implements GameEvent {}
+/** Starts point placement for one trench on a valid border tile. */
+export class StartTrenchPlacementEvent implements GameEvent {}
 
 export class SendTargetPlayerIntentEvent implements GameEvent {
   constructor(public readonly targetID: PlayerID) {}
@@ -237,13 +225,6 @@ export class MoveWarshipIntentEvent implements GameEvent {
   constructor(
     public readonly unitIds: number[],
     public readonly tile: number,
-  ) {}
-}
-
-export class DispatchTradeRouteIntentEvent implements GameEvent {
-  constructor(
-    public readonly sourcePortID: number,
-    public readonly destinationPortID: number,
   ) {}
 }
 
@@ -365,14 +346,7 @@ export class Transport {
     );
     this.eventBus.on(BuildUnitIntentEvent, (e) => this.onBuildUnitIntent(e));
     this.eventBus.on(BuildTrenchIntentEvent, (e) =>
-      this.sendIntent({
-        type: "build_trench",
-        tile: e.tile,
-        tiles: e.tiles,
-      }),
-    );
-    this.eventBus.on(SendInfrastructureRouteIntentEvent, (e) =>
-      this.sendIntent({ type: "infrastructure_route", unitIds: e.unitIds }),
+      this.sendIntent({ type: "build_trench", tile: e.tile }),
     );
 
     this.eventBus.on(PauseGameIntentEvent, (e) => this.onPauseGameIntent(e));
@@ -392,14 +366,6 @@ export class Transport {
     this.eventBus.on(MoveWarshipIntentEvent, (e) => {
       this.onMoveWarshipEvent(e);
     });
-    this.eventBus.on(DispatchTradeRouteIntentEvent, (e) => {
-      this.sendIntent({
-        type: "dispatch_trade_route",
-        sourcePortID: e.sourcePortID,
-        destinationPortID: e.destinationPortID,
-      });
-    });
-
     this.eventBus.on(SendDeleteUnitIntentEvent, (e) =>
       this.onSendDeleteUnitIntent(e),
     );

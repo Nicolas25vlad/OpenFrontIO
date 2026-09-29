@@ -5,8 +5,6 @@ import { TrainStation } from "./TrainStation";
 
 export interface RailNetwork {
   connectStation(station: TrainStation): void;
-  planInfrastructureRoute(units: Unit[]): TileRef[][] | null;
-  connectInfrastructureRoute(units: Unit[], paths: TileRef[][]): boolean;
   removeStation(unit: Unit): void;
   findStationsPath(from: TrainStation, to: TrainStation): TrainStation[];
   stationManager(): StationManager;

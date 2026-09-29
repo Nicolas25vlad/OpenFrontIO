@@ -9,6 +9,5 @@ export interface UIState {
   rocketDirectionUp: boolean;
   upgradeMultiplier: number;
   buildCategory?: BuildCategoryId;
-  trenchBrushMode?: boolean;
-  infrastructureRouteMode?: boolean;
+  trenchPlacementMode?: boolean;
 }

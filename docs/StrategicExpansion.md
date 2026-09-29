@@ -9,7 +9,7 @@ Antes de ativar ou alterar cada sistema, use o gate em
 
 1. Reutilizar `GameImpl`, `PlayerImpl`, `UnitImpl`, `ConstructionExecution`, o fluxo Intent → Turn → Execution → GameUpdate, índices espaciais, ferrovias, alianças, marinha, renderer WebGL e i18n.
 2. Estender estoques com produtos processados; depósitos com reservas por recurso; adicionar fazenda, usina nuclear, fábrica de veículos e trincheiras. Supply, tanques, comércio e diplomacia terão dados agregados próprios.
-3. Reutilizar intents de construção/upgrade; adicionar somente comandos de produção, pintura de trincheiras, missão naval e proposta/resposta/cancelamento de paz. Dados de leitura via updates incrementais.
+3. Reutilizar intents de construção/upgrade; adicionar somente comandos de produção, colocação pontual de trincheiras, missão naval e proposta/resposta/cancelamento de paz. Dados de leitura via updates incrementais.
 4. Completar categorias de construção, painel compacto/detalhado de economia, assets militares, heatmap/setores navais, tropas agrupadas e tooltips de causas.
 5. Heurísticas de bots por gargalo: recursos, alimento, indústria, supply, tanques, marinha e paz. Preservar comportamento legado em partidas com expansão desativada.
 6. Testar regras, fronteiras de confiança, concorrência no mesmo turno, conservação de recursos, captura/destruição, determinismo entre simulações e replay, updates, UI e desempenho.
@@ -32,13 +32,13 @@ Itens só são marcados após implementação e verificação. `src/core` é a s
 - [ ] 11. Supply agregado: comida da infantaria, comida/combustível/aço dos tanques, combustível/manutenção naval; indicador e penalidades.
 - [ ] 12. Soldados pixel art agrupados nas fronteiras, LOD e limite de instâncias; nenhuma entidade RTS no core.
 - [ ] 13. Vehicle Factory, tanques complementares, custos/manutenção, penalidade naval, assets militares e contagem no HUD/ataques.
-- [ ] 14. Trincheiras pintadas na própria fronteira; defesa, desgaste, penalidade ofensiva e counters por tanques/supply.
+- [ ] 14. Trincheiras construídas por colocação pontual na própria fronteira; defesa, desgaste, penalidade ofensiva e counters por tanques/supply.
 - [ ] 15. Fortificações existentes fortalecidas por balanceamento central.
 - [ ] 16. Setores navais lógicos; modo naval manual e automático para navios/frotas/missões.
 - [ ] 17. Designação de warships, supremacia por força/supply/presença; invasões, comboios e interceptação.
 - [ ] 18. Comércio automático por escassez, estoque, aliança/neutralidade, distância, preço e rota; inimigos excluídos.
 - [ ] 19. Especialização viável: importar matérias-primas, processar e exportar com lucro, inclusive bots.
-- [ ] 20. Comboios transportam recursos reais, captura/destruição afeta carga/dinheiro; número de rotas limitado.
+- [ ] 20. Comboios automáticos transportam recursos reais; captura/destruição afeta carga/dinheiro e o limite de atividade é configurável.
 - [ ] 21. Barras de ouro amortecem falta de dinheiro com fórmula simples e ajustável.
 - [ ] 22. Paz branca/oferta/exigência percentual de território, aceite/recusa/cancelamento, transferência conectada, trégua de 180 s e bloqueio de ataques, UI e bots.
 - [ ] 23. Anti-ICBM: +20% alcance, +15% eficiência, valores configuráveis.
@@ -473,7 +473,6 @@ contrapressão de escolta e perdas.
 Arquivos desta etapa: `src/core/configuration/StrategyConfig.ts`,
 `src/core/configuration/Config.ts`, `src/core/game/NavalSupremacy.ts`,
 `src/core/execution/PortExecution.ts`,
-`src/core/execution/DispatchTradeRouteExecution.ts`,
 `src/core/execution/TradeShipExecution.ts`,
 `src/client/controllers/MapLayerController.ts`,
 `src/client/controllers/ResourceMapController.ts`,
@@ -491,20 +490,11 @@ no core. A seção de comboios lista navios ativos ligados ao jogador ou a um
 aliado, indicando os donos do navio/destino e o setor do porto de destino. Essa
 leitura usa os updates de unidades existentes e não altera as regras do core.
 
-O limite de três comboios manuais por jogador conta navios ativos e execuções
-que ainda aguardam o surgimento do navio. Execuções de comboios já representados
-por um navio ativo não são contadas novamente; o teste cobre duas rotas em curso,
-a vaga restante e o bloqueio ao atingir o limite. Na economia estratégica,
-rotas manuais e automáticas também respeitam o teto global configurável de 800
-comboios; navios existentes e execuções pendentes ocupam uma vaga. A economia
-legada conserva o fluxo antigo.
-O contador global soma os navios ativos às execuções que ainda aguardam spawn,
-indexadas por partida; verificações periódicas dos portos não varrem mais a
-lista completa de execuções. Intents de despacho manual também são indexados na
-ordem de validação, preservando a reserva de capacidade em pedidos simultâneos
-sem consultar a lista global. Rotas canceladas ou já transformadas em navio são
-removidas do índice ao revalidar a contagem.
-`PortExecution`, `DispatchTradeRouteExecution` e `TradeShipExecution` passaram
+O limite global configurável conta navios comerciais ativos e execuções que
+aguardam spawn, indexados por partida. Verificações periódicas dos portos não
+varrem a lista completa de execuções. O comércio automático usa esse limite; não
+há despacho manual nem limite separado por jogador.
+`PortExecution` e `TradeShipExecution` passaram
 em 28 testes focados; a suíte principal passou em 492 arquivos/5.758 testes e a
 suíte do servidor em 63 arquivos/656 testes. Também passaram `npm run build-dev`,
 lint direcionado, Prettier e `git diff --check`.
@@ -542,32 +532,11 @@ regressões focadas passaram em 4 arquivos/7 testes. A heatmap atualiza a textur
 quando força/setor muda e mantém a imagem quando os dados são iguais.
 `npm run build-dev`, lint direcionado, Prettier e `git diff --check` passaram.
 
-O painel econômico agora permite escolher um porto próprio de origem e um porto
-de destino negociável, e solicitar um comboio direto. O core valida novamente
-propriedade e estado dos portos, autorização de comércio, capacidade de
-construção do navio, limite de três comboios ativos por jogador, bloqueio do
-porto e conexão pela mesma massa d'água antes de iniciar a viagem. O intent é
-validado por schema e passa pelo fluxo normal de turnos; a UI não cria unidades
-nem decide o resultado. A viagem usa carga, pagamento, captura e interceptação
-já existentes. A rota manual só aparece na economia estratégica.
-
-Arquivos desta etapa: `src/core/Schemas.ts`,
-`src/core/configuration/StrategyConfig.ts`,
-`src/core/execution/ExecutionManager.ts`,
-`src/core/execution/DispatchTradeRouteExecution.ts`, `src/client/Transport.ts`,
-`src/client/hud/layers/ResourcePanel.ts`, traduções em `resources/lang/`, e
-testes em `tests/DispatchTradeRouteExecution.test.ts`,
-`tests/client/ResourcePanel.test.ts`,
-`tests/client/TransportSendPaths.test.ts` e `tests/zbin/wire.test.ts`.
-Os testes de execução também confirmam a rejeição de uma origem alheia, da
-economia legada, de comércio sob embargo, do limite atingido e de um porto
-bloqueado.
-Pedidos simultâneos contam contra o mesmo limite, incluindo comboios ainda
-enfileirados. A regressão foi reproduzida e coberta em
-`tests/DispatchTradeRouteExecution.test.ts`. A revalidação de despacho,
-`PortExecution` e `TradeShipExecution` passou em 3 arquivos/21 testes;
-`tsc --noEmit`, `npm run lint`, `npm run build-dev`, Prettier e
-`git diff --check` também passaram.
+O despacho manual descrito nos registros anteriores foi removido. Agora os
+portos estratégicos iniciam importações e exportações automaticamente conforme
+déficit, excedente, reservas, estoque, preço, relações diplomáticas e
+conectividade marítima. O core valida elegibilidade e supremacia antes de
+iniciar uma viagem; a UI apenas mostra comboios ativos e setores navais.
 
 As preferências de Jogabilidade agora permitem desligar o auto-transporte por
 clique ou remover o limite de 100 tiles entre o ponto de lançamento e o alvo.
@@ -588,7 +557,7 @@ Complemento em 2026-09-28: `tests/core/executions/TradeShipExecution.test.ts`
 passou com 12 testes, incluindo envio de comida, combustível e aço com as
 reservas e metas de importação configuradas. `tests/economy/NavalTradeReplay.test.ts`
 também passou, comparando hashes, carga e pagamentos em duas simulações. A
-revalidação conjunta de `NavalTradeReplay`, `DispatchTradeRouteExecution`,
+revalidação conjunta de `NavalTradeReplay`, `TradeShipExecution`,
 `PortExecution`, `ResourcePanel`, `ResourceMapController` e `NavalSectorMap`
 passou em 6 arquivos/19 testes; `tsc --noEmit`, ESLint, Prettier e
 `git diff --check` também passaram.
@@ -617,15 +586,8 @@ passou em 6 arquivos/19 testes; `tsc --noEmit`, ESLint, Prettier e
    rotas marítimas” no painel econômico. Mova ou retire navios aliados/inimigos,
    danifique um navio e melhore outro; a força estimada deve acompanhar saúde,
    nível e veterania. Navios em outro setor não devem entrar na conta.
-7. Com a economia estratégica ligada, abra “Despachar rota comercial”, escolha
-   dois portos conectados ao mesmo mar e despache. O comboio deve sair do porto
-   escolhido e seguir ao destino escolhido, usando as regras existentes de
-   carga e pagamento. Tente também destino bloqueado, sem ligação marítima ou
-   sob embargo: nenhum comboio deve ser criado. Faça três comboios ativos e
-   confirme que o botão fica desabilitado até um deles deixar de estar ativo.
-   Com a economia estratégica desligada, essa seção não deve aparecer.
-   Observe um comboio próprio ou aliado e confira o dono do porto de destino e
-   as coordenadas do setor. Repita em replay e multiplayer.
+7. Observe um comboio próprio ou aliado no painel e confira o dono do porto de
+   destino e as coordenadas do setor. Repita em replay e multiplayer.
 8. Clique em “Setores marítimos”. Confira as bordas e coordenadas da grade sobre
    a água, compare `x,y` com as coordenadas exibidas no painel e confira a
    heatmap: vantagem aliada verde, equilíbrio amarelo, vantagem hostil vermelha.
@@ -640,10 +602,10 @@ Esperado: o resultado muda deterministicamente com presença, escolta e perdas;
 nenhum update por tile ou mapa inteiro é criado. O painel econômico mostra a
 força naval estimada nos setores dos portos próprios e os comboios ativos
 relacionados ao jogador. A camada do mapa mostra a grade setorial e uma heatmap
-agregada estimada na água, sem substituir o bloqueio autoritativo do core. O
-jogador escolhe os portos de origem e destino no painel; o core valida a rota
-antes de criar o comboio. A validação visual em multiplayer/replay continua
-pendente no PC principal.
+agregada estimada na água, sem substituir o bloqueio autoritativo do core. Os
+portos criam comboios automaticamente quando há escassez e excedente compatíveis;
+o core valida os critérios antes de iniciar a viagem. A validação visual em
+multiplayer/replay continua pendente no PC principal.
 
 ## Cancelamento de proposta de aliança — issue #8 (parcial)
 
@@ -1150,107 +1112,85 @@ Validação manual pendente no PC principal:
    sem fornecedor elegível, sem excedente ou durante guerra, nenhum comboio
    automático novo deve ser enviado.
 
-### Trincheiras por pincel
+### Trincheiras por colocação pontual
 
-A ação Trincheira agora aparece na categoria Militar. Ela ativa um pincel local:
-arrastar sobre a própria fronteira destaca os tiles selecionados e soltar envia
-um único intent em lote. O core valida cada tile no momento de execução, aumenta
-um nível e cobra o custo correspondente por tile; entradas antigas de tile
-único continuam válidas. Tile inválido, fora da fronteira, capturado ou no nível
-máximo é ignorado. A resolução de combate aplica bônus defensivo e atraso de
-avanço ao atacar uma trincheira, com desgaste ao conquistar o tile. Iniciar um
-ataque terrestre a partir de uma linha fortificada também aumenta perdas e
-reduz o avanço; tanques abastecidos reduzem essa penalidade, e uma aproximação
-por um tile próprio sem trincheira evita o custo extra.
+A ação Trincheira fica na categoria Militar. Cada clique em um tile próprio de
+fronteira constrói um nível, usando o fluxo normal de seleção e um intent de
+um tile. O core exige economia estratégica ativa, terreno terrestre passável,
+propriedade e fronteira válidas, nível abaixo do máximo e recursos suficientes;
+a cobrança e a alteração do tile são atômicas. A defesa, o atraso do avanço, as
+perdas ao atacar de uma linha fortificada, os modificadores de tanques e o
+desgaste ao conquistar continuam no cálculo de combate.
 
-Arquivos alterados: `src/core/Schemas.ts`, `src/core/execution/ExecutionManager.ts`,
+### Infrastructure pontual, indústria e rede ferroviária — issue #14
+
+Infrastructure volta a ser uma construção pontual da categoria Civil. Na
+simulação estratégica, a construção cria ou conecta estações logísticas próximas
+e a produção recebe o bônus ferroviário quando participa de uma rede conectada.
+Cidades e edifícios logísticos podem entrar nessa rede; estruturas militares
+continuam excluídas. Os intents e telas de seleção de rota foram removidos.
+
+Factory permanece na categoria Industry & Trade e conserva seu processamento
+de recursos e o bônus de produção ferroviária por proximidade com uma rede
+conectada. A fábrica não é uma estação logística, não inicia nem conecta
+ferrovias e sua presença não dispara estações de cidade ou porto. Os supply
+centers continuam conectando à capital por meio da lógica existente de logística
+estratégica. A barra de categorias cobre todos os tipos construíveis exatamente
+uma vez; Infrastructure aparece uma vez em Civil, sem cópia em Industry.
+
+### Comércio e comboios sem microgerenciamento
+
+Portos estratégicos continuam escolhendo automaticamente parceiros e cargas por
+déficit, excedente, reservas, estoque, preço, relações diplomáticas e conexão
+marítima. Não existe envio manual de comboio nem seleção de rota pelo jogador.
+O comboio continua sendo uma entidade simulada: pagamento e carga acompanham a
+viagem, o core aplica bloqueio e interceptação, a captura redireciona a carga e
+a destruição perde carga e depósito conforme as regras existentes. O painel
+mostra status e setores, sem criar viagens.
+
+Arquivos principais alterados: `src/core/Schemas.ts`,
+`src/core/execution/ConstructionExecution.ts`,
 `src/core/execution/BuildTrenchExecution.ts`,
-`src/core/execution/AttackExecution.ts`, `src/core/configuration/Config.ts`,
-`src/core/configuration/StrategyConfig.ts`, `src/client/Transport.ts`,
-`src/client/UIState.ts`, `src/client/InputHandler.ts`,
-`src/client/hud/BuildCategories.ts`, `src/client/hud/layers/UnitDisplay.ts`,
-`src/client/hud/layers/BuildMenu.ts`, traduções em `resources/lang/` e testes
-de execução, wire, categoria e painel.
+`src/core/execution/InfrastructureExecution.ts`,
+`src/core/game/RailNetwork.ts`, `src/core/game/RailNetworkImpl.ts`,
+`src/core/game/Economy.ts`, `src/client/hud/BuildCategories.ts`,
+`src/client/hud/layers/BuildMenu.ts`, `src/client/hud/layers/UnitDisplay.ts`,
+`src/client/hud/layers/ResourcePanel.ts`, `src/client/InputHandler.ts`,
+`src/client/Transport.ts`, traduções em `resources/lang/` e testes de core,
+interface, wire, replay e categorias. Implementações removidas: rotas manuais de
+Infrastructure, despacho manual de comboios, pincel de trincheiras e a execução
+de Factory que gerava rede ferroviária.
 
-Validação no homelab: os testes de trincheira, wire, categoria, pincel,
-`InputHandler`, fórmula de combate, origem do ataque e ordenação de traduções
-passaram em 9 arquivos/128 testes; `tsc --noEmit`, `npm run lint`,
-`npm run build-dev`, Prettier e `git diff --check` passaram. O build conserva
-os avisos de chunks acima de 500 kB. A validação visual com WebGL permanece pendente no PC
-principal:
+### Validação manual pendente no PC principal
 
-1. Rode `npm run dev:host`, ative a economia estratégica e selecione a categoria
-   Militar.
-2. Escolha Trincheira e arraste sobre tiles próprios da fronteira. Cada tile
-   válido deve receber um marcador de prévia; o contador deve acompanhar o
-   traçado. Soltar deve construir um nível por tile e cobrar 3 de aço por nível.
-3. Arraste também sobre água, território alheio e tiles no nível máximo; esses
-   tiles não devem receber marcador nem trincheira. Use Cancelar no banner para
-   encerrar o pincel sem enviar o intent.
-4. Ataque um tile inimigo entrincheirado e compare com um tile sem trincheiras:
-   o defensor deve resistir melhor e o avanço deve ser mais lento. Compare
-   também uma ofensiva iniciada de uma fronteira própria fortificada e uma
-   aberta; a primeira deve custar mais perdas e tempo. Tanques abastecidos
-   reduzem parte das penalidades, e cada tile conquistado perde um nível
-   conforme o desgaste configurado.
+1. Rode `npm run dev:host`, inicie uma partida com economia estratégica e abra
+   Civil. Escolha Infrastructure e clique em um tile válido. Deve aparecer uma
+   única construção no tile escolhido; ao aproximá-la de nós logísticos, a rede
+   deve conectar e o bônus de produção deve refletir a conexão.
+2. Construa uma Factory perto de cidade, porto e infraestrutura. Ela deve
+   processar recursos e receber o bônus ferroviário por proximidade, sem criar
+   trilhos, estação ou alterações de rede. Confira também o rótulo em inglês e
+   português.
+3. Abra Militar, selecione Trincheira e clique uma vez em um tile terrestre
+   próprio da fronteira. Deve subir um nível e cobrar o custo configurado.
+   Clique em água, terra alheia, interior próprio e tile no nível máximo: nenhum
+   deles deve ser alterado nem cobrado. O marcador de trincheira deve aparecer
+   no mapa e o combate deve refletir a defesa e o desgaste já configurados.
+4. Com a economia estratégica ativa, deixe um porto abaixo da meta e outro com
+   excedente negociável. Um comboio automático deve aparecer, levar a carga e
+   liquidar o pagamento. Intercepte/capture um comboio e afunde outro; confirme
+   as consequências da carga e do depósito no painel. Repita em replay ou em dois
+   clientes para conferir sincronização.
 
-### Infraestrutura como rota logística — issue #14
+No homelab, os testes automatizados cobrem construção pontual, conexões e bônus
+ferroviários, ausência de rede causada por Factory, trincheira de tile único,
+validações de terreno/posse/recursos, combate, categorias sem duplicação,
+remoção dos intents antigos e determinismo do comércio em replay. A conferência
+visual de placement, renderização da trincheira e sincronização multiplayer fica
+pendente no PC principal.
 
-Na economia estratégica, Infraestrutura agora inicia um modo de seleção de rota
-em vez de criar um edifício pontual. O jogador escolhe de 2 a 16 cidades,
-indústrias e outros nós próprios em sequência, confirma, e o core calcula e
-cria os trechos ferroviários determinísticos. Edifícios logísticos próprios a
-até três tiles do corredor são anexados automaticamente. A elegibilidade vem
-do metadado `UnitInfo.logisticsNode`; silos, defesas e estruturas militares
-ficam fora da rede. Pedidos são revalidados no servidor, cobram ouro por tile e
-aço a cada 40 tiles, e rejeitam nós inválidos, capturados, em construção ou
-sem saldo. `Infrastructure` pontual continua apenas para legado/replay.
+### Validação final desta revisão — 2026-09-29
 
-O projeto não tinha um tipo Supply Center. Foi adicionado como construção
-estratégica compatível com a rede; nós conectados à cidade mais próxima do
-tile de spawn contribuem para a capacidade logística conforme
-`LOGISTICS_CAPACITY`. As nações conectam seus próprios supply centers à capital
-automaticamente. A produção recebe bônus ferroviário somente quando o edifício
-participa de uma rede conectada. Capturar um nó remove os trilhos ligados ao
-antigo dono e cria uma estação isolada para o novo dono. A renderização de
-ferrovias e o replay reaproveitam os eventos ferroviários existentes.
+`NODE_OPTIONS="--experimental-webstorage --localstorage-file=/tmp/openfront-active-main-final-green" npx vitest run --maxWorkers=1 --reporter=dot` passou em 489 arquivos/5.758 testes. A suíte de servidor, executada separadamente, passou em 63 arquivos/656 testes. Lint, `npm run build-dev` (incluindo `tsc --noEmit`), Prettier e `git diff --check` também passaram. Os testes de infraestrutura/rede passaram em 3 arquivos/37 testes, incluindo um novo cenário em que Infrastructure conecta uma cidade e despacha trens.
 
-Arquivos principais: `src/core/game/RailNetworkImpl.ts`,
-`src/core/execution/InfrastructureRouteExecution.ts`,
-`src/core/execution/SupplyCenterRouteExecution.ts`,
-`src/core/configuration/StrategyConfig.ts`, `src/core/game/PlayerImpl.ts`,
-`src/client/hud/layers/BuildMenu.ts` e `src/client/InputHandler.ts`. Os testes
-`tests/economy/Infrastructure.test.ts`,
-`tests/economy/NationInfrastructurePriority.test.ts`,
-`tests/economy/Production.test.ts` e `tests/zbin/wire.test.ts` cobrem conexão,
-anexação automática, custos, rejeição de estruturas militares, bônus industrial,
-logística da capital, captura/remoção de nós, supply center, sequência de três
-prédios, IDs duplicados, limite de planejamento de 16 nós e aplicação dos eventos
-ferroviários pelo `RailroadCache` em atualização e replay. Reenviar uma rota já
-construída reutiliza os trilhos sem emitir eventos nem cobrar novamente.
-
-Validação no homelab: `npm test` passou em 490 arquivos/5.762 testes da suíte
-principal e 63 arquivos/656 testes da suíte de servidor; `npm run lint`,
-`npm run build-dev` e `git diff --check` também passaram. O build mantém avisos
-de chunks acima de 500 kB e um aviso de depreciação do Node. A validação visual
-da seleção/confirmação de rota e da renderização ferroviária permanece pendente
-no PC principal. Após ampliar os casos de saldo e planejamento, `Infrastructure`
-e `RailNetwork` passaram juntos com 38 testes. O teste de rota também compara os
-eventos produzidos pelo core com a imagem do `RailroadCache` em dois clientes;
-`tsc --noEmit` passou novamente.
-
-Validação manual pendente no PC principal:
-
-1. Rode `npm run dev:host`, inicie uma partida com economia estratégica e
-   selecione Infraestrutura na categoria Civil.
-2. Clique em uma cidade, uma indústria e uma mina/fazenda próprias; confirme a
-   rota. O traçado provisório deve mostrar a ordem escolhida e, após confirmar,
-   a ferrovia final deve ligar os edifícios. Um nó compatível próximo ao
-   corredor deve se anexar sem seleção explícita.
-3. Tente confirmar com menos de dois nós, misture edifício militar ou use um
-   edifício capturado/em construção. O servidor deve rejeitar sem cobrar.
-   Compare o ouro/aço antes e depois de uma rota válida; o custo deve crescer
-   com o comprimento.
-4. Ligue um Supply Center à capital. A capacidade logística e o supply devem
-   subir; deixe outro desconectado e confirme que ele não contribui. Capture um
-   nó do rival: o trecho até ele deve desaparecer do antigo dono.
+O snapshot de `NationGoldPerMinute` foi atualizado: nesse benchmark legado Infrastructure está desabilitada, portanto fábricas sem estação ferroviária não iniciam trens nem geram receita ferroviária. Na economia estratégica, a construção pontual de Infrastructure continua registrando a estação que despacha os trens conectados.

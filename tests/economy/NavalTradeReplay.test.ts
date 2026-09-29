@@ -1,6 +1,6 @@
 import { Config } from "../../src/core/configuration/Config";
 import { NAVAL_TRADE } from "../../src/core/configuration/StrategyConfig";
-import { DispatchTradeRouteExecution } from "../../src/core/execution/DispatchTradeRouteExecution";
+import { PortExecution } from "../../src/core/execution/PortExecution";
 import {
   Game,
   PlayerInfo,
@@ -19,6 +19,8 @@ async function replayNavalTrade(): Promise<{
   buyerFuel: number;
   sellerGold: bigint;
   buyerGold: bigint;
+  sellerTradeGold: bigint;
+  buyerTradeGold: bigint;
 }> {
   const game: Game = await setup(
     "half_land_half_ocean",
@@ -34,7 +36,7 @@ async function replayNavalTrade(): Promise<{
     undefined,
     Config,
   );
-  game.config().tradeShipSpawnRate = () => 1_000_000;
+  game.config().tradeShipSpawnRate = () => 1;
   const seller = game.player("seller");
   const buyer = game.player("buyer");
   const sourceTile = game.ref(7, 10);
@@ -57,24 +59,18 @@ async function replayNavalTrade(): Promise<{
     NAVAL_TRADE.exportReserve[ProcessedResource.Fuel] + NAVAL_TRADE.cargoUnits,
   );
   buyer.removeResource(
-    ProcessedResource.Food,
-    buyer.resourceAmount(ProcessedResource.Food) -
-      (NAVAL_TRADE.importTarget[ProcessedResource.Food] - 60),
-  );
-  buyer.removeResource(
     ProcessedResource.Fuel,
     buyer.resourceAmount(ProcessedResource.Fuel),
   );
   const sourcePort = seller.buildUnit(UnitType.Port, sourceTile, {});
   const destinationPort = buyer.buildUnit(UnitType.Port, destinationTile, {});
   game.endSpawnPhase();
-  game.addExecution(
-    new DispatchTradeRouteExecution(
-      seller,
-      sourcePort.id(),
-      destinationPort.id(),
-    ),
-  );
+  const portExecution = new PortExecution(destinationPort);
+  portExecution.init(game, game.ticks());
+  if (!portExecution.supplierPorts().includes(sourcePort)) {
+    throw new Error("the buyer port should select the available supplier");
+  }
+  game.addExecution(portExecution);
 
   const hashes: number[] = [];
   let convoyCreated = false;
@@ -97,10 +93,12 @@ async function replayNavalTrade(): Promise<{
     buyerFuel: buyer.resourceAmount(ProcessedResource.Fuel),
     sellerGold: seller.gold(),
     buyerGold: buyer.gold(),
+    sellerTradeGold: seller.tradeGold(),
+    buyerTradeGold: buyer.tradeGold(),
   };
 }
 
-test("replays the most deficient strategic cargo identically", async () => {
+test("automatically imports cargo and replays identically", async () => {
   const first = await replayNavalTrade();
   const second = await replayNavalTrade();
 
@@ -111,7 +109,7 @@ test("replays the most deficient strategic cargo identically", async () => {
     NAVAL_TRADE.exportReserve[ProcessedResource.Fuel],
   );
   expect(first.buyerFood).toBe(
-    NAVAL_TRADE.importTarget[ProcessedResource.Food] - 60,
+    NAVAL_TRADE.importTarget[ProcessedResource.Food],
   );
   expect(first.sellerFood).toBe(125);
   expect(first.buyerFood).toBe(second.buyerFood);
@@ -120,4 +118,6 @@ test("replays the most deficient strategic cargo identically", async () => {
   expect(first.sellerFuel).toBe(second.sellerFuel);
   expect(first.sellerGold).toBe(second.sellerGold);
   expect(first.buyerGold).toBe(second.buyerGold);
+  expect(first.sellerTradeGold).toBe(second.sellerTradeGold);
+  expect(first.buyerTradeGold).toBe(second.buyerTradeGold);
 });

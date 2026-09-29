@@ -1,412 +1,203 @@
 import { vi } from "vitest";
-import { RailroadCache } from "../../src/client/render/frame/RailroadCache";
 import { ConstructionExecution } from "../../src/core/execution/ConstructionExecution";
-import { InfrastructureRouteExecution } from "../../src/core/execution/InfrastructureRouteExecution";
 import { productionEfficiency } from "../../src/core/game/Economy";
-import { PlayerInfo, PlayerType, UnitType } from "../../src/core/game/Game";
 import {
-  GameUpdateType,
-  GameUpdateViewData,
-  RailroadConstructionUpdate,
-} from "../../src/core/game/GameUpdates";
-import { ProcessedResource } from "../../src/core/game/Resources";
+  Game,
+  Player,
+  PlayerInfo,
+  PlayerType,
+  UnitType,
+} from "../../src/core/game/Game";
+import { GameUpdateType } from "../../src/core/game/GameUpdates";
 import { setup } from "../util/Setup";
 
-async function routeFixture() {
+async function strategicFixture(): Promise<{ game: Game; player: Player }> {
   const game = await setup(
     "big_plains",
-    { strategicEconomy: true, instantBuild: true },
+    { strategicEconomy: true, infiniteGold: true, instantBuild: true },
     [new PlayerInfo("p", PlayerType.Human, null, "p")],
   );
   const player = game.player("p");
-  player.addGold(5_000_000n);
-  for (let x = 30; x <= 100; x++)
-    for (let y = 30; y <= 70; y++) player.conquer(game.ref(x, y));
+  for (let x = 20; x <= 180; x++) {
+    for (let y = 20; y <= 80; y++) player.conquer(game.ref(x, y));
+  }
   game.endSpawnPhase();
-  game.addExecution(
-    new ConstructionExecution(player, UnitType.City, game.ref(40, 50)),
-  );
-  game.addExecution(
-    new ConstructionExecution(player, UnitType.Factory, game.ref(90, 50)),
-  );
-  game.addExecution(
-    new ConstructionExecution(player, UnitType.Farm, game.ref(65, 55)),
-  );
-  for (let i = 0; i < 8; i++) game.executeNextTick();
-  return {
-    game,
-    player,
-    city: player.units(UnitType.City)[0],
-    factory: player.units(UnitType.Factory)[0],
-    farm: player.units(UnitType.Farm)[0],
-  };
+  return { game, player };
 }
 
-test("a selected route connects logistics buildings and powers the economy", async () => {
+async function legacyFixture(): Promise<{ game: Game; player: Player }> {
   const game = await setup(
     "big_plains",
-    { strategicEconomy: true, infiniteGold: true, instantBuild: true },
+    { strategicEconomy: false, infiniteGold: true, instantBuild: true },
     [new PlayerInfo("p", PlayerType.Human, null, "p")],
   );
   const player = game.player("p");
-  player.addGold(1_000_000n);
-  for (let x = 30; x <= 170; x++)
-    for (let y = 30; y <= 70; y++) player.conquer(game.ref(x, y));
-  game.endSpawnPhase();
-
-  game.addExecution(
-    new ConstructionExecution(player, UnitType.City, game.ref(40, 50)),
-  );
-  game.addExecution(
-    new ConstructionExecution(player, UnitType.Factory, game.ref(140, 50)),
-  );
-  game.addExecution(
-    new ConstructionExecution(player, UnitType.Farm, game.ref(80, 52)),
-  );
-  for (let i = 0; i < 5; i++) game.executeNextTick();
-
-  const city = player.units(UnitType.City)[0];
-  const factory = player.units(UnitType.Factory)[0];
-  const farm = player.units(UnitType.Farm)[0];
-  game.addExecution(
-    new InfrastructureRouteExecution(player, [city.id(), factory.id()]),
-  );
-  game.executeNextTick();
-  game.executeNextTick();
-
-  const manager = game.railNetwork().stationManager();
-  const cluster = manager.findStation(city)?.getCluster();
-  expect(cluster?.has(manager.findStation(factory)!)).toBe(true);
-  expect(cluster?.has(manager.findStation(farm)!)).toBe(true);
-  expect(productionEfficiency(game, factory).infrastructureBonus).toBe(20);
-  player.updateEconomy(10);
-  expect(player.supplyStatus().logistics).toBeGreaterThan(0);
-  expect(game.unitCount(UnitType.Train)).toBe(0);
-
-  factory.delete(false);
-  farm.delete(false);
-  player.updateEconomy(20);
-  expect(player.supplyStatus().logistics).toBe(0);
-});
-
-test("route requests reject incompatible buildings without charging resources", async () => {
-  const game = await setup(
-    "big_plains",
-    { strategicEconomy: true, infiniteGold: true, instantBuild: true },
-    [new PlayerInfo("p", PlayerType.Human, null, "p")],
-  );
-  const player = game.player("p");
-  for (let x = 30; x <= 80; x++)
-    for (let y = 30; y <= 70; y++) player.conquer(game.ref(x, y));
-  game.endSpawnPhase();
-  game.addExecution(
-    new ConstructionExecution(player, UnitType.City, game.ref(40, 50)),
-  );
-  game.addExecution(
-    new ConstructionExecution(player, UnitType.DefensePost, game.ref(60, 50)),
-  );
-  for (let i = 0; i < 5; i++) game.executeNextTick();
-  const city = player.units(UnitType.City)[0];
-  const defense = player.units(UnitType.DefensePost)[0];
-  const steelBefore = player.resourceAmount(ProcessedResource.Steel);
-
-  game.addExecution(
-    new InfrastructureRouteExecution(player, [city.id(), defense.id()]),
-  );
-  game.executeNextTick();
-  game.executeNextTick();
-
-  expect(game.railNetwork().stationManager().findStation(city)).not.toBeNull();
-  expect(game.railNetwork().stationManager().findStation(defense)).toBeNull();
-  expect(
-    game.railNetwork().stationManager().findStation(city)?.neighbors(),
-  ).toHaveLength(0);
-  expect(player.resourceAmount(ProcessedResource.Steel)).toBe(steelBefore);
-});
-
-test("rejects an underfunded route without charging or creating rail", async () => {
-  const { game, player, city, factory } = await routeFixture();
-  player.removeGold(player.gold());
-  const goldBefore = player.gold();
-  const steelBefore = player.resourceAmount(ProcessedResource.Steel);
-
-  game.addExecution(
-    new InfrastructureRouteExecution(player, [city.id(), factory.id()]),
-  );
-  for (let i = 0; i < 2; i++) game.executeNextTick();
-
-  expect(player.gold()).toBe(goldBefore);
-  expect(player.resourceAmount(ProcessedResource.Steel)).toBe(steelBefore);
-  expect(
-    game.railNetwork().stationManager().findStation(city)?.neighbors(),
-  ).toHaveLength(0);
-  expect(
-    game.railNetwork().stationManager().findStation(factory)?.neighbors(),
-  ).toHaveLength(0);
-});
-
-test("rejects a route without enough steel and preserves its gold", async () => {
-  const { game, player, city, factory } = await routeFixture();
-  player.removeGold(player.gold());
-  player.removeResource(
-    ProcessedResource.Steel,
-    player.resourceAmount(ProcessedResource.Steel),
-  );
-  player.addGold(100_000n);
-  const goldBefore = player.gold();
-  const steelBefore = player.resourceAmount(ProcessedResource.Steel);
-
-  game.addExecution(
-    new InfrastructureRouteExecution(player, [city.id(), factory.id()]),
-  );
-  for (let i = 0; i < 2; i++) game.executeNextTick();
-
-  expect(player.gold()).toBe(goldBefore);
-  expect(player.resourceAmount(ProcessedResource.Steel)).toBe(steelBefore);
-  expect(
-    game.railNetwork().stationManager().findStation(city)?.neighbors(),
-  ).toHaveLength(0);
-  expect(
-    game.railNetwork().stationManager().findStation(factory)?.neighbors(),
-  ).toHaveLength(0);
-});
-
-test("connects three selected logistics nodes in the requested order", async () => {
-  const { game, player, city, farm, factory } = await routeFixture();
-  player.addResource(ProcessedResource.Steel, 10);
-  const routeUnits = [city, farm, factory];
-  const plannedPaths = game.railNetwork().planInfrastructureRoute(routeUnits)!;
-  const plannedTiles = plannedPaths.reduce(
-    (total, path) => total + path.length,
-    0,
-  );
-  const expectedGold = game
-    .config()
-    .infrastructureRouteGoldCost(plannedTiles, player);
-  const expectedSteel = Math.ceil(
-    plannedTiles / game.config().infrastructureRoute().steelPerTiles,
-  );
-  const goldBefore = player.gold();
-  const steelBefore = player.resourceAmount(ProcessedResource.Steel);
-  const railroadUpdates: RailroadConstructionUpdate[] = [];
-
-  game.addExecution(
-    new InfrastructureRouteExecution(player, [
-      city.id(),
-      farm.id(),
-      factory.id(),
-    ]),
-  );
-  for (let i = 0; i < 2; i++) {
-    const updates = game.executeNextTick();
-    railroadUpdates.push(...updates[GameUpdateType.RailroadConstructionEvent]);
+  for (let x = 20; x <= 180; x++) {
+    for (let y = 20; y <= 80; y++) player.conquer(game.ref(x, y));
   }
+  game.endSpawnPhase();
+  return { game, player };
+}
 
-  const manager = game.railNetwork().stationManager();
-  const cityStation = manager.findStation(city)!;
-  const farmStation = manager.findStation(farm)!;
-  const factoryStation = manager.findStation(factory)!;
-  expect(cityStation.getRailroadTo(farmStation)).not.toBeNull();
-  expect(farmStation.getRailroadTo(factoryStation)).not.toBeNull();
-  expect(cityStation.getCluster()?.has(factoryStation)).toBe(true);
-  expect(goldBefore - player.gold()).toBe(expectedGold);
-  expect(steelBefore - player.resourceAmount(ProcessedResource.Steel)).toBe(
-    expectedSteel,
-  );
+async function finishBuilds(game: Game): Promise<void> {
+  for (let i = 0; i < 8; i++) game.executeNextTick();
+}
 
-  const updateData = {
-    updates: {
-      [GameUpdateType.RailroadConstructionEvent]: railroadUpdates,
-    },
-  } as unknown as GameUpdateViewData;
-  const liveCache = new RailroadCache(game.width(), game.height());
-  const replayCache = new RailroadCache(game.width(), game.height());
-  liveCache.apply(updateData);
-  replayCache.apply(updateData);
-  expect(railroadUpdates).toHaveLength(2);
-  expect([...liveCache.getRailroads()]).toEqual([
-    ...replayCache.getRailroads(),
-  ]);
-  for (const update of railroadUpdates) {
-    expect(liveCache.getRailroads().get(update.id)).toEqual(update.tiles);
-  }
-
-  const goldAfterFirstRoute = player.gold();
-  const steelAfterFirstRoute = player.resourceAmount(ProcessedResource.Steel);
-  game.addExecution(
-    new InfrastructureRouteExecution(player, [
-      city.id(),
-      farm.id(),
-      factory.id(),
-    ]),
-  );
-  const repeatedRouteUpdates: RailroadConstructionUpdate[] = [];
-  for (let i = 0; i < 2; i++) {
-    const updates = game.executeNextTick();
-    repeatedRouteUpdates.push(
-      ...updates[GameUpdateType.RailroadConstructionEvent],
+describe("point-placed infrastructure", () => {
+  test("builds as one normal structure at the selected tile", async () => {
+    const { game, player } = await strategicFixture();
+    const tile = game.ref(100, 50);
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.Infrastructure, tile),
     );
-  }
 
-  expect(repeatedRouteUpdates).toHaveLength(0);
-  expect(player.gold()).toBe(goldAfterFirstRoute);
-  expect(player.resourceAmount(ProcessedResource.Steel)).toBe(
-    steelAfterFirstRoute,
-  );
-});
+    await finishBuilds(game);
 
-test("rejects duplicate route nodes without charging or connecting buildings", async () => {
-  const { game, player, city } = await routeFixture();
-  const goldBefore = player.gold();
-  const steelBefore = player.resourceAmount(ProcessedResource.Steel);
+    const infrastructure = player.units(UnitType.Infrastructure);
+    expect(infrastructure).toHaveLength(1);
+    expect(infrastructure[0].tile()).toBe(tile);
+    expect(infrastructure[0].hasTrainStation()).toBe(true);
+    expect(
+      game.railNetwork().stationManager().findStation(infrastructure[0]),
+    ).not.toBeNull();
+  });
 
-  game.addExecution(
-    new InfrastructureRouteExecution(player, [city.id(), city.id()]),
-  );
-  for (let i = 0; i < 2; i++) game.executeNextTick();
+  test("connects nearby logistics buildings when infrastructure is placed", async () => {
+    const { game, player } = await strategicFixture();
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.City, game.ref(40, 50)),
+    );
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.Farm, game.ref(80, 50)),
+    );
+    game.addExecution(
+      new ConstructionExecution(
+        player,
+        UnitType.Infrastructure,
+        game.ref(60, 50),
+      ),
+    );
 
-  expect(player.gold()).toBe(goldBefore);
-  expect(player.resourceAmount(ProcessedResource.Steel)).toBe(steelBefore);
-  expect(
-    game.railNetwork().stationManager().findStation(city)?.neighbors(),
-  ).toHaveLength(0);
-});
+    await finishBuilds(game);
 
-test("limits path planning to the configured maximum of selected nodes", async () => {
-  const game = await setup(
-    "big_plains",
-    { strategicEconomy: true, infiniteGold: true },
-    [new PlayerInfo("p", PlayerType.Human, null, "p")],
-  );
-  const player = game.player("p");
-  game.endSpawnPhase();
-  const routeConfig = game.config().infrastructureRoute();
-  const requestedNodeCount = routeConfig.maxNodes + 1;
-  const planRoute = vi.spyOn(game.railNetwork(), "planInfrastructureRoute");
+    const manager = game.railNetwork().stationManager();
+    const city = manager.findStation(player.units(UnitType.City)[0]);
+    const farm = manager.findStation(player.units(UnitType.Farm)[0]);
+    const infrastructure = manager.findStation(
+      player.units(UnitType.Infrastructure)[0],
+    );
+    expect(city).not.toBeNull();
+    expect(farm).not.toBeNull();
+    expect(infrastructure).not.toBeNull();
+    expect(infrastructure?.getCluster()?.has(city!)).toBe(true);
+    expect(infrastructure?.getCluster()?.has(farm!)).toBe(true);
+    expect(infrastructure?.getCluster()?.size()).toBe(3);
+  });
 
-  game.addExecution(
-    new InfrastructureRouteExecution(
-      player,
-      Array.from({ length: requestedNodeCount }, (_, index) => index + 1000),
-    ),
-  );
-  for (let i = 0; i < 2; i++) game.executeNextTick();
+  test("infrastructure dispatches trains on its connected strategic network", async () => {
+    const { game, player } = await strategicFixture();
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.City, game.ref(80, 50)),
+    );
+    game.addExecution(
+      new ConstructionExecution(
+        player,
+        UnitType.Infrastructure,
+        game.ref(100, 50),
+      ),
+    );
+    await finishBuilds(game);
 
-  expect(planRoute).not.toHaveBeenCalled();
-});
+    const infrastructure = player.units(UnitType.Infrastructure)[0];
+    expect(
+      game
+        .railNetwork()
+        .stationManager()
+        .findStation(infrastructure)
+        ?.getCluster()
+        ?.has(
+          game
+            .railNetwork()
+            .stationManager()
+            .findStation(player.units(UnitType.City)[0])!,
+        ),
+    ).toBe(true);
+    vi.spyOn(game.config(), "trainSpawnRate").mockReturnValue(1);
 
-test("capturing a route node severs the old owner rail and creates a new node", async () => {
-  const game = await setup(
-    "big_plains",
-    { strategicEconomy: true, infiniteGold: true, instantBuild: true },
-    [
-      new PlayerInfo("p", PlayerType.Human, null, "p"),
-      new PlayerInfo("q", PlayerType.Human, null, "q"),
-    ],
-  );
-  const player = game.player("p");
-  const other = game.player("q");
-  player.addGold(1_000_000n);
-  for (let x = 30; x <= 100; x++)
-    for (let y = 30; y <= 70; y++) player.conquer(game.ref(x, y));
-  game.endSpawnPhase();
-  game.addExecution(
-    new ConstructionExecution(player, UnitType.City, game.ref(40, 50)),
-  );
-  game.addExecution(
-    new ConstructionExecution(player, UnitType.Factory, game.ref(90, 50)),
-  );
-  for (let i = 0; i < 8; i++) game.executeNextTick();
-  const city = player.units(UnitType.City)[0];
-  const factory = player.units(UnitType.Factory)[0];
-  game.addExecution(
-    new InfrastructureRouteExecution(player, [city.id(), factory.id()]),
-  );
-  for (let i = 0; i < 2; i++) game.executeNextTick();
+    for (let i = 0; i < 30; i++) game.executeNextTick();
 
-  const manager = game.railNetwork().stationManager();
-  const previousStation = manager.findStation(factory);
-  expect(previousStation).not.toBeNull();
-  expect(manager.findStation(city)?.getCluster()?.size()).toBe(2);
-  factory.setOwner(other);
+    expect(game.units(UnitType.Train).length).toBeGreaterThan(0);
+  });
 
-  const capturedStation = manager.findStation(factory);
-  expect(capturedStation).not.toBeNull();
-  expect(capturedStation).not.toBe(previousStation);
-  expect(manager.findStation(city)?.getCluster()?.size()).toBe(1);
-  expect(capturedStation?.getCluster()?.size()).toBe(1);
-});
+  test("industry does not create tracks or stations but can use nearby rail bonuses", async () => {
+    const { game, player } = await strategicFixture();
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.City, game.ref(40, 50)),
+    );
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.Farm, game.ref(80, 50)),
+    );
+    game.addExecution(
+      new ConstructionExecution(
+        player,
+        UnitType.Infrastructure,
+        game.ref(60, 50),
+      ),
+    );
+    await finishBuilds(game);
 
-test("a supply center contributes logistics only through the capital rail network", async () => {
-  const game = await setup(
-    "big_plains",
-    { strategicEconomy: true, infiniteGold: true, instantBuild: true },
-    [new PlayerInfo("p", PlayerType.Human, null, "p")],
-  );
-  const player = game.player("p");
-  for (let x = 30; x <= 100; x++)
-    for (let y = 30; y <= 70; y++) player.conquer(game.ref(x, y));
-  game.endSpawnPhase();
-  game.addExecution(
-    new ConstructionExecution(player, UnitType.City, game.ref(40, 50)),
-  );
-  game.addExecution(
-    new ConstructionExecution(player, UnitType.SupplyCenter, game.ref(90, 50)),
-  );
-  for (let i = 0; i < 8; i++) game.executeNextTick();
-  const city = player.units(UnitType.City)[0];
-  const supplyCenter = player.units(UnitType.SupplyCenter)[0];
+    const railsBeforeIndustry = game
+      .railNetwork()
+      .stationManager()
+      .getAll().size;
+    const addUpdate = vi.spyOn(game, "addUpdate");
+    const railroadUpdateCount = () =>
+      addUpdate.mock.calls.filter(
+        ([update]) => update.type === GameUpdateType.RailroadConstructionEvent,
+      ).length;
+    const railUpdatesBeforeIndustry = railroadUpdateCount();
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.Factory, game.ref(100, 50)),
+    );
+    await finishBuilds(game);
 
-  player.addTanks(20);
-  const initialFuel = player.resourceAmount(ProcessedResource.Fuel);
-  const initialSteel = player.resourceAmount(ProcessedResource.Steel);
-  player.updateEconomy(10);
-  expect(player.supplyStatus().logistics).toBe(0);
-  expect(player.supplyStatus().fuelDemand).toBe(2);
-  expect(player.supplyStatus().steelDemand).toBe(1);
-  expect(player.resourceAmount(ProcessedResource.Fuel)).toBe(initialFuel - 2);
-  expect(player.resourceAmount(ProcessedResource.Steel)).toBe(initialSteel - 1);
+    const factory = player.units(UnitType.Factory)[0];
+    expect(factory).toBeDefined();
+    expect(factory.hasTrainStation()).toBe(false);
+    expect(game.railNetwork().stationManager().findStation(factory)).toBeNull();
+    expect(game.railNetwork().stationManager().getAll().size).toBe(
+      railsBeforeIndustry,
+    );
+    expect(railroadUpdateCount()).toBe(railUpdatesBeforeIndustry);
+    expect(player.units(UnitType.Infrastructure)).toHaveLength(1);
+    expect(productionEfficiency(game, factory).infrastructureBonus).toBe(20);
+  });
 
-  game.addExecution(
-    new InfrastructureRouteExecution(player, [city.id(), supplyCenter.id()]),
-  );
-  for (let i = 0; i < 2; i++) game.executeNextTick();
-  const fuelAfterUnconnectedMaintenance = player.resourceAmount(
-    ProcessedResource.Fuel,
-  );
-  const steelAfterUnconnectedMaintenance = player.resourceAmount(
-    ProcessedResource.Steel,
-  );
-  player.updateEconomy(20);
-  expect(player.supplyStatus().logistics).toBe(15);
-  expect(player.supplyStatus().fuelDemand).toBe(1);
-  expect(player.supplyStatus().steelDemand).toBe(0);
-  expect(player.resourceAmount(ProcessedResource.Fuel)).toBe(
-    fuelAfterUnconnectedMaintenance - 1,
-  );
-  expect(player.resourceAmount(ProcessedResource.Steel)).toBe(
-    steelAfterUnconnectedMaintenance,
-  );
-});
+  test("legacy industry does not create or trigger railroad connections", async () => {
+    const { game, player } = await legacyFixture();
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.City, game.ref(40, 50)),
+    );
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.Port, game.ref(80, 50)),
+    );
+    game.addExecution(
+      new ConstructionExecution(player, UnitType.Factory, game.ref(60, 50)),
+    );
+    const addUpdate = vi.spyOn(game, "addUpdate");
 
-test("strategic infrastructure is a route action, not a placed structure", async () => {
-  const game = await setup(
-    "big_plains",
-    { strategicEconomy: true, infiniteGold: true, instantBuild: true },
-    [new PlayerInfo("p", PlayerType.Human, null, "p")],
-  );
-  const player = game.player("p");
-  player.conquer(game.ref(50, 50));
-  game.endSpawnPhase();
+    await finishBuilds(game);
 
-  game.addExecution(
-    new ConstructionExecution(
-      player,
-      UnitType.Infrastructure,
-      game.ref(50, 50),
-    ),
-  );
-  for (let i = 0; i < 2; i++) game.executeNextTick();
-
-  expect(player.units(UnitType.Infrastructure)).toHaveLength(0);
+    expect(game.railNetwork().stationManager().getAll().size).toBe(0);
+    expect(
+      addUpdate.mock.calls.some(
+        ([update]) => update.type === GameUpdateType.RailroadConstructionEvent,
+      ),
+    ).toBe(false);
+    expect(
+      game
+        .railNetwork()
+        .computeGhostRailPaths(UnitType.Factory, game.ref(100, 50)),
+    ).toEqual([]);
+  });
 });

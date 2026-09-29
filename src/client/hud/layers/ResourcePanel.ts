@@ -1,6 +1,5 @@
 import { html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { NAVAL_TRADE } from "../../../core/configuration/StrategyConfig";
 import { EventBus } from "../../../core/EventBus";
 import { UnitType } from "../../../core/game/Game";
 import {
@@ -17,7 +16,6 @@ import {
   ToggleResourceMapEvent,
 } from "../../InputHandler";
 import { RESOURCE_COLORS, resourceIconUrl } from "../../ResourceMap";
-import { DispatchTradeRouteIntentEvent } from "../../Transport";
 import { renderNumber, translateText } from "../../Utils";
 import { GameView } from "../../view";
 import { UnitView } from "../../view/UnitView";
@@ -39,8 +37,6 @@ export class ResourcePanel extends LitElement implements Controller {
   public eventBus!: EventBus;
   @state() private mapVisible = false;
   @state() private navalMapVisible = false;
-  @state() private selectedRouteSource: number | null = null;
-  @state() private selectedRouteDestination: number | null = null;
 
   createRenderRoot() {
     return this;
@@ -163,54 +159,6 @@ export class ResourcePanel extends LitElement implements Controller {
     });
   }
 
-  private tradeRouteSourcePorts() {
-    const player = this.game.myPlayer();
-    if (!player) return [];
-    return player
-      .units(UnitType.Port)
-      .filter(
-        (port) =>
-          port.isActive() &&
-          !port.isUnderConstruction() &&
-          port.markedForDeletion() === false,
-      );
-  }
-
-  private tradeRouteDestinationPorts() {
-    const player = this.game.myPlayer();
-    const source =
-      this.tradeRouteSourcePorts().find(
-        (port) => port.id() === this.selectedRouteSource,
-      ) ?? this.tradeRouteSourcePorts()[0];
-    if (!player || !source) return [];
-    return this.game
-      .units(UnitType.Port)
-      .filter(
-        (port) =>
-          port.id() !== source.id() &&
-          port.owner() !== player &&
-          port.isActive() &&
-          !port.isUnderConstruction() &&
-          port.markedForDeletion() === false &&
-          !player.hasEmbargo(port.owner()),
-      );
-  }
-
-  private dispatchTradeRoute(): void {
-    const source =
-      this.tradeRouteSourcePorts().find(
-        (port) => port.id() === this.selectedRouteSource,
-      ) ?? this.tradeRouteSourcePorts()[0];
-    const destination =
-      this.tradeRouteDestinationPorts().find(
-        (port) => port.id() === this.selectedRouteDestination,
-      ) ?? this.tradeRouteDestinationPorts()[0];
-    if (!source || !destination) return;
-    this.eventBus.emit(
-      new DispatchTradeRouteIntentEvent(source.id(), destination.id()),
-    );
-  }
-
   render() {
     const player = this.game?.myPlayer();
     if (!player || !this.game.config().strategicEconomy()) return null;
@@ -224,18 +172,6 @@ export class ResourcePanel extends LitElement implements Controller {
     const buildings = player.units().filter((unit) => unit.productionStatus());
     const navalSectors = this.navalSectorSummary(player.units(UnitType.Port));
     const tradeRoutes = this.activeTradeRoutes();
-    const routeSources = this.tradeRouteSourcePorts();
-    const routeSource =
-      routeSources.find((port) => port.id() === this.selectedRouteSource) ??
-      routeSources[0];
-    const routeDestinations = this.tradeRouteDestinationPorts();
-    const routeDestination =
-      routeDestinations.find(
-        (port) => port.id() === this.selectedRouteDestination,
-      ) ?? routeDestinations[0];
-    const atManualRouteLimit =
-      player.units(UnitType.TradeShip).length >=
-      NAVAL_TRADE.manualRouteLimitPerPlayer;
     return html` <aside
       class="w-fit min-w-[14rem] max-w-[21rem] p-2 bg-gray-950/95 shadow-xs rounded-lg text-white text-xs"
       @contextmenu=${(e: Event) => e.preventDefault()}
@@ -319,71 +255,6 @@ export class ResourcePanel extends LitElement implements Controller {
           ${player.supplyStatus().tanks}%</span
         >
       </div>
-      ${routeSources.length > 0
-        ? html`<details class="mt-2 border-t border-white/15 pt-1">
-            <summary class="cursor-pointer text-amber-200">
-              ${translateText("naval_map.dispatch_route")}
-            </summary>
-            <div class="mt-1 grid gap-1">
-              <label class="grid gap-0.5 text-[10px] text-gray-300">
-                ${translateText("naval_map.source_port")}
-                <select
-                  class="w-full rounded-sm bg-gray-800 px-1 py-1 text-white"
-                  .value=${routeSource ? String(routeSource.id()) : ""}
-                  @change=${(event: Event) => {
-                    const select = event.target as HTMLSelectElement;
-                    this.selectedRouteSource = Number(select.value);
-                    this.selectedRouteDestination = null;
-                  }}
-                >
-                  ${routeSources.map(
-                    (port) =>
-                      html`<option value=${port.id()}>
-                        ${this.game.x(port.tile())},${this.game.y(port.tile())}
-                      </option>`,
-                  )}
-                </select>
-              </label>
-              <label class="grid gap-0.5 text-[10px] text-gray-300">
-                ${translateText("naval_map.destination_port")}
-                <select
-                  class="w-full rounded-sm bg-gray-800 px-1 py-1 text-white"
-                  .value=${routeDestination
-                    ? String(routeDestination.id())
-                    : ""}
-                  ?disabled=${routeDestinations.length === 0}
-                  @change=${(event: Event) => {
-                    this.selectedRouteDestination = Number(
-                      (event.target as HTMLSelectElement).value,
-                    );
-                  }}
-                >
-                  ${routeDestinations.map(
-                    (port) =>
-                      html`<option value=${port.id()}>
-                        ${port.owner().displayName()} ·
-                        ${this.game.x(port.tile())},${this.game.y(port.tile())}
-                      </option>`,
-                  )}
-                </select>
-              </label>
-              <button
-                class="rounded-sm bg-amber-700 px-2 py-1 text-white disabled:opacity-40"
-                ?disabled=${!routeSource ||
-                !routeDestination ||
-                atManualRouteLimit}
-                @click=${() => this.dispatchTradeRoute()}
-              >
-                ${translateText("naval_map.dispatch")}
-              </button>
-              <p class="text-[10px] text-gray-400">
-                ${translateText("naval_map.route_limit", {
-                  limit: NAVAL_TRADE.manualRouteLimitPerPlayer,
-                })}
-              </p>
-            </div>
-          </details>`
-        : null}
       ${navalSectors.length > 0 || tradeRoutes.length > 0
         ? html`<details class="mt-2 border-t border-white/15 pt-1">
             <summary class="cursor-pointer text-sky-300">

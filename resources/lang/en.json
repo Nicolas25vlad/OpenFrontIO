@@ -165,10 +165,10 @@
       "atom_bomb": "Small explosion",
       "city": "Increases max population",
       "defense_post": "Increases defenses of nearby borders",
-      "factory": "Creates railroads and spawns trains",
+      "factory": "Processes resources and receives bonuses from connected infrastructure.",
       "farm": "Produces food; fertilizer doubles the base yield.",
       "hydrogen_bomb": "Large explosion",
-      "infrastructure": "Connects logistics buildings by rail.",
+      "infrastructure": "A point-placed building that connects nearby logistics buildings by rail.",
       "mine": "Extracts resources from deposits",
       "mirv": "Huge explosion, only targets selected player",
       "missile_silo": "Used to launch nukes",
@@ -177,14 +177,13 @@
       "sam_launcher": "Defends against incoming nukes",
       "supply_center": "Extends supply when connected to your capital by rail.",
       "tank": "Deploys one independently controlled tank from your reserve.",
-      "trench": "Drag across your border to paint trenches against land attacks.",
+      "trench": "Place a trench on an owned border tile to defend against land attacks.",
       "vehicle_factory": "Manufactures tanks using steel and fuel.",
       "warship": "Captures trade ships, destroys ships and boats"
     },
     "not_enough_money": "Not enough money",
-    "trench_brush_cancel": "Cancel",
-    "trench_brush_hint": "Drag across your border to select trenches ({count} tiles); release to build.",
-    "trench_requirements": "Trenches require an owned border tile and enough steel.",
+    "trench_placement_cancel": "Cancel placement",
+    "trench_placement_hint": "Click an owned border tile to place one trench.",
     "upgrade_amount": "x{amount}",
     "warship_shift_hint": "Hold Shift and drag to select multiple warships at once"
   },
@@ -1025,7 +1024,7 @@
     "build_city_desc": "Increases your max population. Useful when you can't expand your territory or you're about to hit your population limit.",
     "build_defense_desc": "Increases defenses around nearby borders, which show a checkered pattern. Attacks from enemies are slower and have more casualties.",
     "build_desc": "Description",
-    "build_factory_desc": "Automatically builds railroads to nearby cities, ports and other factories, and can also link up with friendly neighbors. Trains spawn regularly and give you a fixed amount of gold for each building they visit along the route, with extra gold for visiting your neighbors' buildings.",
+    "build_factory_desc": "Processes resources into industrial goods. Nearby connected rail infrastructure improves production efficiency.",
     "build_hydrogen_desc": "Large explosive bomb. Spawns from the nearest Missile Silo and lands in the area you first clicked to build it.",
     "build_icon": "Icon",
     "build_menu_desc": "Build these or see how many of each you already build:",
@@ -1137,11 +1136,6 @@
     "visibility_private": "Private",
     "visibility_public": "Public",
     "waiting": "Waiting for players..."
-  },
-  "infrastructure": {
-    "route_confirm": "Build route",
-    "route_cost_variable": "Cost depends on route length",
-    "route_hint": "Click owned logistics buildings in order ({count} selected), then confirm."
   },
   "inventory": {
     "equipped": "Equipped",
@@ -1500,12 +1494,7 @@
   },
   "naval_map": {
     "button": "Sea sectors",
-    "destination_port": "Destination port",
-    "dispatch": "Dispatch convoy",
-    "dispatch_route": "Choose a trade route",
     "legend": "Estimated sector strength: green friendly, yellow balanced, red hostile. Blockade checks also require connected water.",
-    "route_limit": "At most {limit} convoys per player can be active.",
-    "source_port": "Source port",
     "toggle": "Toggle naval sectors"
   },
   "new_lobby_prompt": {

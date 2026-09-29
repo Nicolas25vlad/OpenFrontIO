@@ -1,3 +1,7 @@
+import {
+  AttackLogicInput,
+  Config,
+} from "../../../src/core/configuration/Config";
 import { BuildTrenchExecution } from "../../../src/core/execution/BuildTrenchExecution";
 import { Executor } from "../../../src/core/execution/ExecutionManager";
 import {
@@ -5,6 +9,7 @@ import {
   Player,
   PlayerInfo,
   PlayerType,
+  TerrainType,
 } from "../../../src/core/game/Game";
 import { GameUpdateType } from "../../../src/core/game/GameUpdates";
 import { ProcessedResource } from "../../../src/core/game/Resources";
@@ -55,30 +60,63 @@ describe("BuildTrenchExecution", () => {
     expect(game.trenchLevel(tile)).toBe(1);
   });
 
-  test("builds a brushed stroke on every valid owned border tile", () => {
+  test("a point intent builds only the selected border tile", () => {
     const firstTile = game.ref(50, 50);
     const secondTile = game.ref(52, 50);
     player.conquer(firstTile);
     player.conquer(secondTile);
     const steelBefore = player.resourceAmount(ProcessedResource.Steel);
-    const executor = new Executor(game, "trench-brush", undefined);
+    const executor = new Executor(game, "trench-point", undefined);
 
     game.addExecution(
       executor.createExec({
         type: "build_trench",
         clientID: "client",
         tile: firstTile,
-        tiles: [secondTile, firstTile, firstTile],
       }),
     );
     game.executeNextTick();
 
     expect(game.trenchLevel(firstTile)).toBe(1);
-    expect(game.trenchLevel(secondTile)).toBe(1);
+    expect(game.trenchLevel(secondTile)).toBe(0);
     expect(player.resourceAmount(ProcessedResource.Steel)).toBe(
-      steelBefore -
-        2 * (game.config().trenchCost()[ProcessedResource.Steel] ?? 0),
+      steelBefore - (game.config().trenchCost()[ProcessedResource.Steel] ?? 0),
     );
+  });
+
+  test("a built trench increases defense and slows a land attack", () => {
+    const tile = game.ref(50, 50);
+    player.conquer(tile);
+    const attack: AttackLogicInput = {
+      terrain: TerrainType.Plains,
+      attackTroops: 50_000,
+      attacker: { type: PlayerType.Human, numTiles: 20_000 },
+      defender: {
+        type: PlayerType.Human,
+        numTiles: 20_000,
+        troops: 50_000,
+        isTraitor: false,
+        isDisconnectedTeammate: false,
+      },
+      defenderHasDefensePost: false,
+      defenderDefensePostLevel: 0,
+      falloutRatio: null,
+      borderSize: 100,
+    };
+    const attackLogic = (input: AttackLogicInput) =>
+      Config.prototype.attackLogic.call(game.config(), input);
+    const noTrench = attackLogic(attack);
+
+    new BuildTrenchExecution(player, tile).init(game);
+
+    const withTrench = attackLogic({
+      ...attack,
+      defenderTrenchLevel: 3,
+    });
+    expect(withTrench.attackerTroopLoss).toBeGreaterThan(
+      noTrench.attackerTroopLoss,
+    );
+    expect(withTrench.tickFraction).toBeGreaterThan(noTrench.tickFraction);
   });
 
   test("serializes simultaneous trench intents against the shared steel stock", () => {

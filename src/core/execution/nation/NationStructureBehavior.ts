@@ -805,28 +805,14 @@ export class NationStructureBehavior {
    */
   private tryBuildInfrastructure(): boolean {
     const config = this.game.config();
-    if (
-      !config.strategicEconomy?.() ||
-      config.isUnitDisabled(UnitType.SupplyCenter)
-    ) {
+    if (!config.strategicEconomy?.()) return false;
+
+    const logisticsBuildings = this.player.units([
+      UnitType.Infrastructure,
+      UnitType.SupplyCenter,
+    ]);
+    if (logisticsBuildings.some((unit) => unit.isUnderConstruction()))
       return false;
-    }
-
-    const infrastructure = this.player.units(UnitType.SupplyCenter);
-    if (infrastructure.some((unit) => unit.isUnderConstruction())) return false;
-
-    const retryAfter =
-      (this.game.unitInfo(UnitType.SupplyCenter).constructionDuration ?? 0) +
-      ECONOMY.periodTicks;
-    if (this.pendingInfrastructureOrderTick !== null) {
-      if (
-        this.game.ticks() - this.pendingInfrastructureOrderTick <=
-        retryAfter
-      ) {
-        return false;
-      }
-      this.pendingInfrastructureOrderTick = null;
-    }
 
     const productionUnits = this.player.units([...PRODUCTION_UNIT_TYPES]);
     const stationManager = this.game.railNetwork().stationManager();
@@ -849,7 +835,7 @@ export class NationStructureBehavior {
         !capitalCluster ||
         stationManager.findStation(unit)?.getCluster() !== capitalCluster,
     );
-    const connectedInfrastructureLevels = infrastructure.reduce(
+    const connectedInfrastructureLevels = logisticsBuildings.reduce(
       (levels, unit) =>
         levels +
         (stationManager.findStation(unit)?.getCluster() === capitalCluster &&
@@ -867,7 +853,24 @@ export class NationStructureBehavior {
       connectedInfrastructureLevels < MAX_LOGISTICS_INFRASTRUCTURE_LEVELS;
 
     if (!hasUncoveredProduction && !canImproveLogistics) return false;
-    if (!this.maybeSpawnStructure(UnitType.SupplyCenter)) return false;
+
+    const structureType = hasUncoveredProduction
+      ? UnitType.Infrastructure
+      : UnitType.SupplyCenter;
+    if (config.isUnitDisabled(structureType)) return false;
+    const retryAfter =
+      (this.game.unitInfo(structureType).constructionDuration ?? 0) +
+      ECONOMY.periodTicks;
+    if (this.pendingInfrastructureOrderTick !== null) {
+      if (
+        this.game.ticks() - this.pendingInfrastructureOrderTick <=
+        retryAfter
+      ) {
+        return false;
+      }
+      this.pendingInfrastructureOrderTick = null;
+    }
+    if (!this.maybeSpawnStructure(structureType)) return false;
 
     this.pendingInfrastructureOrderTick = this.game.ticks();
     return true;
@@ -1444,7 +1447,7 @@ export class NationStructureBehavior {
   }
 
   /**
-   * Choose a supply-center site that can join the capital network and serve
+   * Choose a logistics site that can join the capital network and serve
    * production buildings that are not connected yet.
    */
   private infrastructureValue(): (tile: TileRef) => number {

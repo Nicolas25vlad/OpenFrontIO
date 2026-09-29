@@ -170,15 +170,15 @@ describe("strategic production", () => {
     expect(factory.toUpdate().production?.shortage).toBe(true);
   });
 
-  test("local cities help production while point infrastructure does not create a route", async () => {
+  test("local cities improve production without a connected rail network", async () => {
     const game = await economyGame();
     const factory = build(game, UnitType.Factory);
     const city = build(game, UnitType.City, 80, 50);
-    const infra = build(game, UnitType.SupplyCenter, 50, 80);
+    const supplyCenter = build(game, UnitType.SupplyCenter, 50, 80);
     expect(productionEfficiency(game, factory).efficiency).toBe(110);
     for (let i = 0; i < 10; i++) {
       city.increaseLevel();
-      infra.increaseLevel();
+      supplyCenter.increaseLevel();
     }
     expect(productionEfficiency(game, factory).efficiency).toBe(130);
     city.setUnderConstruction(true);

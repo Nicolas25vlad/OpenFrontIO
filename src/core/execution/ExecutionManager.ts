@@ -13,13 +13,11 @@ import { BoatRetreatExecution } from "./BoatRetreatExecution";
 import { BuildTrenchExecution } from "./BuildTrenchExecution";
 import { ConstructionExecution } from "./ConstructionExecution";
 import { DeleteUnitExecution } from "./DeleteUnitExecution";
-import { DispatchTradeRouteExecution } from "./DispatchTradeRouteExecution";
 import { DonateGoldExecution } from "./DonateGoldExecution";
 import { DonateTroopsExecution } from "./DonateTroopExecution";
 import { EmbargoAllExecution } from "./EmbargoAllExecution";
 import { EmbargoExecution } from "./EmbargoExecution";
 import { EmojiExecution } from "./EmojiExecution";
-import { InfrastructureRouteExecution } from "./InfrastructureRouteExecution";
 import { MarkDisconnectedExecution } from "./MarkDisconnectedExecution";
 import { MoveWarshipExecution } from "./MoveWarshipExecution";
 import { NationExecution } from "./NationExecution";
@@ -79,12 +77,6 @@ export class Executor {
         return new BoatRetreatExecution(player, intent.unitID);
       case "move_warship":
         return new MoveWarshipExecution(player, intent.unitIds, intent.tile);
-      case "dispatch_trade_route":
-        return new DispatchTradeRouteExecution(
-          player,
-          intent.sourcePortID,
-          intent.destinationPortID,
-        );
       case "spawn":
         // fromIntent: this one came off the wire, so it is subject to the
         // spawn-phase gate that internal spawns are not.
@@ -141,9 +133,7 @@ export class Executor {
           intent.amount,
         );
       case "build_trench":
-        return new BuildTrenchExecution(player, intent.tiles ?? [intent.tile]);
-      case "infrastructure_route":
-        return new InfrastructureRouteExecution(player, intent.unitIds);
+        return new BuildTrenchExecution(player, intent.tile);
       case "allianceExtension": {
         return new AllianceExtensionExecution(player, intent.recipient);
       }
