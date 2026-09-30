@@ -38,6 +38,7 @@ const atomBombIcon = assetUrl("images/NukeIconWhite.svg");
 const portIcon = assetUrl("images/PortIcon.svg");
 const samlauncherIcon = assetUrl("images/SamLauncherIconWhite.svg");
 const shieldIcon = assetUrl("images/ShieldIconWhite.svg");
+const trenchIcon = assetUrl("images/TrenchIcon.svg");
 
 export interface BuildItemDisplay {
   unitType: PlayerBuildableUnitType;
@@ -107,7 +108,7 @@ export const buildTable: BuildItemDisplay[][] = [
     },
     {
       unitType: UnitType.Trench,
-      icon: shieldIcon,
+      icon: trenchIcon,
       description: "build_menu.desc.trench",
       key: "unit_type.trench",
       countable: true,

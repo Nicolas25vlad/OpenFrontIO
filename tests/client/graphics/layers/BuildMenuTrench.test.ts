@@ -9,6 +9,7 @@ test("trenches use the regular structure build menu entry", () => {
 
   expect(trench).toMatchObject({
     unitType: UnitType.Trench,
+    icon: expect.stringContaining("TrenchIcon.svg"),
     key: "unit_type.trench",
     countable: true,
   });
