@@ -151,6 +151,8 @@ export class ConstructionExecution implements Execution {
       case UnitType.DefensePost:
         this.mg.addExecution(new DefensePostExecution(this.structure!));
         break;
+      case UnitType.Trench:
+        break;
       case UnitType.SAMLauncher:
         this.mg.addExecution(
           new SAMLauncherExecution(player, null, this.structure!),

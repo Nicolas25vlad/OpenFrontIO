@@ -6,28 +6,22 @@ import { EventBus } from "../../../core/EventBus";
 import {
   BuildableUnit,
   BuildMenus,
-  Cell,
   Gold,
   PlayerBuildableUnitType,
   UnitType,
 } from "../../../core/game/Game";
 import { TileRef } from "../../../core/game/GameMap";
-import { ProcessedResource } from "../../../core/game/Resources";
 import { Controller } from "../../Controller";
 import {
   CloseViewEvent,
   MouseDownEvent,
-  MouseMoveEvent,
-  MouseUpEvent,
   ShowBuildMenuEvent,
   ShowEmojiMenuEvent,
 } from "../../InputHandler";
 import { TransformHandler } from "../../TransformHandler";
 import {
-  BuildTrenchIntentEvent,
   BuildUnitIntentEvent,
   SendUpgradeStructureIntentEvent,
-  StartTrenchPlacementEvent,
 } from "../../Transport";
 import { UIState } from "../../UIState";
 import { renderNumber } from "../../Utils";
@@ -112,6 +106,13 @@ export const buildTable: BuildItemDisplay[][] = [
       countable: true,
     },
     {
+      unitType: UnitType.Trench,
+      icon: shieldIcon,
+      description: "build_menu.desc.trench",
+      key: "unit_type.trench",
+      countable: true,
+    },
+    {
       unitType: UnitType.City,
       icon: cityIcon,
       description: "build_menu.desc.city",
@@ -155,14 +156,10 @@ export class BuildMenu extends LitElement implements Controller {
   public game: GameView;
   public eventBus: EventBus;
   public uiState: UIState;
+  public transformHandler: TransformHandler;
   private clickedTile: TileRef;
   public playerBuildables: BuildableUnit[] | null = null;
   private filteredBuildTable: BuildItemDisplay[][] = buildTable;
-  public transformHandler: TransformHandler;
-  private trenchPlacementMode = false;
-
-  @state()
-  private hoveredTrenchTile: TileRef | null = null;
 
   init() {
     this.eventBus.on(ShowBuildMenuEvent, (e) => {
@@ -184,33 +181,9 @@ export class BuildMenu extends LitElement implements Controller {
       const tile = this.game.ref(clickedCell.x, clickedCell.y);
       this.showMenu(tile);
     });
-    this.eventBus.on(StartTrenchPlacementEvent, () => {
-      this.trenchPlacementMode = true;
-      this.hoveredTrenchTile = null;
-      if (this.uiState) this.uiState.trenchPlacementMode = true;
-      this.hideMenu();
-      this.requestUpdate();
-    });
-    this.eventBus.on(CloseViewEvent, () => {
-      this.cancelTrenchPlacement();
-      this.hideMenu();
-    });
+    this.eventBus.on(CloseViewEvent, () => this.hideMenu());
     this.eventBus.on(ShowEmojiMenuEvent, () => this.hideMenu());
-    this.eventBus.on(MouseDownEvent, () => {
-      if (!this.trenchPlacementMode) this.hideMenu();
-    });
-    this.eventBus.on(MouseMoveEvent, (e) => {
-      if (!this.trenchPlacementMode) return;
-      this.hoveredTrenchTile = this.tileAtScreen(e.x, e.y);
-      this.requestUpdate();
-    });
-    this.eventBus.on(MouseUpEvent, (e) => {
-      if (!this.trenchPlacementMode) return;
-      const tile = this.tileAtScreen(e.x, e.y);
-      if (tile === null || !this.canPlaceTrench(tile)) return;
-      this.eventBus.emit(new BuildTrenchIntentEvent(tile));
-      this.cancelTrenchPlacement();
-    });
+    this.eventBus.on(MouseDownEvent, () => this.hideMenu());
   }
 
   tick() {
@@ -491,35 +464,6 @@ export class BuildMenu extends LitElement implements Controller {
 
   render() {
     return html`
-      ${this.trenchPlacementMode
-        ? html`<div class="trench-placement-banner">
-            <span>${translateText("build_menu.trench_placement_hint")}</span>
-            <button
-              class="border border-white/40 rounded px-2 py-1"
-              @click=${() => this.cancelTrenchPlacement()}
-            >
-              ${translateText("build_menu.trench_placement_cancel")}
-            </button>
-          </div>`
-        : ""}
-      ${this.trenchPlacementMode && this.hoveredTrenchTile !== null
-        ? (() => {
-            const screen = this.transformHandler.worldToScreenCoordinates(
-              new Cell(
-                this.game.x(this.hoveredTrenchTile!),
-                this.game.y(this.hoveredTrenchTile!),
-              ),
-            );
-            return html`<div
-              class="trench-placement-tile ${this.canPlaceTrench(
-                this.hoveredTrenchTile!,
-              )
-                ? "valid"
-                : "invalid"}"
-              style="left:${screen.x}px;top:${screen.y}px"
-            ></div>`;
-          })()
-        : ""}
       <div
         class="build-menu ${this._hidden ? "hidden" : ""}"
         @contextmenu=${(e: MouseEvent) => e.preventDefault()}
@@ -621,41 +565,6 @@ export class BuildMenu extends LitElement implements Controller {
 
     // remove disabled buildings from the buildtable
     this.filteredBuildTable = this.getBuildableUnits();
-  }
-
-  private tileAtScreen(screenX: number, screenY: number): TileRef | null {
-    const cell = this.transformHandler.screenToWorldCoordinates(
-      screenX,
-      screenY,
-    );
-    return this.game.isValidCoord(cell.x, cell.y)
-      ? this.game.ref(cell.x, cell.y)
-      : null;
-  }
-
-  private canPlaceTrench(tile: TileRef): boolean {
-    const player = this.game.myPlayer();
-    if (
-      !player ||
-      !this.game.config().strategicEconomy() ||
-      !this.game.isLand(tile) ||
-      this.game.isImpassable(tile) ||
-      this.game.ownerID(tile) !== player.smallID() ||
-      !this.game.isBorder(tile) ||
-      this.game.trenchLevel(tile) >= this.game.config().trenchMaxLevel() ||
-      player.resourceAmount(ProcessedResource.Steel) <
-        (this.game.config().trenchCost()[ProcessedResource.Steel] ?? 0)
-    ) {
-      return false;
-    }
-    return true;
-  }
-
-  private cancelTrenchPlacement(): void {
-    this.trenchPlacementMode = false;
-    this.hoveredTrenchTile = null;
-    if (this.uiState) this.uiState.trenchPlacementMode = false;
-    this.requestUpdate();
   }
 
   private getBuildableUnits(): BuildItemDisplay[][] {

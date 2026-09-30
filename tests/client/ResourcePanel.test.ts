@@ -3,7 +3,7 @@ import { ResourcePanel } from "../../src/client/hud/layers/ResourcePanel";
 import { ToggleNavalSectorMapEvent } from "../../src/client/InputHandler";
 import { GameView } from "../../src/client/view";
 import { EventBus } from "../../src/core/EventBus";
-import { emptyResourceRates, FULL_SUPPLY } from "../../src/core/game/Economy";
+import { emptyResourceRates } from "../../src/core/game/Economy";
 import { UnitType } from "../../src/core/game/Game";
 import {
   emptyResourceStock,
@@ -50,7 +50,6 @@ test("shows actual stocks and all production balances; map toggle changes no sto
     myPlayer: () => ({
       resourceAmount: (resource: keyof typeof stock) => stock[resource],
       resourceRates: () => rates,
-      supplyStatus: () => FULL_SUPPLY,
       tanks: () => 0,
       units: (type?: UnitType) =>
         type === undefined || type === UnitType.Mine ? [mine] : [],
@@ -66,7 +65,9 @@ test("shows actual stocks and all production balances; map toggle changes no sto
   expect(panel.textContent).toContain("resource.coal: +2");
   expect(panel.textContent).toContain("resource.iron: 72%");
   expect(panel.textContent).toContain("resource.coal: 48%");
-  expect(panel.textContent).toMatch(/economy\.tank_supply:\s+100%/);
+  expect(panel.textContent).not.toMatch(
+    /economy\.(supply|naval_supply|tank_supply)/,
+  );
   expect(panel.querySelectorAll("tbody tr")).toHaveLength(
     STOCK_RESOURCES.length,
   );
@@ -147,7 +148,6 @@ test("shows owned-port sectors and active trade routes", async () => {
     hasEmbargo: () => false,
     resourceAmount: () => 0,
     resourceRates: () => emptyResourceRates(),
-    supplyStatus: () => FULL_SUPPLY,
     tanks: () => 0,
   };
   const panel = new ResourcePanel();

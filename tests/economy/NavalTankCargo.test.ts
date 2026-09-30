@@ -91,7 +91,7 @@ describe("strategic tank cargo on naval attacks", () => {
     expect(defender.tanks()).toBeLessThanOrEqual(4);
   });
 
-  it("charges supply for tanks currently loaded on a transport", async () => {
+  it("does not charge upkeep for tanks currently loaded on a transport", async () => {
     const { game, defender } = await startNavalGame();
     defender.addTroops(125_000);
     defender.addTanks(10);
@@ -108,10 +108,7 @@ describe("strategic tank cargo on naval attacks", () => {
 
     defender.updateEconomy(10);
 
-    expect(defender.supplyStatus().fuelDemand).toBe(1);
-    expect(defender.resourceAmount(ProcessedResource.Fuel)).toBe(
-      fuelBefore - 1,
-    );
+    expect(defender.resourceAmount(ProcessedResource.Fuel)).toBe(fuelBefore);
   });
 
   it("keeps legacy intents without a tank request infantry-only", async () => {

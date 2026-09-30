@@ -878,11 +878,6 @@ export class InputHandler {
       }
     }
 
-    if (this.uiState.trenchPlacementMode) {
-      this.eventBus.emit(new MouseUpEvent(event.x, event.y));
-      return;
-    }
-
     // Complete selection box if it was active
     if (this.selectionBoxActive) {
       this.selectionBoxActive = false;

@@ -234,6 +234,7 @@ export enum UnitType {
   SupplyCenter = "Supply Center",
   VehicleFactory = "Vehicle Factory",
   NuclearPlant = "Nuclear Plant",
+  Trench = "Trench",
 }
 
 export enum TrainType {
@@ -259,6 +260,7 @@ export const BuildableAttacks = unitTypeGroup([
 export const Structures = unitTypeGroup([
   UnitType.City,
   UnitType.DefensePost,
+  UnitType.Trench,
   UnitType.SAMLauncher,
   UnitType.MissileSilo,
   UnitType.Port,
@@ -353,6 +355,7 @@ export interface UnitParamsMap {
   [UnitType.MissileSilo]: Record<string, never>;
 
   [UnitType.DefensePost]: Record<string, never>;
+  [UnitType.Trench]: Record<string, never>;
 
   [UnitType.SAMLauncher]: Record<string, never>;
 
@@ -693,7 +696,8 @@ export interface Player {
   removeResource(resource: ResourceType, amount: number): number;
   resourceRates(): Readonly<ResourceRates>;
   finishResourcePeriod(): void;
-  supplyStatus(): Readonly<import("./Economy").SupplyStatus>;
+  /** Logistics bonus from infrastructure connected to the capital by rail. */
+  logisticsBonus(): number;
   updateEconomy(ticks: Tick): void;
 
   // Cumulative trade revenue, surfaced on the live PlayerUpdate so clients can

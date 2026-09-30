@@ -1,4 +1,3 @@
-import { supplyMultiplier } from "../game/Economy";
 import {
   Execution,
   Game,
@@ -61,15 +60,6 @@ export class WarshipExecution implements Execution {
     if (this.warship.health() <= 0) {
       this.warship.delete();
       return;
-    }
-    if (this.mg.config().strategicEconomy()) {
-      const efficiency = supplyMultiplier(
-        this.warship.owner().supplyStatus().navy,
-      );
-      if (
-        Math.floor((ticks + 1) * efficiency) === Math.floor(ticks * efficiency)
-      )
-        return;
     }
     const isInCombat = this.warship.warshipState().isInCombat ?? false;
     if (this.lastEmittedCombat && !isInCombat) {

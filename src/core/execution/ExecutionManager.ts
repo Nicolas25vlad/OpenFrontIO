@@ -10,7 +10,6 @@ import { BreakAllianceExecution } from "./alliance/BreakAllianceExecution";
 import { CapitulationExecution } from "./alliance/CapitulationExecution";
 import { AttackExecution } from "./AttackExecution";
 import { BoatRetreatExecution } from "./BoatRetreatExecution";
-import { BuildTrenchExecution } from "./BuildTrenchExecution";
 import { ConstructionExecution } from "./ConstructionExecution";
 import { DeleteUnitExecution } from "./DeleteUnitExecution";
 import { DonateGoldExecution } from "./DonateGoldExecution";
@@ -132,8 +131,6 @@ export class Executor {
           intent.rocketDirectionUp,
           intent.amount,
         );
-      case "build_trench":
-        return new BuildTrenchExecution(player, intent.tile);
       case "allianceExtension": {
         return new AllianceExtensionExecution(player, intent.recipient);
       }

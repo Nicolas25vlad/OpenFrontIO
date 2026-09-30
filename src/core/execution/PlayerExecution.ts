@@ -59,7 +59,7 @@ export class PlayerExecution implements Execution {
       }
 
       const captor = this.mg!.player(owner.id());
-      if (u.type() === UnitType.DefensePost) {
+      if (u.type() === UnitType.DefensePost || u.type() === UnitType.Trench) {
         u.delete(true, captor);
       } else {
         captor.captureUnit(u);

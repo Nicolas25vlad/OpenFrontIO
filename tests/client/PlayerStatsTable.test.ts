@@ -35,6 +35,7 @@ const stats: PlayerStats = {
   units: {
     city: [91n, 92n, 93n, 94n],
     defp: [101n, 102n, 103n, 104n],
+    trch: [161n, 162n, 163n, 164n],
     port: [111n, 112n, 113n, 114n],
     saml: [121n, 122n, 123n, 124n],
     silo: [131n, 132n, 133n, 134n],
@@ -168,9 +169,18 @@ describe("PlayerStatsTable", () => {
         text(candidate.querySelector("th")) === "player_stats_table.building",
     );
     expect(buildings, "buildings table should exist").toBeDefined();
-    // All twelve structures, with the warship row in its own section.
-    expect(buildings?.querySelectorAll("tbody tr")).toHaveLength(12);
+    // All thirteen structures, with the warship row in its own section.
+    expect(buildings?.querySelectorAll("tbody tr")).toHaveLength(13);
     expect(buildings?.textContent).not.toContain("unit_type.warship");
+    expect(
+      columnsOf(table, "player_stats_table.building_stats", "unit_type.trench"),
+    ).toEqual({
+      "player_stats_table.building": "unit_type.trench",
+      "player_stats_table.built": "161",
+      "player_stats_table.destroyed": "162",
+      "player_stats_table.captured": "163",
+      "player_stats_table.lost": "164",
+    });
 
     expect(columnsOf(table, "player_stats_table.warship_stats")).toEqual({
       "player_stats_table.built": "151",

@@ -1,9 +1,9 @@
 /**
- * DefenseCoveragePass — per-tile "is this tile defended by a same-owner Defense
- * Post?" flag, computed by stamping one instanced circle per post.
+ * DefenseCoveragePass — per-tile "is this tile covered by a same-owner
+ * fortification?" flag, computed by stamping one instanced circle per unit.
  *
  * Replaces the old per-fragment scan (border-compute looped over a uniform array
- * of up to 64 posts for every border tile). Here we invert the loop: each post
+ * of up to 64 posts for every border tile). Here we invert the loop: each unit
  * draws a filled circle of its range into a map-resolution R8 texture, writing
  * 1.0 on tiles it owns and within range. Cost is O(posts × circle area) with no
  * cap on post count, and it's a single instanced draw call regardless of how
@@ -15,7 +15,7 @@
  * fill by sampling the same texture in TerritoryPass.
  *
  * The result depends on tile ownership (the same-owner test), so coverage must
- * be re-stamped whenever posts OR territory change. Territory drips every frame
+ * be re-stamped whenever fortifications OR territory change. Territory drips every frame
  * during combat, so a full map re-stamp every frame would be wasteful at high
  * post counts. Instead we track a grid of dirty BLOCKs: a tile changing owner
  * only changes its own coverage, so we recompute just the blocks containing
@@ -30,14 +30,13 @@
  */
 
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
-import type { RenderSettings } from "../RenderSettings";
 import coverageFragSrc from "../shaders/defense-coverage/defense-coverage.frag.glsl?raw";
 import coverageVertSrc from "../shaders/defense-coverage/defense-coverage.vert.glsl?raw";
 import { createProgram, createTexture2D, shaderSrc } from "../utils/GlUtils";
 import { TILE_DEFINES } from "../utils/TileCodec";
 
-/** Per-instance data (3 floats): tileX, tileY, ownerID. */
-const FLOATS_PER_INSTANCE = 3;
+/** Per-instance data: tileX, tileY, ownerID, range. */
+const FLOATS_PER_INSTANCE = 4;
 
 /**
  * Tile block size for incremental scissored re-stamping. ~2× the post diameter
@@ -48,14 +47,12 @@ const BLOCK = 128;
 
 export class DefenseCoveragePass {
   private gl: WebGL2RenderingContext;
-  private settings: RenderSettings;
   private mapW: number;
   private mapH: number;
   private tileTex: WebGLTexture;
 
   private program: WebGLProgram;
   private uMapSize: WebGLUniformLocation;
-  private uRange: WebGLUniformLocation;
 
   private coverageTex: WebGLTexture;
   private fbo: WebGLFramebuffer;
@@ -82,10 +79,8 @@ export class DefenseCoveragePass {
     mapW: number,
     mapH: number,
     tileTex: WebGLTexture,
-    settings: RenderSettings,
   ) {
     this.gl = gl;
-    this.settings = settings;
     this.mapW = mapW;
     this.mapH = mapH;
     this.tileTex = tileTex;
@@ -102,7 +97,6 @@ export class DefenseCoveragePass {
       shaderSrc(coverageFragSrc, { OWNER_MASK: TILE_DEFINES.OWNER_MASK }),
     );
     this.uMapSize = gl.getUniformLocation(this.program, "uMapSize")!;
-    this.uRange = gl.getUniformLocation(this.program, "uRange")!;
 
     gl.useProgram(this.program);
     gl.uniform1i(gl.getUniformLocation(this.program, "uTileTex"), 0);
@@ -137,7 +131,7 @@ export class DefenseCoveragePass {
       gl.STATIC_DRAW,
     );
 
-    // --- Per-post instance buffer + VAO ---
+    // --- Fortification instance buffer + VAO ---
     const instGlBuf = gl.createBuffer()!;
     this.instanceBuf = new DynamicInstanceBuffer(
       gl,
@@ -152,24 +146,27 @@ export class DefenseCoveragePass {
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, instGlBuf);
     gl.enableVertexAttribArray(1);
-    gl.vertexAttribPointer(1, 3, gl.FLOAT, false, FLOATS_PER_INSTANCE * 4, 0);
+    gl.vertexAttribPointer(1, 4, gl.FLOAT, false, FLOATS_PER_INSTANCE * 4, 0);
     gl.vertexAttribDivisor(1, 1);
     gl.bindVertexArray(null);
   }
 
-  /** Replace the set of defense posts. No cap. */
-  updateDefensePosts(posts: { x: number; y: number; ownerID: number }[]): void {
-    this.count = posts.length;
-    this.instanceBuf.ensureCapacity(posts.length);
+  /** Replace the set of area fortifications. No cap. */
+  updateFortifications(
+    units: { x: number; y: number; ownerID: number; range: number }[],
+  ): void {
+    this.count = units.length;
+    this.instanceBuf.ensureCapacity(units.length);
     const f = this.instanceBuf.float32;
-    for (let i = 0; i < posts.length; i++) {
-      const p = posts[i];
+    for (let i = 0; i < units.length; i++) {
+      const p = units[i];
       const off = i * FLOATS_PER_INSTANCE;
       f[off] = p.x;
       f[off + 1] = p.y;
       f[off + 2] = p.ownerID;
+      f[off + 3] = p.range;
     }
-    if (posts.length > 0) {
+    if (units.length > 0) {
       const gl = this.gl;
       gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuf.buffer);
       gl.bufferSubData(
@@ -177,10 +174,10 @@ export class DefenseCoveragePass {
         0,
         this.instanceBuf.float32,
         0,
-        posts.length * FLOATS_PER_INSTANCE,
+        units.length * FLOATS_PER_INSTANCE,
       );
     }
-    // A post appearing/disappearing affects its whole circle (possibly several
+    // A fortification appearing/disappearing affects its whole circle (possibly several
     // blocks); post-set changes are rare, so just re-stamp the whole map.
     this.fullDirty = true;
   }
@@ -206,7 +203,7 @@ export class DefenseCoveragePass {
     this.fullDirty = true;
   }
 
-  /** The R8 coverage texture (1.0 = tile is defended by a same-owner post). */
+  /** The R8 coverage texture (1.0 = tile is covered by a same-owner fortification). */
   getCoverageTex(): WebGLTexture {
     return this.coverageTex;
   }
@@ -230,7 +227,6 @@ export class DefenseCoveragePass {
     // Shared stamp state (uniforms/textures/VAO don't change between blocks).
     gl.useProgram(this.program);
     gl.uniform2f(this.uMapSize, this.mapW, this.mapH);
-    gl.uniform1f(this.uRange, this.settings.mapOverlay.defensePostRange);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.tileTex);
     gl.bindVertexArray(this.vao);

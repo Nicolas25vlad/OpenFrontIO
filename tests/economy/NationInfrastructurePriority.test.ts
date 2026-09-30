@@ -74,57 +74,47 @@ describe("nation strategic infrastructure priority", () => {
     );
     expect(productionEfficiency(game, farm).infrastructureBonus).toBe(20);
     player.updateEconomy(50);
-    expect(player.supplyStatus().logistics).toBeGreaterThan(0);
+    expect(player.logisticsBonus()).toBeGreaterThan(0);
   });
 
-  it.each(["infantry", "navy", "tanks"] as const)(
-    "builds logistics infrastructure for a %s supply shortage only",
-    (service) => {
-      game.addExecution(
-        new ConstructionExecution(
-          player,
-          UnitType.Infrastructure,
-          game.ref(105, 50),
-        ),
-      );
-      for (let i = 0; i < 45; i++) game.executeNextTick();
-      game.addExecution(
-        new ConstructionExecution(
-          player,
-          UnitType.SupplyCenter,
-          game.ref(120, 50),
-        ),
-      );
-      for (let i = 0; i < 45; i++) game.executeNextTick();
-      const supply = player.supplyStatus();
-      expect(supply.infantry).toBe(100);
-      vi.spyOn(player, "supplyStatus").mockReturnValue({
-        ...supply,
-        [service]: 99,
-      });
-      const build = vi
-        .spyOn(behavior as any, "maybeSpawnStructure")
-        .mockReturnValue(true);
-
-      const value = (behavior as any).infrastructureValue();
-      expect(value(game.ref(102, 50))).toBeGreaterThan(
-        value(game.ref(199, 199)),
-      );
-      expect((behavior as any).tryBuildInfrastructure()).toBe(true);
-      expect(build).toHaveBeenCalledExactlyOnceWith(UnitType.SupplyCenter);
-
-      vi.spyOn(player, "supplyStatus").mockReturnValue(supply);
-      const healthyBehavior = new NationStructureBehavior(
-        new PseudoRandom(0),
-        game,
+  it("builds a logistics node while connected logistics capacity can improve", () => {
+    game.addExecution(
+      new ConstructionExecution(
         player,
-      );
-      const healthyBuild = vi
-        .spyOn(healthyBehavior as any, "maybeSpawnStructure")
-        .mockReturnValue(true);
+        UnitType.Infrastructure,
+        game.ref(105, 50),
+      ),
+    );
+    for (let i = 0; i < 45; i++) game.executeNextTick();
+    game.addExecution(
+      new ConstructionExecution(
+        player,
+        UnitType.SupplyCenter,
+        game.ref(120, 50),
+      ),
+    );
+    for (let i = 0; i < 45; i++) game.executeNextTick();
+    vi.spyOn(player, "logisticsBonus").mockReturnValue(20);
+    const build = vi
+      .spyOn(behavior as any, "maybeSpawnStructure")
+      .mockReturnValue(true);
 
-      expect((healthyBehavior as any).tryBuildInfrastructure()).toBe(false);
-      expect(healthyBuild).not.toHaveBeenCalled();
-    },
-  );
+    const value = (behavior as any).infrastructureValue();
+    expect(value(game.ref(102, 50))).toBeGreaterThan(value(game.ref(199, 199)));
+    expect((behavior as any).tryBuildInfrastructure()).toBe(true);
+    expect(build).toHaveBeenCalledExactlyOnceWith(UnitType.SupplyCenter);
+
+    vi.spyOn(player, "logisticsBonus").mockReturnValue(25);
+    const healthyBehavior = new NationStructureBehavior(
+      new PseudoRandom(0),
+      game,
+      player,
+    );
+    const healthyBuild = vi
+      .spyOn(healthyBehavior as any, "maybeSpawnStructure")
+      .mockReturnValue(true);
+
+    expect((healthyBehavior as any).tryBuildInfrastructure()).toBe(false);
+    expect(healthyBuild).not.toHaveBeenCalled();
+  });
 });

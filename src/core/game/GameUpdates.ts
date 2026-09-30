@@ -1,5 +1,5 @@
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
-import type { ProductionStatus, ResourceRates, SupplyStatus } from "./Economy";
+import type { ProductionStatus, ResourceRates } from "./Economy";
 import type { IncomingMessageLocalization } from "./Game";
 import {
   EmojiMessage,
@@ -260,7 +260,6 @@ export interface PlayerUpdate {
   /** Authoritative integer stock; omitted from diffs when unchanged. */
   resources?: ResourceStock;
   resourceRates?: ResourceRates;
-  supply?: SupplyStatus;
   troops?: number;
   /** Strategic armored vehicles held in the player's reserve. */
   tanks?: number;

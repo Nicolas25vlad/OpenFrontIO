@@ -661,6 +661,7 @@ export class AiAttackBehavior {
           (sum, u) =>
             Structures.has(u.type()) &&
             u.type() !== UnitType.DefensePost &&
+            u.type() !== UnitType.Trench &&
             u.type() !== UnitType.MissileSilo
               ? sum + u.level()
               : sum,

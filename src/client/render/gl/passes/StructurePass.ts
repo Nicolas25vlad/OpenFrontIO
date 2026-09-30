@@ -280,6 +280,7 @@ export class StructurePass {
       "InfrastructureIcon.svg",
       "VehicleFactoryIcon.svg",
       "NuclearPlantIcon.svg",
+      "ShieldIconWhite.svg",
     ];
     await Promise.all(
       files.map(async (file, index) => {

@@ -32,6 +32,7 @@ export const UT_INFRASTRUCTURE = "Infrastructure" as const;
 export const UT_VEHICLE_FACTORY = "Vehicle Factory" as const;
 export const UT_NUCLEAR_PLANT = "Nuclear Plant" as const;
 export const UT_DEFENSE_POST = "Defense Post" as const;
+export const UT_TRENCH = "Trench" as const;
 export const UT_SAM_LAUNCHER = "SAM Launcher" as const;
 export const UT_MISSILE_SILO = "Missile Silo" as const;
 
@@ -51,6 +52,7 @@ export const STRUCTURE_TYPES: ReadonlySet<string> = new Set([
   UT_DEFENSE_POST,
   UT_SAM_LAUNCHER,
   UT_MISSILE_SILO,
+  UT_TRENCH,
 ]);
 
 export const NUKE_TYPES: ReadonlySet<string> = new Set([
@@ -105,6 +107,7 @@ export const ALL_UNIT_TYPES = [
   UT_INFRASTRUCTURE,
   UT_VEHICLE_FACTORY,
   UT_NUCLEAR_PLANT,
+  UT_TRENCH,
 ] as const;
 
 /** Existing six atlas columns stay in order; strategic structures append. */
@@ -120,4 +123,5 @@ export const STRUCTURE_ORDER = [
   UT_INFRASTRUCTURE,
   UT_VEHICLE_FACTORY,
   UT_NUCLEAR_PLANT,
+  UT_TRENCH,
 ] as const;

@@ -13,11 +13,9 @@ import { AttackImpl } from "./AttackImpl";
 import {
   consumeResources,
   emptyResourceRates,
-  FULL_SUPPLY,
   hasResources,
   ResourceRates,
   resourceRatesEqual,
-  SupplyStatus,
 } from "./Economy";
 import {
   Alliance,
@@ -136,11 +134,9 @@ export class PlayerImpl implements Player {
   private _gold: bigint;
   private _troops: bigint;
   private _tanks = 0;
-  private tankFuelMaintenanceRemainder = 0;
-  private tankSteelMaintenanceRemainder = 0;
   /** Replaced on mutation so the previous PlayerUpdate remains an immutable snapshot. */
   private _resources: ResourceStock = emptyResourceStock();
-  private _supply: Readonly<SupplyStatus> = FULL_SUPPLY;
+  private _logisticsBonus = 0;
   private lastEconomyTick = -1;
   private _resourceRates = emptyResourceRates();
   private _periodRates = emptyResourceRates();
@@ -410,7 +406,6 @@ export class PlayerImpl implements Player {
       goldEarned: this._goldEarned,
       resources: this._resources,
       resourceRates: this._resourceRates,
-      supply: this.mg.config().strategicEconomy() ? this._supply : undefined,
       troops: this.troops(),
       tanks: this._tanks,
       allies: allies,
@@ -1441,8 +1436,8 @@ export class PlayerImpl implements Player {
     return this._resourceRates;
   }
 
-  supplyStatus(): Readonly<SupplyStatus> {
-    return this._supply;
+  logisticsBonus(): number {
+    return this._logisticsBonus;
   }
 
   updateEconomy(ticks: Tick): void {
@@ -1454,21 +1449,6 @@ export class PlayerImpl implements Player {
     )
       return;
     this.lastEconomyTick = ticks;
-    const infantry =
-      this.troops() +
-      this._outgoingAttacks.reduce((sum, attack) => sum + attack.troops(), 0) +
-      this.units(UnitType.TransportShip).reduce(
-        (sum, ship) => sum + ship.troops(),
-        0,
-      );
-    const tanks =
-      this.tanks() +
-      this._outgoingAttacks.reduce((sum, attack) => sum + attack.tanks(), 0) +
-      this.units(UnitType.TransportShip).reduce(
-        (sum, ship) => sum + (ship.transportShipState().tanks ?? 0),
-        0,
-      );
-    const ships = this.unitCount(UnitType.Warship);
     const stationManager = this.mg.railNetwork().stationManager();
     let infrastructure: number;
     if (this.mg.config().isReplay()) {
@@ -1511,53 +1491,10 @@ export class PlayerImpl implements Player {
           }, 0)
         : 0;
     }
-    const logistics = Math.min(
+    this._logisticsBonus = Math.min(
       ECONOMY.maxLogisticsBonus,
       infrastructure * ECONOMY.logisticsPerLevel,
     );
-    const maintenance = 1 - logistics / 100;
-    const foodDemand = Math.ceil(
-      (infantry / ECONOMY.infantryPerFood) * maintenance,
-    );
-    const maintenancePercent = 100 - logistics;
-    const tankFuelWork =
-      tanks * maintenancePercent + this.tankFuelMaintenanceRemainder;
-    const tankSteelWork =
-      tanks * maintenancePercent + this.tankSteelMaintenanceRemainder;
-    const tankFuelDivisor = ECONOMY.tanksPerFuel * 100;
-    const tankSteelDivisor = ECONOMY.tanksPerSteel * 100;
-    const tankFuelDemand = Math.floor(tankFuelWork / tankFuelDivisor);
-    const tankSteelDemand = Math.floor(tankSteelWork / tankSteelDivisor);
-    this.tankFuelMaintenanceRemainder =
-      tanks === 0 ? 0 : tankFuelWork % tankFuelDivisor;
-    this.tankSteelMaintenanceRemainder =
-      tanks === 0 ? 0 : tankSteelWork % tankSteelDivisor;
-    const fuelDemand =
-      Math.ceil(ships * ECONOMY.navalFuelPerLevel * maintenance) +
-      tankFuelDemand;
-    const steelDemand =
-      Math.ceil((ships / ECONOMY.shipsPerSteel) * maintenance) +
-      tankSteelDemand;
-    const food = this.removeResource(ProcessedResource.Food, foodDemand);
-    const fuel = this.removeResource(ProcessedResource.Fuel, fuelDemand);
-    const steel = this.removeResource(ProcessedResource.Steel, steelDemand);
-    const ratio = (used: number, required: number) =>
-      required === 0 ? 100 : Math.floor((100 * used) / required);
-    this._supply = {
-      infantry: ratio(food, foodDemand),
-      navy:
-        ships === 0
-          ? 100
-          : Math.min(ratio(fuel, fuelDemand), ratio(steel, steelDemand)),
-      tanks:
-        tanks === 0
-          ? 100
-          : Math.min(ratio(fuel, fuelDemand), ratio(steel, steelDemand)),
-      foodDemand,
-      fuelDemand,
-      steelDemand,
-      logistics,
-    };
     if (
       this.gold() < ECONOMY.reserveCashThreshold &&
       this.resourceAmount(ProcessedResource.GoldBars) > 0
@@ -1884,6 +1821,7 @@ export class PlayerImpl implements Player {
         return this.landBasedUnitSpawn(targetTile);
       case UnitType.MissileSilo:
       case UnitType.DefensePost:
+      case UnitType.Trench:
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:
@@ -2138,14 +2076,7 @@ export class PlayerImpl implements Player {
 
   hash(): number {
     return (
-      (this.mg.config().strategicEconomy()
-        ? this._supply.infantry * 17 +
-          this._supply.navy * 19 +
-          this._supply.logistics * 23 +
-          this._supply.tanks * 31 +
-          this.tankFuelMaintenanceRemainder * 37 +
-          this.tankSteelMaintenanceRemainder * 41
-        : 0) +
+      this._logisticsBonus * 23 +
       this._tanks * 29 +
       simpleHash(this.id()) * (this.troops() + this.numTilesOwned()) +
       STOCK_RESOURCES.reduce(

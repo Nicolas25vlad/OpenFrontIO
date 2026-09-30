@@ -125,13 +125,6 @@ export class BuildUnitIntentEvent implements GameEvent {
   ) {}
 }
 
-export class BuildTrenchIntentEvent implements GameEvent {
-  constructor(public readonly tile: TileRef) {}
-}
-
-/** Starts point placement for one trench on a valid border tile. */
-export class StartTrenchPlacementEvent implements GameEvent {}
-
 export class SendTargetPlayerIntentEvent implements GameEvent {
   constructor(public readonly targetID: PlayerID) {}
 }
@@ -345,9 +338,6 @@ export class Transport {
       this.onSendEmbargoAllIntent(e),
     );
     this.eventBus.on(BuildUnitIntentEvent, (e) => this.onBuildUnitIntent(e));
-    this.eventBus.on(BuildTrenchIntentEvent, (e) =>
-      this.sendIntent({ type: "build_trench", tile: e.tile }),
-    );
 
     this.eventBus.on(PauseGameIntentEvent, (e) => this.onPauseGameIntent(e));
     this.eventBus.on(SendWinnerEvent, (e) => this.onSendWinnerEvent(e));

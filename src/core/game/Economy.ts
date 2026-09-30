@@ -14,53 +14,6 @@ export interface ResourceRates {
   consumption: ResourceStock;
 }
 
-export interface SupplyStatus {
-  infantry: number;
-  navy: number;
-  tanks: number;
-  foodDemand: number;
-  fuelDemand: number;
-  steelDemand: number;
-  logistics: number;
-}
-
-export const FULL_SUPPLY: Readonly<SupplyStatus> = {
-  infantry: 100,
-  navy: 100,
-  tanks: 100,
-  foodDemand: 0,
-  fuelDemand: 0,
-  steelDemand: 0,
-  logistics: 0,
-};
-
-export function supplyEqual(
-  a?: Readonly<SupplyStatus>,
-  b?: Readonly<SupplyStatus>,
-): boolean {
-  return (
-    a === b ||
-    (!!a &&
-      !!b &&
-      a.infantry === b.infantry &&
-      a.navy === b.navy &&
-      a.tanks === b.tanks &&
-      a.foodDemand === b.foodDemand &&
-      a.fuelDemand === b.fuelDemand &&
-      a.steelDemand === b.steelDemand &&
-      a.logistics === b.logistics)
-  );
-}
-
-export function supplyMultiplier(percent = 100): number {
-  return (
-    (ECONOMY.supplyFloor +
-      ((100 - ECONOMY.supplyFloor) * Math.max(0, Math.min(100, percent))) /
-        100) /
-    100
-  );
-}
-
 export interface ProductionStatus {
   efficiency: number;
   urbanBonus: number;

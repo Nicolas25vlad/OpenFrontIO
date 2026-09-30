@@ -53,6 +53,7 @@ import {
   UT_SHELL,
   UT_TRADE_SHIP,
   UT_TRANSPORT,
+  UT_TRENCH,
   UT_WARSHIP,
 } from "../types/UnitType";
 import {
@@ -99,6 +100,7 @@ const ALL_STRUCTURE_TYPES = [
   UT_PORT,
   UT_FACTORY,
   UT_DEFENSE_POST,
+  UT_TRENCH,
   UT_SAM_LAUNCHER,
   UT_MISSILE_SILO,
 ];

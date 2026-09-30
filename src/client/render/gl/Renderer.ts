@@ -414,7 +414,6 @@ export class GPURenderer {
       mapW,
       mapH,
       this.res.tileTex,
-      this.settings,
     );
 
     // --- Heat manager (needs tileTex, heatTexA/B) ---
@@ -945,18 +944,30 @@ export class GPURenderer {
     this.structureLevelPass.updateStructures(units);
     this.samRadiusPass.updateStructures(units);
     this.unitPass.setStructures(units);
-    const posts: { x: number; y: number; ownerID: number }[] = [];
+    const fortifications: {
+      x: number;
+      y: number;
+      ownerID: number;
+      range: number;
+    }[] = [];
     const w = this.mapW;
     for (const u of units.values()) {
-      if (u.unitType === "Defense Post" && !u.underConstruction) {
-        posts.push({
+      if (
+        (u.unitType === "Defense Post" || u.unitType === "Trench") &&
+        !u.underConstruction
+      ) {
+        fortifications.push({
           x: u.pos % w,
           y: (u.pos - (u.pos % w)) / w,
           ownerID: u.ownerID,
+          range:
+            u.unitType === "Trench"
+              ? this.settings.mapOverlay.trenchRange
+              : this.settings.mapOverlay.defensePostRange,
         });
       }
     }
-    this.defenseCoveragePass.updateDefensePosts(posts);
+    this.defenseCoveragePass.updateFortifications(fortifications);
   }
 
   applyDeadUnits(deadUnits: DeadUnitFx[]): void {

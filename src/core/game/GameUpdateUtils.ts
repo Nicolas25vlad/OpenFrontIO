@@ -1,5 +1,5 @@
 import type { PlayerState } from "../../client/render/types";
-import { FULL_SUPPLY, resourceRatesEqual, supplyEqual } from "./Economy";
+import { resourceRatesEqual } from "./Economy";
 import type { EmojiMessage } from "./Game";
 import {
   AllianceView,
@@ -56,7 +56,6 @@ export function diffPlayerUpdate(
     prev.tanks === next.tanks &&
     resourceStockEqual(prev.resources, next.resources) &&
     resourceRatesEqual(prev.resourceRates, next.resourceRates) &&
-    supplyEqual(prev.supply, next.supply) &&
     prev.isTraitor === next.isTraitor &&
     prev.traitorRemainingTicks === next.traitorRemainingTicks &&
     prev.inDoomsdayClock === next.inDoomsdayClock &&
@@ -96,7 +95,6 @@ export function diffPlayerUpdate(
   };
 
   setIfDifferent("clientID", prev.clientID === next.clientID);
-  setIfDifferent("supply", supplyEqual(prev.supply, next.supply));
   setIfDifferent("name", prev.name === next.name);
   setIfDifferent("displayName", prev.displayName === next.displayName);
   setIfDifferent("clanTag", prev.clanTag === next.clanTag);
@@ -208,7 +206,6 @@ export function applyStateUpdate(target: PlayerState, pu: PlayerUpdate): void {
     };
   if (pu.troops !== undefined) target.troops = pu.troops;
   if (pu.tanks !== undefined) target.tanks = pu.tanks;
-  if (pu.supply !== undefined) target.supply = { ...FULL_SUPPLY, ...pu.supply };
   if (pu.isTraitor !== undefined) target.isTraitor = pu.isTraitor;
   if (pu.traitorRemainingTicks !== undefined) {
     target.traitorRemainingTicks = Math.max(0, pu.traitorRemainingTicks);

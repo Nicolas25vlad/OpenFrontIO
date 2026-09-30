@@ -238,23 +238,6 @@ export class ResourcePanel extends LitElement implements Controller {
         <span>🛡 ${translateText("economy.tanks")}</span>
         <strong class="tabular-nums">${renderNumber(player.tanks())}</strong>
       </div>
-      <div
-        class="grid grid-cols-3 gap-1 text-[11px]"
-        title=${translateText("economy.supply_hint")}
-      >
-        <span
-          >${translateText("economy.supply")}:
-          ${player.supplyStatus().infantry}%</span
-        >
-        <span
-          >${translateText("economy.naval_supply")}:
-          ${player.supplyStatus().navy}%</span
-        >
-        <span
-          >${translateText("economy.tank_supply")}:
-          ${player.supplyStatus().tanks}%</span
-        >
-      </div>
       ${navalSectors.length > 0 || tradeRoutes.length > 0
         ? html`<details class="mt-2 border-t border-white/15 pt-1">
             <summary class="cursor-pointer text-sky-300">

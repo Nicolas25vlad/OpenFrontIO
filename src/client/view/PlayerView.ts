@@ -4,7 +4,7 @@ import { ColorPalette } from "../../core/CosmeticSchemas";
 import { PatternDecoder } from "../../core/PatternDecoder";
 import { ClientID, PlayerCosmetics } from "../../core/Schemas";
 import { createRandomName } from "../../core/Util";
-import { emptyResourceRates, FULL_SUPPLY } from "../../core/game/Economy";
+import { emptyResourceRates } from "../../core/game/Economy";
 import {
   BuildableUnit,
   Cell,
@@ -101,7 +101,6 @@ function stateFromUpdate(pu: PlayerUpdate): PlayerState {
       : emptyResourceRates(),
     troops: pu.troops!,
     tanks: pu.tanks ?? 0,
-    supply: pu.supply ? { ...pu.supply } : undefined,
     isTraitor: pu.isTraitor!,
     traitorRemainingTicks: Math.max(0, pu.traitorRemainingTicks ?? 0),
     inDoomsdayClock: pu.inDoomsdayClock ?? false,
@@ -539,10 +538,6 @@ export class PlayerView {
 
   resourceRates() {
     return this.state.resourceRates;
-  }
-
-  supplyStatus() {
-    return this.state.supply ?? FULL_SUPPLY;
   }
 
   /** Cumulative ship-trade revenue (for gold-rate columns). */

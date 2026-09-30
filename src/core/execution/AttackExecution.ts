@@ -355,6 +355,14 @@ export class AttackExecution implements Execution {
             targetPlayer.id(),
           )
         : undefined;
+      const defenderTrench = targetPlayer
+        ? this.mg.highestLevelUnitNearby(
+            tileToConquer,
+            this.mg.config().trenchRange(),
+            UnitType.Trench,
+            targetPlayer.id(),
+          )
+        : undefined;
       const { attackerTroopLoss, defenderTroopLoss, tickFraction } = this.mg
         .config()
         .attackLogic(
@@ -363,6 +371,7 @@ export class AttackExecution implements Execution {
             tileToConquer,
             borderSize,
             defenderPost,
+            defenderTrench,
           ),
         );
       tickBudget -= tickFraction;
@@ -395,6 +404,7 @@ export class AttackExecution implements Execution {
     tile: TileRef,
     borderSize: number,
     defenderPost: Unit | undefined,
+    defenderTrench: Unit | undefined,
   ): AttackLogicInput {
     const defender = this.target.isPlayer() ? this.target : null;
     // Same test as scanning nearbyUnits() for a post owned by the defender
@@ -409,9 +419,7 @@ export class AttackExecution implements Execution {
       attacker: {
         type: this._owner.type(),
         numTiles: this._owner.numTilesOwned(),
-        supply: this._owner.supplyStatus().infantry,
-        tankSupply: this._owner.supplyStatus().tanks,
-        logistics: this._owner.supplyStatus().logistics,
+        logistics: this._owner.logisticsBonus(),
         tanks: this.attack?.tanks() ?? 0,
         trenchLevel: this.attackerStagingTrenchLevel(tile),
       },
@@ -422,14 +430,16 @@ export class AttackExecution implements Execution {
               type: defender.type(),
               numTiles: defender.numTilesOwned(),
               troops: defender.troops(),
-              supply: defender.supplyStatus().infantry,
               isTraitor: defender.isTraitor(),
               isDisconnectedTeammate:
                 defender.isDisconnected() && this._owner.isOnSameTeam(defender),
             },
       defenderHasDefensePost: defenderPost !== undefined,
       defenderDefensePostLevel: defenderPost?.level() ?? 0,
-      defenderTrenchLevel: this.mg.trenchLevel(tile),
+      defenderTrenchLevel: Math.max(
+        this.mg.trenchLevel(tile),
+        defenderTrench?.level() ?? 0,
+      ),
       falloutRatio: this.mg.hasFallout(tile)
         ? this.mg.numTilesWithFallout() / this.mg.numLandTiles()
         : null,
@@ -451,7 +461,16 @@ export class AttackExecution implements Execution {
       const neighbor = this.nbuf[i];
       if (this.map.ownerID(neighbor) !== this.ownerSmallID) continue;
       foundAttackerBorder = true;
-      minimumLevel = Math.min(minimumLevel, this.mg.trenchLevel(neighbor));
+      const trench = this.mg.highestLevelUnitNearby(
+        neighbor,
+        this.mg.config().trenchRange(),
+        UnitType.Trench,
+        this._owner.id(),
+      );
+      minimumLevel = Math.min(
+        minimumLevel,
+        Math.max(this.mg.trenchLevel(neighbor), trench?.level() ?? 0),
+      );
       if (minimumLevel === 0) return 0;
     }
     return foundAttackerBorder ? minimumLevel : 0;

@@ -18,6 +18,7 @@ describe("build categories", () => {
         UnitType.Factory,
         UnitType.Port,
         UnitType.DefensePost,
+        UnitType.Trench,
         UnitType.MissileSilo,
         UnitType.SAMLauncher,
         UnitType.Warship,
@@ -36,9 +37,11 @@ describe("build categories", () => {
     expect(buildCategoryFor(UnitType.MissileSilo)?.id).toBe("nuclear");
   });
 
-  test("exposes point-placed trenches as a military build action", () => {
+  test("exposes trenches as a regular military structure", () => {
+    expect(buildCategoryFor(UnitType.Trench)?.id).toBe("military");
     expect(
-      BUILD_CATEGORIES.find((category) => category.id === "military")?.actions,
-    ).toContain("trench");
+      BUILD_CATEGORIES.find((category) => category.id === "military")
+        ?.unitTypes,
+    ).toContain(UnitType.Trench);
   });
 });

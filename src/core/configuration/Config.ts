@@ -4,7 +4,6 @@ import { AssetManifest } from "../AssetUrls";
 import { ClusterConfig } from "../ClusterConfig";
 import { exp, log, pow, pow2 } from "../DetMath";
 import { DoomsdayClockSpeed } from "../game/DoomsdayClock";
-import { supplyMultiplier } from "../game/Economy";
 import {
   Difficulty,
   Game,
@@ -20,13 +19,11 @@ import {
   UnitInfo,
   UnitType,
 } from "../game/Game";
-import { ProcessedResource } from "../game/Resources";
 import { UserSettings } from "../game/UserSettings";
 import { GameConfig, TeamCountConfig } from "../Schemas";
 import { NukeType } from "../StatsSchemas";
 import { assertNever, sigmoid, toInt, within } from "../Util";
 import {
-  ECONOMY,
   LOGISTICS_CAPACITY,
   LOGISTICS_NODES,
   NAVAL_SUPREMACY,
@@ -90,9 +87,6 @@ export interface AttackLogicInput {
   attacker: {
     type: PlayerType;
     numTiles: number;
-    supply?: number;
-    /** Fuel and steel supply for the attack's tanks. */
-    tankSupply?: number;
     logistics?: number;
     /** Tanks assigned to this land or naval attack. */
     tanks?: number;
@@ -107,7 +101,6 @@ export interface AttackLogicInput {
     isTraitor: boolean;
     /** Defender is disconnected and on the attacker's team. */
     isDisconnectedTeammate: boolean;
-    supply?: number;
   } | null;
   /** A defense post owned by the defender is in range of the tile. */
   defenderHasDefensePost: boolean;
@@ -390,6 +383,10 @@ export class Config {
     return 30;
   }
 
+  trenchRange(): number {
+    return STRATEGIC_COMBAT.trenchRange;
+  }
+
   defensePostDefenseBonus(level = 1): number {
     return this.strategicEconomy()
       ? STRATEGIC_COMBAT.defensePostStrength +
@@ -574,12 +571,6 @@ export class Config {
     return this.strategicEconomy() ? (RESOURCE_COSTS[type] ?? {}) : {};
   }
 
-  trenchCost(): ResourceAmounts {
-    return {
-      [ProcessedResource.Steel]: STRATEGIC_COMBAT.trenchSteelPerLevel,
-    };
-  }
-
   trenchMaxLevel(): number {
     return this.strategicEconomy() ? STRATEGIC_COMBAT.trenchMaxLevel : 0;
   }
@@ -693,6 +684,24 @@ export class Config {
           upgradable: this.strategicEconomy(),
           maxLevel: this.strategicEconomy()
             ? STRATEGIC_COMBAT.defensePostMaxLevel
+            : undefined,
+        };
+        break;
+      case UnitType.Trench:
+        info = {
+          cost: this.costWrapper(
+            (numUnits: number) =>
+              STRATEGIC_BUILDINGS[UnitType.Trench].gold *
+              Math.min(4, numUnits + 1),
+            UnitType.Trench,
+          ),
+          constructionDuration: this.instantBuild()
+            ? 0
+            : STRATEGIC_BUILDINGS[UnitType.Trench].ticks,
+          maxHealth: 200,
+          upgradable: this.strategicEconomy(),
+          maxLevel: this.strategicEconomy()
+            ? STRATEGIC_COMBAT.trenchMaxLevel
             : undefined,
         };
         break;
@@ -947,29 +956,13 @@ export class Config {
   attackLogic(input: AttackLogicInput): AttackLogicResult {
     const { attackTroops, attacker, defender } = input;
     let { mag, tileCost } = terrainAttackBase(input.terrain);
-    const attackerSupply = this.strategicEconomy()
-      ? supplyMultiplier(attacker.supply)
-      : 1;
-    const tankSupply = this.strategicEconomy()
-      ? supplyMultiplier(attacker.tankSupply)
-      : 1;
-    const defenderSupply = this.strategicEconomy()
-      ? supplyMultiplier(defender?.supply)
-      : 1;
-    const fullTankStrength =
-      (attacker.tanks ?? 0) * STRATEGIC_COMBAT.tankCombatPower;
-    const effectiveAttackStrength =
-      attackTroops - fullTankStrength + fullTankStrength * tankSupply;
-    mag *= defenderSupply / attackerSupply;
-    tileCost *= defenderSupply / attackerSupply;
+    const effectiveAttackStrength = attackTroops;
     if (this.strategicEconomy())
       tileCost /= 1 + (attacker.logistics ?? 0) / 100;
     if (this.strategicEconomy() && (attacker.tanks ?? 0) > 0) {
       const tankSpeedBonus = Math.min(
         STRATEGIC_COMBAT.tankAdvanceSpeedMaxPercent,
-        (attacker.tanks ?? 0) *
-          STRATEGIC_COMBAT.tankAdvanceSpeedPerTankPercent *
-          tankSupply,
+        (attacker.tanks ?? 0) * STRATEGIC_COMBAT.tankAdvanceSpeedPerTankPercent,
       );
       tileCost /= 1 + tankSpeedBonus / 100;
     }
@@ -979,9 +972,7 @@ export class Config {
     if (this.strategicEconomy() && attackerTrenchLevel > 0) {
       const tankBreakthrough = Math.min(
         STRATEGIC_COMBAT.trenchTankCounterMax,
-        (attacker.tanks ?? 0) *
-          STRATEGIC_COMBAT.trenchTankCounterPerTank *
-          tankSupply,
+        (attacker.tanks ?? 0) * STRATEGIC_COMBAT.trenchTankCounterPerTank,
       );
       const effectiveTrenchLevel = attackerTrenchLevel * (1 - tankBreakthrough);
       offensiveTrenchLossModifier +=
@@ -1001,9 +992,7 @@ export class Config {
     if (this.strategicEconomy() && defender !== null && trenchLevel > 0) {
       const trenchCounter = Math.min(
         STRATEGIC_COMBAT.trenchTankCounterMax,
-        (attacker.tanks ?? 0) *
-          STRATEGIC_COMBAT.trenchTankCounterPerTank *
-          tankSupply,
+        (attacker.tanks ?? 0) * STRATEGIC_COMBAT.trenchTankCounterPerTank,
       );
       const effectiveTrenchLevel = trenchLevel * (1 - trenchCounter);
       mag *= 1 + effectiveTrenchLevel * STRATEGIC_COMBAT.trenchDefensePerLevel;
@@ -1059,8 +1048,7 @@ export class Config {
     const traitorCostMod = defender.isTraitor ? this.traitorSpeedDebuff() : 1;
 
     // Defender loses its average troops-per-tile.
-    const defenderTroopLoss =
-      defender.troops / defender.numTiles / defenderSupply;
+    const defenderTroopLoss = defender.troops / defender.numTiles;
 
     // Two ratios drive the attacker's loss: how outnumbered the attack is
     // (defender army / attack stack, clamped: bigger pushes pay less per
@@ -1189,12 +1177,6 @@ export class Config {
 
     const ratio = 1 - player.troops() / max;
     toAdd *= ratio;
-    if (this.strategicEconomy() && toAdd > 0) {
-      toAdd *=
-        ECONOMY.growthFloor +
-        ((1 - ECONOMY.growthFloor) * player.supplyStatus().infantry) / 100;
-    }
-
     if (player.type() === PlayerType.Bot) {
       toAdd *= 0.5;
     }

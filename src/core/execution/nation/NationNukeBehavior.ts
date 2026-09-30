@@ -669,6 +669,7 @@ export class NationNukeBehavior {
           case UnitType.City:
             return 25_000 * level;
           case UnitType.DefensePost:
+          case UnitType.Trench:
             return 5_000 * level;
           case UnitType.MissileSilo:
             return 50_000 * level;

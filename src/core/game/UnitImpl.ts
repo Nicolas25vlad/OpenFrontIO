@@ -118,6 +118,7 @@ export class UnitImpl implements Unit {
       case UnitType.Port:
       case UnitType.MissileSilo:
       case UnitType.DefensePost:
+      case UnitType.Trench:
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:
@@ -266,6 +267,7 @@ export class UnitImpl implements Unit {
       case UnitType.Port:
       case UnitType.MissileSilo:
       case UnitType.DefensePost:
+      case UnitType.Trench:
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:
@@ -402,6 +404,7 @@ export class UnitImpl implements Unit {
           break;
         case UnitType.City:
         case UnitType.DefensePost:
+        case UnitType.Trench:
         case UnitType.MissileSilo:
         case UnitType.Port:
         case UnitType.SAMLauncher:
@@ -793,6 +796,9 @@ export class UnitImpl implements Unit {
       this._type === UnitType.DefensePost &&
       this.mg.config().strategicEconomy()
     ) {
+      this._health = toInt(this.maxHealth());
+    }
+    if (this._type === UnitType.Trench) {
       this._health = toInt(this.maxHealth());
     }
     // unitCount()/unitsOwned() are level-weighted and memoised on these versions

@@ -28,7 +28,6 @@ import {
 import { Cluster } from "../../game/TrainStation";
 import { PseudoRandom } from "../../PseudoRandom";
 import { assertNever } from "../../Util";
-import { BuildTrenchExecution } from "../BuildTrenchExecution";
 import { ConstructionExecution } from "../ConstructionExecution";
 import { UpgradeStructureExecution } from "../UpgradeStructureExecution";
 import { nearestTileDist, nearestTileDistCapped } from "../Util";
@@ -225,18 +224,7 @@ export class NationStructureBehavior {
       }
     }
 
-    // Food is a survival resource: do not let the high-gold structure pause or
-    // team save-up window delay a farm after the reserve threshold is reached.
-    if (this.tryBuildFoodFarm()) {
-      this.lastStructureTick = this.game.ticks();
-      this.placementsCount++;
-      return true;
-    }
-
-    // Trenches consume strategic materials rather than gold and are built
-    // outside normal structure pacing, like defense posts. Food remains the
-    // first priority because it protects the army from starvation.
-    if (this.placementsCount > 0 && this.tryBuildDefenseTrench()) {
+    if (this.placementsCount > 0 && this.tryBuildTrench()) {
       return true;
     }
 
@@ -308,8 +296,8 @@ export class NationStructureBehavior {
     return false;
   }
 
-  /** Builds one trench on an exposed border tile during a land attack. */
-  private tryBuildDefenseTrench(): boolean {
+  /** Builds an area trench near an exposed front during a land attack. */
+  private tryBuildTrench(): boolean {
     if (
       !this.game.config().strategicEconomy() ||
       this.lastTrenchBuildTick === this.game.ticks()
@@ -321,6 +309,12 @@ export class NationStructureBehavior {
       .incomingAttacks()
       .filter((attack) => attack.sourceTile() === null);
     if (landAttacks.length === 0) return false;
+    if (
+      this.player
+        .units(UnitType.Trench)
+        .some((unit) => unit.isUnderConstruction())
+    )
+      return false;
 
     const ourTroops = this.player.troops();
     if (ourTroops <= 0) return false;
@@ -338,22 +332,30 @@ export class NationStructureBehavior {
     );
     const frontTiles = this.getAttackFrontTiles(landAttacks);
     const trenchedTiles = frontTiles.filter(
-      (tile) => this.game.trenchLevel(tile) > 0,
+      (tile) =>
+        this.game.trenchLevel(tile) > 0 ||
+        this.game.highestLevelUnitNearby(
+          tile,
+          this.game.config().trenchRange(),
+          UnitType.Trench,
+          this.player.id(),
+        ) !== undefined,
     );
     if (trenchedTiles.length >= maxTrenchedTiles) return false;
 
-    const cost = this.game.config().trenchCost();
-    if (!hasResources(this.player, cost)) return false;
-
-    const tile =
-      frontTiles.find((candidate) => this.game.trenchLevel(candidate) === 0) ??
-      frontTiles.find(
-        (candidate) =>
-          this.game.trenchLevel(candidate) < STRATEGIC_COMBAT.trenchMaxLevel,
-      );
+    const candidates = this.sampleTilesNearFront(
+      frontTiles,
+      25,
+      UnitType.Trench,
+    );
+    const tile = candidates.find((candidate) =>
+      this.player.canBuild(UnitType.Trench, candidate),
+    );
     if (tile === undefined) return false;
 
-    this.game.addExecution(new BuildTrenchExecution(this.player, tile));
+    this.game.addExecution(
+      new ConstructionExecution(this.player, UnitType.Trench, tile),
+    );
     this.lastTrenchBuildTick = this.game.ticks();
     return true;
   }
@@ -673,39 +675,6 @@ export class NationStructureBehavior {
   }
 
   /**
-   * Keep food production close to infantry demand before spending a scarce
-   * structure turn on expansion or military buildings. This is opt-in with
-   * the strategic economy, so legacy nation behavior remains unchanged.
-   */
-  private tryBuildFoodFarm(): boolean {
-    const config = this.game.config();
-    if (!config.strategicEconomy?.() || config.isUnitDisabled(UnitType.Farm)) {
-      return false;
-    }
-
-    const foodDemand = Math.ceil(
-      this.player.troops() / ECONOMY.infantryPerFood,
-    );
-    if (foodDemand <= 0) return false;
-
-    const farms = this.player.units(UnitType.Farm);
-    if (farms.some((farm) => farm.isUnderConstruction())) return false;
-
-    const farmCapacity = farms.reduce(
-      (capacity, farm) => capacity + farm.level() * ECONOMY.farmFood,
-      0,
-    );
-    if (farmCapacity >= foodDemand) return false;
-
-    const foodReserve = foodDemand * ECONOMY.foodReservePeriods;
-    if (this.player.resourceAmount(ProcessedResource.Food) >= foodReserve) {
-      return false;
-    }
-
-    return this.maybeSpawnStructure(UnitType.Farm);
-  }
-
-  /**
    * Restore the raw inputs that are holding back industrial recipes. The
    * resource catalog is indexed once per game; each decision visits only
    * deposits of currently scarce resources, never all map tiles.
@@ -800,8 +769,8 @@ export class NationStructureBehavior {
   }
 
   /**
-   * Place infrastructure where it adds production coverage or relieves an
-   * active supply shortage through the existing rail network.
+   * Place infrastructure where it adds production coverage or improves the
+   * attack logistics bonus through the existing rail network.
    */
   private tryBuildInfrastructure(): boolean {
     const config = this.game.config();
@@ -844,12 +813,8 @@ export class NationStructureBehavior {
           : 0),
       0,
     );
-    const hasSupplyShortage =
-      this.player.supplyStatus().infantry < 100 ||
-      this.player.supplyStatus().navy < 100 ||
-      this.player.supplyStatus().tanks < 100;
     const canImproveLogistics =
-      hasSupplyShortage &&
+      this.player.logisticsBonus() < ECONOMY.maxLogisticsBonus &&
       connectedInfrastructureLevels < MAX_LOGISTICS_INFRASTRUCTURE_LEVELS;
 
     if (!hasUncoveredProduction && !canImproveLogistics) return false;
@@ -1470,9 +1435,7 @@ export class NationStructureBehavior {
       ? stationManager.findStation(capital)?.getCluster()
       : null;
     const stationRangeSquared = game.config().trainStationMaxRange() ** 2;
-    const supply = player.supplyStatus();
-    const needsLogistics =
-      supply.infantry < 100 || supply.navy < 100 || supply.tanks < 100;
+    const needsLogistics = player.logisticsBonus() < ECONOMY.maxLogisticsBonus;
 
     return (tile) => {
       let score = 0;

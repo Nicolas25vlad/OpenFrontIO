@@ -33,16 +33,6 @@ export const ECONOMY = {
   fertilizedFood: 16,
   nuclearBatches: 1,
   productionRevenue: 150n,
-  infantryPerFood: 5000,
-  foodReservePeriods: 6,
-  navalFuelPerLevel: 2,
-  shipsPerSteel: 5,
-  /** Tank reserves consume one unit of fuel per period per ten tanks. */
-  tanksPerFuel: 10,
-  /** Tank reserves consume one unit of steel per period per twenty tanks. */
-  tanksPerSteel: 20,
-  supplyFloor: 35,
-  growthFloor: 0.2,
   logisticsPerLevel: 5,
   maxLogisticsBonus: 25,
   reserveCashThreshold: 25_000n,
@@ -64,6 +54,7 @@ export const RESOURCE_COSTS: Partial<Record<UnitType, ResourceAmounts>> = {
   [UnitType.SupplyCenter]: { [Product.Steel]: 20 },
   [UnitType.Port]: { [Product.Steel]: 15 },
   [UnitType.DefensePost]: { [Product.Steel]: 8 },
+  [UnitType.Trench]: { [Product.Steel]: 3 },
   [UnitType.VehicleFactory]: { [Product.Steel]: 30, [Product.Circuits]: 5 },
   [UnitType.Warship]: { [Product.Steel]: 20, [Product.Fuel]: 10 },
   [UnitType.SAMLauncher]: { [Product.Steel]: 25, [Product.Circuits]: 10 },
@@ -109,15 +100,15 @@ export const STRATEGIC_COMBAT = {
   defensePostHealthPerLevel: 100,
   defensePostWearPerTile: 25,
   trenchMaxLevel: 3,
+  trenchRange: 15,
   trenchDefensePerLevel: 0.08,
   trenchAttackSpeedPerLevel: 0.06,
   trenchOffensiveLossPerLevel: 0.04,
   trenchOffensiveSlowdownPerLevel: 0.05,
-  /** A supplied tank reduces the effective trench bonus by this share. */
+  /** Each attacking tank reduces the effective trench bonus by this share. */
   trenchTankCounterPerTank: 0.1,
   trenchTankCounterMax: 0.75,
   trenchWearPerResolvedTile: 1,
-  trenchSteelPerLevel: 3,
   /** One tank joins a land or naval attack for every 10,000 infantry sent. */
   infantryPerTank: 10_000,
   /** Combat strength contributed by one tank, measured in infantry equivalents. */
@@ -233,6 +224,7 @@ export const STRATEGIC_BUILDINGS = {
   [UnitType.Mine]: { gold: 100_000, ticks: 20 },
   [UnitType.Farm]: { gold: 50_000, ticks: 20 },
   [UnitType.Infrastructure]: { gold: 150_000, ticks: 30 },
+  [UnitType.Trench]: { gold: 75_000, ticks: 20 },
   [UnitType.SupplyCenter]: { gold: 200_000, ticks: 30 },
   [UnitType.VehicleFactory]: { gold: 500_000, ticks: 50 },
   [UnitType.NuclearPlant]: { gold: 4_000_000, ticks: 150 },
@@ -250,7 +242,7 @@ export const LOGISTICS_NODES: Partial<Record<UnitType, true>> = {
   [UnitType.Port]: true,
 };
 
-/** Relative contribution of connected logistics nodes to player supply. */
+/** Relative contribution of connected buildings to the attack logistics bonus. */
 export const LOGISTICS_CAPACITY: Partial<Record<UnitType, number>> = {
   [UnitType.SupplyCenter]: 3,
 };

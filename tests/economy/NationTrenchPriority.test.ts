@@ -1,5 +1,11 @@
 import { NationStructureBehavior } from "../../src/core/execution/nation/NationStructureBehavior";
-import { Game, Player, PlayerInfo, PlayerType } from "../../src/core/game/Game";
+import {
+  Game,
+  Player,
+  PlayerInfo,
+  PlayerType,
+  UnitType,
+} from "../../src/core/game/Game";
 import { ProcessedResource } from "../../src/core/game/Resources";
 import { PseudoRandom } from "../../src/core/PseudoRandom";
 import { setup } from "../util/Setup";
@@ -11,7 +17,11 @@ describe("nation strategic trench priority", () => {
     behavior: NationStructureBehavior;
     frontTile: number;
   }> {
-    const game = await setup("big_plains", { strategicEconomy });
+    const game = await setup("big_plains", {
+      strategicEconomy,
+      infiniteGold: true,
+      instantBuild: true,
+    });
     game.addPlayer(new PlayerInfo("nation", PlayerType.Nation, null, "nation"));
     game.addPlayer(new PlayerInfo("enemy", PlayerType.Human, null, "enemy"));
     const nation = game.player("nation");
@@ -36,6 +46,7 @@ describe("nation strategic trench priority", () => {
     }
 
     if (frontTile === undefined) throw new Error("map has no adjacent land");
+    nation.addGold(1_000_000_000n);
     nation.addTroops(1_000);
     enemy.createAttack(nation, 100_000, null, new Set());
     nation.addResource(ProcessedResource.Steel, 100);
@@ -48,30 +59,36 @@ describe("nation strategic trench priority", () => {
     };
   }
 
-  it("builds a front-line trench when a land threat and steel are available", async () => {
+  it("builds an area trench near an exposed front", async () => {
     const { game, nation, behavior, frontTile } = await setupFront();
-    const steelBefore = nation.resourceAmount(ProcessedResource.Steel);
 
-    expect((behavior as any).tryBuildDefenseTrench()).toBe(true);
+    expect((behavior as any).tryBuildTrench()).toBe(true);
+    game.executeNextTick();
     game.executeNextTick();
 
-    expect(game.trenchLevel(frontTile)).toBe(1);
-    expect(nation.resourceAmount(ProcessedResource.Steel)).toBeLessThan(
-      steelBefore,
-    );
+    const [trench] = nation.units(UnitType.Trench);
+    expect(trench).toBeDefined();
+    expect(
+      game.highestLevelUnitNearby(
+        frontTile,
+        game.config().trenchRange(),
+        UnitType.Trench,
+        nation.id(),
+      ),
+    ).toBe(trench);
   });
 
-  it("does not build trenches in legacy games or without enough steel", async () => {
+  it("does not build trenches in legacy games or without steel", async () => {
     const legacy = await setupFront(false);
-    expect((legacy.behavior as any).tryBuildDefenseTrench()).toBe(false);
-    expect(legacy.game.trenchLevel(legacy.frontTile)).toBe(0);
+    expect((legacy.behavior as any).tryBuildTrench()).toBe(false);
+    expect(legacy.nation.units(UnitType.Trench)).toHaveLength(0);
 
     const strategic = await setupFront();
     strategic.nation.removeResource(
       ProcessedResource.Steel,
       strategic.nation.resourceAmount(ProcessedResource.Steel),
     );
-    expect((strategic.behavior as any).tryBuildDefenseTrench()).toBe(false);
-    expect(strategic.game.trenchLevel(strategic.frontTile)).toBe(0);
+    expect((strategic.behavior as any).tryBuildTrench()).toBe(false);
+    expect(strategic.nation.units(UnitType.Trench)).toHaveLength(0);
   });
 });

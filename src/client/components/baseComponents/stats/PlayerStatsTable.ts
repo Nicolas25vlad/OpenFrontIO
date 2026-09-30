@@ -24,6 +24,7 @@ const BUILDING_ORDER = {
   vehicle: 4.3,
   plant: 4.4,
   defp: 5,
+  trch: 5.1,
   silo: 6,
   saml: 7,
 } as const satisfies Record<
@@ -43,6 +44,7 @@ const buildingUnits = (
 const UNIT_LABEL_KEYS = {
   city: "unit_type.city",
   defp: "unit_type.defense_post",
+  trch: "unit_type.trench",
   fact: "unit_type.factory",
   mine: "unit_type.mine",
   farm: "unit_type.farm",
